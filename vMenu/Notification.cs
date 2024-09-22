@@ -76,6 +76,17 @@ namespace vMenuClient
     public class Notify : BaseScript
     {
         /// <summary>
+        /// Get the configured notification type (vmenu_notification_type) or "native" by default.
+        /// </summary>
+        public static string NotificationType
+        {
+            get
+            {
+                return vMenuShared.ConfigManager.GetSettingsString(vMenuShared.ConfigManager.Setting.vmenu_notification_type, "native");
+            }
+        }
+
+        /// <summary>
         /// Show a custom notification above the minimap.
         /// </summary>
         /// <param name="message">Message to display.</param>
@@ -83,7 +94,7 @@ namespace vMenuClient
         /// <param name="saveToBrief">Should the notification be logged to the brief (PAUSE menu > INFO > Notifications)?</param>
         public static void Custom(string message, bool blink = true, bool saveToBrief = true, string type = "Custom")
         {
-            string notiftype = vMenuShared.ConfigManager.GetSettingsString(vMenuShared.ConfigManager.Setting.vmenu_notification_type);
+            string notiftype = NotificationType;
             if (type == "death")
             {
                     SetNotificationTextEntry("CELL_EMAIL_BCON"); // 10x ~a~
@@ -133,7 +144,7 @@ namespace vMenuClient
         /// <param name="saveToBrief">Should the notification be logged to the brief (PAUSE menu > INFO > Notifications)?</param>
         public static void Alert(string message, bool blink = true, bool saveToBrief = true)
         {
-            string notiftype = vMenuShared.ConfigManager.GetSettingsString(vMenuShared.ConfigManager.Setting.vmenu_notification_type);
+            string notiftype = NotificationType;
 
             if (notiftype.ToLower() == "native")
             {
@@ -175,7 +186,7 @@ namespace vMenuClient
         /// <param name="saveToBrief">Should the notification be logged to the brief (PAUSE menu > INFO > Notifications)?</param>
         public static void Error(string message, bool blink = true, bool saveToBrief = true)
         {
-            string notiftype = vMenuShared.ConfigManager.GetSettingsString(vMenuShared.ConfigManager.Setting.vmenu_notification_type);
+            string notiftype = NotificationType;
 
             if (notiftype.ToLower() == "native")
             {
@@ -218,7 +229,7 @@ namespace vMenuClient
         /// <param name="saveToBrief">Should the notification be logged to the brief (PAUSE menu > INFO > Notifications)?</param>
         public static void Info(string message, bool blink = true, bool saveToBrief = true)
         {
-            string notiftype = vMenuShared.ConfigManager.GetSettingsString(vMenuShared.ConfigManager.Setting.vmenu_notification_type);
+            string notiftype = NotificationType;
 
             if (notiftype.ToLower() == "native")
             {
@@ -247,7 +258,7 @@ namespace vMenuClient
         /// <param name="saveToBrief">Should the notification be logged to the brief (PAUSE menu > INFO > Notifications)?</param>
         public static void Success(string message, bool blink = true, bool saveToBrief = true)
         {
-            string notiftype = vMenuShared.ConfigManager.GetSettingsString(vMenuShared.ConfigManager.Setting.vmenu_notification_type);
+            string notiftype = NotificationType;
 
             if (notiftype.ToLower() == "native")
             {
