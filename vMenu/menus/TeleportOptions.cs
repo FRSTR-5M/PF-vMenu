@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using MenuAPI;
 using Newtonsoft.Json;
 using CitizenFX.Core;
 using static CitizenFX.Core.Native.API;
 using static vMenuClient.CommonFunctions;
 using static vMenuShared.PermissionsManager;
+using static vMenuShared.ConfigManager;
 
 namespace vMenuClient
 {
@@ -15,6 +17,9 @@ namespace vMenuClient
         // Variables
         private Menu menu;
 
+        private Vector3? tempTpCoords = null;
+        private float tempTpHeading = 0f;
+
         // keybind states
         public bool KbTpToWaypoint { get; private set; } = UserDefaults.KbTpToWaypoint;
         public int KbTpToWaypointKey { get; } = vMenuShared.ConfigManager.GetSettingsInt(vMenuShared.ConfigManager.Setting.vmenu_teleport_to_wp_keybind_key) != -1
@@ -22,6 +27,66 @@ namespace vMenuClient
             : 168; // 168 (F7 by default)
 
         internal static List<vMenuShared.ConfigManager.TeleportLocation> TpLocations = new List<vMenuShared.ConfigManager.TeleportLocation>();
+
+        public TeleportOptions()
+        {
+            if(IsAllowed(Permission.TPTeleportTempLocation))
+            {
+                RegisterKeyMapping($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:tpToTempLocation", "vMenu TP To Temp. Location", "keyboard", "");
+                RegisterCommand($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:tpToTempLocation", new Action<dynamic, List<dynamic>, string>(async (dynamic source, List<dynamic> args, string rawCommand) =>
+                {
+                    if (!IsAllowed(Permission.TPTeleportTempLocation))
+                    {
+                        Notify.Error("Teleporting to temporary location not allowed.");
+                        return;
+                    }
+
+                    await TeleportToTemporaryLocation();
+                }), false);
+
+                RegisterKeyMapping($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:saveTempLocation", "vMenu Save Temp. TP Location", "keyboard", "");
+                RegisterCommand($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:saveTempLocation", new Action<dynamic, List<dynamic>, string>((dynamic source, List<dynamic> args, string rawCommand) =>
+                {
+                    if(!IsAllowed(Permission.TPTeleportTempLocation))
+                    {
+                        Notify.Error("Saving temporary teleport location not allowed.");
+                        return;
+                    }
+
+                    SaveTemporaryLocation(true);
+                }), false);
+            }
+        }
+
+        /// <summary>
+        /// Teleport to the saved temporary location.
+        /// </summary>
+        public async Task TeleportToTemporaryLocation()
+        {
+            if (tempTpCoords is Vector3 coords)
+            {
+                await TeleportToCoords(coords, true);
+                SetEntityHeading(Game.PlayerPed.Handle, tempTpHeading);
+                SetGameplayCamRelativeHeading(0f);
+            }
+            else
+            {
+                Notify.Error("Temporary teleport location not set!");
+            }
+        }
+
+        /// <summary>
+        /// Set the temporary teleport location to the current location.
+        /// </summary>
+        public void SaveTemporaryLocation(bool notify)
+        {
+            tempTpCoords = Game.PlayerPed.Position;
+            tempTpHeading = Game.PlayerPed.Heading;
+
+            if (notify)
+                Notify.Info("Temporary teleport location set.");
+        }
+
         /// <summary>
         /// Creates the menu.
         /// </summary>
@@ -44,6 +109,8 @@ namespace vMenuClient
             {
                 var tptowp = new MenuItem("Teleport To Waypoint", "Teleport to the waypoint on your map.");
                 var tpToCoord = new MenuItem("Teleport To Coords", "Enter the X, Y, Z coordinates and you will be teleported to that location.");
+                var tpToTempLocation = new MenuItem("Teleport To Temporary Location", "Teleport to the saved temporary teleport location.");
+                var saveTempLocationBtn = new MenuItem("Save Temporary Teleport Location", "Saves your current location as a temporary teleport location.");
                 var saveLocationBtn = new MenuItem("Save Teleport Location", "Adds your current location to the teleport locations menu and saves it on the server ~r~~h~(script restart required after adding new location(s)).");
                 menu.OnItemSelect += async (sender, item, index) =>
                 {
@@ -111,6 +178,14 @@ namespace vMenuClient
                         }
 
                         await TeleportToCoords(new Vector3(posX, posY, posZ), true);
+                    }
+                    else if (item == tpToTempLocation)
+                    {
+                        await TeleportToTemporaryLocation();
+                    }
+                    else if (item == saveTempLocationBtn)
+                    {
+                        SaveTemporaryLocation(false);
                     }
                     else if (item == saveLocationBtn)
                     {
@@ -181,9 +256,17 @@ namespace vMenuClient
 
                         }
                     };
+                    if (IsAllowed(Permission.TPTeleportTempLocation))
+                    {
+                        menu.AddMenuItem(tpToTempLocation);
+                    }
 
 
 
+                    if (IsAllowed(Permission.TPTeleportTempLocation))
+                    {
+                        menu.AddMenuItem(saveTempLocationBtn);
+                    }
                     if (IsAllowed(Permission.TPTeleportSaveLocation))
                     {
                         menu.AddMenuItem(saveLocationBtn);
