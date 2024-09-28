@@ -7,8 +7,8 @@ games {'gta5'}
 name 'PF-vMenu'
 description 'A fork of vMenu, a server sided menu for FiveM with custom permissions.'
 version 'v1.1.4'
-author 'PF Team/Tom Grobbe'
-url 'https://github.com/ProjectFairnessLabs/PF-vMenu/'
+author 'PF Team/Tom Grobbe/BenniCubed'
+url 'https://github.com/BenniCubed/PF-vMenu'
 ui_page 'storage.html'
 
 -- The default language of the menu

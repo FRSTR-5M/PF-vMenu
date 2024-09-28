@@ -13,11 +13,11 @@ namespace vMenuClient.menus
             menu = new Menu("vMenu", "About PF-vMenu");
 
             // Create menu items.
-            var version = new MenuItem("PF-vMenu Version", $"This server is using PF-vMenu ~b~~h~{MainMenu.Version}~h~~s~. \n\nDownload PF-vMenu: ~b~~h~github.com/ProjectFairnessLabs/PF-vMenu~h~~s~")
+            var version = new MenuItem("PF-vMenu Version", $"This server is using PF-vMenu ~b~~h~{MainMenu.Version}~h~~s~. \n\nDownload PF-vMenu: ~b~~h~github.com/BenniCubed/PF-vMenu~h~~s~")
             {
                 Label = $"~h~{MainMenu.Version}~h~"
             };
-            var credits = new MenuItem("About vMenu / Credits", "vMenu is made by ~b~Vespura~s~. Extra modifications are done by members of ~b~Project Fairness Labs~b~.");
+            var credits = new MenuItem("About vMenu / Credits", "vMenu is made by ~b~Vespura~s~. Extra modifications are done by members of ~b~Project Fairness Labs~s~ and ~b~BenniCubed~s~.");
 
             var serverInfoMessage = vMenuShared.ConfigManager.GetSettingsString(vMenuShared.ConfigManager.Setting.vmenu_server_info_message);
             if (!string.IsNullOrEmpty(serverInfoMessage))
