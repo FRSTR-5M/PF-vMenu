@@ -184,6 +184,7 @@ namespace vMenuShared
             TPTeleportToWp,
             TPTeleportToCoord,
             TPTeleportLocations,
+            TPTeleportPersonalLocations,
             TPTeleportTempLocation,
             TPTeleportSaveLocation,
             #endregion

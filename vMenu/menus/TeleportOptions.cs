@@ -20,6 +20,10 @@ namespace vMenuClient
         private Vector3? tempTpCoords = null;
         private float tempTpHeading = 0f;
 
+        private MenuItem personalTpLocationsBtn;
+        private Menu personalTpLocationsMenu;
+        private List<TeleportLocation> personalTpLocations = new List<TeleportLocation>();
+
         // keybind states
         public bool KbTpToWaypoint { get; private set; } = UserDefaults.KbTpToWaypoint;
         public int KbTpToWaypointKey { get; } = vMenuShared.ConfigManager.GetSettingsInt(vMenuShared.ConfigManager.Setting.vmenu_teleport_to_wp_keybind_key) != -1
@@ -88,6 +92,118 @@ namespace vMenuClient
         }
 
         /// <summary>
+        /// Load all saved personal teleport locations.
+        /// </summary>
+        public void LoadPersonalPlayerLocations()
+        {
+            personalTpLocations.Clear();
+
+            var tpLocStrs = new List<string>();
+            var findHandle = StartFindKvp("vmenu_tp_");
+            while (true)
+            {
+                var tpLocStr = FindKvp(findHandle);
+
+                if (tpLocStr is not "" and not null and not "NULL")
+                {
+                    tpLocStrs.Add(tpLocStr);
+                }
+                else
+                {
+                    EndFindKvp(findHandle);
+                    break;
+                }
+            }
+
+            foreach (var tpLocStr in tpLocStrs)
+            {
+                var tpLocJson = StorageManager.GetJsonData(tpLocStr);
+                var tpLoc = JsonConvert.DeserializeObject<TeleportLocation>(tpLocJson);
+                AddPersonalPlayerLocationToMenu(tpLoc);
+            }
+        }
+
+        /// <summary>
+        /// Save a new personal teleport location.
+        /// </summary>
+        public async void SavePersonalPlayerLocation()
+        {
+            var pos = Game.PlayerPed.Position;
+            var heading = Game.PlayerPed.Heading;
+            var locationName = await GetUserInput("Enter location save name", 30);
+            if (string.IsNullOrEmpty(locationName))
+            {
+                Notify.Error(CommonErrors.InvalidInput);
+                return;
+            }
+            if (personalTpLocations.Any(loc => loc.name == locationName))
+            {
+                Notify.Error("This location name is already used, please use a different name.");
+                return;
+            }
+
+            var tpLoc = new TeleportLocation(locationName, pos, heading);
+            var tpLocJson = JsonConvert.SerializeObject(tpLoc);
+
+            StorageManager.SaveJsonData($"vmenu_tp_{locationName}", tpLocJson, true);
+            AddPersonalPlayerLocationToMenu(tpLoc);
+        }
+
+        public void RemovePersonalPlayerLocation(TeleportLocation tpLoc)
+        {
+            StorageManager.DeleteSavedStorageItem($"vmenu_tp_{tpLoc.name}");
+            personalTpLocations.Remove(tpLoc);
+        }
+
+        public void AddPersonalPlayerLocationToMenu(TeleportLocation tpLoc)
+        {
+            personalTpLocations.Add(tpLoc);
+
+            float x = tpLoc.coordinates.X, y = tpLoc.coordinates.Y, z = tpLoc.coordinates.Z;
+
+            var tpLocBtn = new MenuItem(tpLoc.name, $"Teleport to ~b~{tpLoc.name}~w~") { Label = "→→→" };
+            var tpLocMenu = new Menu(tpLoc.name);
+
+            var tpBtn = new MenuItem("Teleport", $"Teleport to~n~x: ~y~{x}~n~~s~y: ~y~{y}~n~~s~z: ~y~{z}~n~~s~heading: ~y~{tpLoc.heading}");
+            var delBtn = new MenuItem("~r~Delete~s~", "~r~Delete this teleport location.~n~Warning: this can NOT be undone!~s~");
+
+            tpLocMenu.AddMenuItem(tpBtn);
+            tpLocMenu.AddMenuItem(delBtn);
+
+            tpLocMenu.OnItemSelect += async (sender, item, index) =>
+            {
+                if (item == tpBtn) {
+                    await TeleportToCoords(tpLoc.coordinates, true);
+                    SetEntityHeading(Game.PlayerPed.Handle, tpLoc.heading);
+                    SetGameplayCamRelativeHeading(0f);
+                }
+                else if (item == delBtn) {
+                    tpLocMenu.GoBack();
+                    personalTpLocationsMenu.RemoveMenuItem(tpLocBtn);
+                    RemovePersonalPlayerLocation(tpLoc);
+                    if (personalTpLocations.Count == 0) {
+                        personalTpLocationsMenu.GoBack();
+                        personalTpLocationsBtn.Enabled = false;
+                    }
+                }
+            };
+
+            tpLocMenu.OnMenuClose += (sender) =>
+            {
+                // So delete is not selected when the menu is reopened
+                tpLocMenu.RefreshIndex();
+            };
+
+            MenuController.AddSubmenu(personalTpLocationsMenu, tpLocMenu);
+            MenuController.BindMenuItem(personalTpLocationsMenu, tpLocMenu, tpLocBtn);
+
+            personalTpLocationsMenu.AddMenuItem(tpLocBtn);
+            personalTpLocationsMenu.SortMenuItems((a, b) => string.Compare(a.Text, b.Text));
+
+            personalTpLocationsBtn.Enabled = true;
+        }
+
+        /// <summary>
         /// Creates the menu.
         /// </summary>
         private void CreateMenu()
@@ -96,22 +212,29 @@ namespace vMenuClient
             menu = new Menu("Teleport Options", "Teleport Related Options");
             // menu items
             var teleportMenu = new Menu("Teleport Locations", "Teleport Locations");
-            var teleportMenuBtn = new MenuItem("Teleport Locations", "Teleport to pre-configured locations, added by the server owner.");
+            var teleportMenuBtn = new MenuItem("Server Teleport Locations", "Teleport to pre-configured locations, added by the server owner.");
             MenuController.AddSubmenu(menu, teleportMenu);
             MenuController.BindMenuItem(menu, teleportMenu, teleportMenuBtn);
+
+            personalTpLocationsMenu = new Menu("Teleport Locations");
+            personalTpLocationsBtn = new MenuItem("Personal Teleport Locations", "Teleport to your personal teleport locations.") { Label = "→→→" };
+            personalTpLocationsBtn.Enabled = false;
+            MenuController.AddSubmenu(menu, personalTpLocationsMenu);
+            MenuController.BindMenuItem(menu, personalTpLocationsMenu, personalTpLocationsBtn);
 
             // Keybind settings menu items
             var kbTpToWaypoint = new MenuCheckboxItem("Teleport To Waypoint", "Teleport to your waypoint when pressing the keybind. By default, this keybind is set to ~r~F7~s~, server owners are able to change this however so ask them if you don't know what it is.", KbTpToWaypoint);
             var backBtn = new MenuItem("Back");
 
             // Teleportation options
-            if (IsAllowed(Permission.TPTeleportToWp) || IsAllowed(Permission.TPTeleportLocations) || IsAllowed(Permission.TPTeleportToCoord))
+            if (IsAllowed(Permission.TPTeleportToWp) || IsAllowed(Permission.TPTeleportLocations) || IsAllowed(Permission.TPTeleportToCoord) || IsAllowed(Permission.TPTeleportPersonalLocations) || IsAllowed(Permission.TPTeleportTempLocation))
             {
                 var tptowp = new MenuItem("Teleport To Waypoint", "Teleport to the waypoint on your map.");
                 var tpToCoord = new MenuItem("Teleport To Coords", "Enter the X, Y, Z coordinates and you will be teleported to that location.");
                 var tpToTempLocation = new MenuItem("Teleport To Temporary Location", "Teleport to the saved temporary teleport location.");
                 var saveTempLocationBtn = new MenuItem("Save Temporary Teleport Location", "Saves your current location as a temporary teleport location.");
-                var saveLocationBtn = new MenuItem("Save Teleport Location", "Adds your current location to the teleport locations menu and saves it on the server ~r~~h~(script restart required after adding new location(s)).");
+                var savePersonalLocationBtn = new MenuItem("Save Personal Teleport Location", "Adds your current location to the personal teleport locations menu saved locally.");
+                var saveLocationBtn = new MenuItem("Save Server Teleport Location", "Adds your current location to the teleport locations menu and saves it on the server ~r~~h~(script restart required after adding new location(s)).");
                 menu.OnItemSelect += async (sender, item, index) =>
                 {
                     // Teleport to waypoint.
@@ -187,6 +310,10 @@ namespace vMenuClient
                     {
                         SaveTemporaryLocation(false);
                     }
+                    else if (item == savePersonalLocationBtn)
+                    {
+                        SavePersonalPlayerLocation();
+                    }
                     else if (item == saveLocationBtn)
                     {
                         SavePlayerLocationToLocationsFile();
@@ -200,6 +327,15 @@ namespace vMenuClient
                 if (IsAllowed(Permission.TPTeleportToCoord))
                 {
                     menu.AddMenuItem(tpToCoord);
+                }
+                if (IsAllowed(Permission.TPTeleportTempLocation))
+                {
+                    menu.AddMenuItem(tpToTempLocation);
+                }
+                if (IsAllowed(Permission.TPTeleportPersonalLocations))
+                {
+                    menu.AddMenuItem(personalTpLocationsBtn);
+                    LoadPersonalPlayerLocations();
                 }
                 if (IsAllowed(Permission.TPTeleportLocations))
                 {
@@ -256,16 +392,16 @@ namespace vMenuClient
 
                         }
                     };
-                    if (IsAllowed(Permission.TPTeleportTempLocation))
-                    {
-                        menu.AddMenuItem(tpToTempLocation);
-                    }
 
 
 
                     if (IsAllowed(Permission.TPTeleportTempLocation))
                     {
                         menu.AddMenuItem(saveTempLocationBtn);
+                    }
+                    if (IsAllowed(Permission.TPTeleportPersonalLocations))
+                    {
+                        menu.AddMenuItem(savePersonalLocationBtn);
                     }
                     if (IsAllowed(Permission.TPTeleportSaveLocation))
                     {
