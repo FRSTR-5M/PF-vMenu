@@ -721,16 +721,18 @@ namespace vMenuClient
         /// <summary>
         /// Teleports to the player's waypoint. If no waypoint is set, notify the user.
         /// </summary>
-        public static async void TeleportToWp()
+        public static async Task<Vector3?> TeleportToWp()
         {
             if (Game.IsWaypointActive)
             {
                 var pos = World.WaypointPosition;
                 await TeleportToCoords(pos);
+                return pos;
             }
             else
             {
                 Notify.Error("You need to set a waypoint first!");
+                return null;
             }
         }
         #endregion

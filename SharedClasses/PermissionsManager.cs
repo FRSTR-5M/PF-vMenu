@@ -181,6 +181,7 @@ namespace vMenuShared
             #region teleport options
             TPMenu,
             TPAll,
+            TPTeleportToPrev,
             TPTeleportToWp,
             TPTeleportToCoord,
             TPTeleportLocations,

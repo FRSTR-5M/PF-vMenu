@@ -17,6 +17,11 @@ namespace vMenuClient
         // Variables
         private Menu menu;
 
+        private MenuItem tpToPrev;
+        private Vector3? prevTpCoords = null;
+        private float? prevTpHeading = null;
+        private bool prevTpSafe = true;
+
         private Vector3? tempTpCoords = null;
         private float tempTpHeading = 0f;
 
@@ -34,6 +39,15 @@ namespace vMenuClient
 
         public TeleportOptions()
         {
+            if (IsAllowed(Permission.TPTeleportToPrev))
+            {
+                RegisterKeyMapping($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:tpToPrevLocation", "vMenu TP To Prev. Location", "keyboard", "");
+                RegisterCommand($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:tpToPrevLocation", new Action<dynamic, List<dynamic>, string>(async (dynamic source, List<dynamic> args, string rawCommand) =>
+                {
+                    await TeleportToPrevTPLocation();
+                }), false);
+            }
+
             if(IsAllowed(Permission.TPTeleportTempLocation))
             {
                 RegisterKeyMapping($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:tpToTempLocation", "vMenu TP To Temp. Location", "keyboard", "");
@@ -59,6 +73,41 @@ namespace vMenuClient
 
                     SaveTemporaryLocation(true);
                 }), false);
+            }
+        }
+
+        /// <summary>
+        /// Set the previous teleport location
+        /// </summary>
+        private void SetPrevTpLocation(Vector3? coords, float? heading, bool safe = false)
+        {
+            if (coords == null)
+                return;
+
+            prevTpCoords = coords;
+            prevTpHeading = heading;
+            prevTpSafe = safe;
+
+            tpToPrev.Enabled = true;
+        }
+
+        /// <summary>
+        /// Teleport to the previous TP location.
+        /// </summary>
+        public async Task TeleportToPrevTPLocation()
+        {
+            if (prevTpCoords is Vector3 coords)
+            {
+                await TeleportToCoords(coords, prevTpSafe);
+                if (prevTpHeading is float heading)
+                {
+                    SetEntityHeading(Game.PlayerPed.Handle, heading);
+                    SetGameplayCamRelativeHeading(0f);
+                }
+            }
+            else
+            {
+                Notify.Error("There was no previous teleport location!");
             }
         }
 
@@ -173,6 +222,7 @@ namespace vMenuClient
             tpLocMenu.OnItemSelect += async (sender, item, index) =>
             {
                 if (item == tpBtn) {
+                    SetPrevTpLocation(tpLoc.coordinates, tpLoc.heading, true);
                     await TeleportToCoords(tpLoc.coordinates, true);
                     SetEntityHeading(Game.PlayerPed.Handle, tpLoc.heading);
                     SetGameplayCamRelativeHeading(0f);
@@ -218,7 +268,6 @@ namespace vMenuClient
 
             personalTpLocationsMenu = new Menu("Teleport Locations");
             personalTpLocationsBtn = new MenuItem("Personal Teleport Locations", "Teleport to your personal teleport locations.") { Label = "→→→" };
-            personalTpLocationsBtn.Enabled = false;
             MenuController.AddSubmenu(menu, personalTpLocationsMenu);
             MenuController.BindMenuItem(menu, personalTpLocationsMenu, personalTpLocationsBtn);
 
@@ -231,6 +280,7 @@ namespace vMenuClient
             {
                 var tptowp = new MenuItem("Teleport To Waypoint", "Teleport to the waypoint on your map.");
                 var tpToCoord = new MenuItem("Teleport To Coords", "Enter the X, Y, Z coordinates and you will be teleported to that location.");
+                tpToPrev = new MenuItem("Teleport To Previous Location", "Teleport to the location you last teleported to.");
                 var tpToTempLocation = new MenuItem("Teleport To Temporary Location", "Teleport to the saved temporary teleport location.");
                 var saveTempLocationBtn = new MenuItem("Save Temporary Teleport Location", "Saves your current location as a temporary teleport location.");
                 var savePersonalLocationBtn = new MenuItem("Save Personal Teleport Location", "Adds your current location to the personal teleport locations menu saved locally.");
@@ -240,7 +290,8 @@ namespace vMenuClient
                     // Teleport to waypoint.
                     if (item == tptowp)
                     {
-                        TeleportToWp();
+                        var coords = await TeleportToWp();
+                        SetPrevTpLocation(coords, null, false);
                     }
                     else if (item == tpToCoord)
                     {
@@ -300,15 +351,23 @@ namespace vMenuClient
                             }
                         }
 
-                        await TeleportToCoords(new Vector3(posX, posY, posZ), true);
+                        var coords = new Vector3(posX, posY, posZ);
+                        SetPrevTpLocation(coords, null, true);
+                        await TeleportToCoords(coords, true);
+                    }
+                    else if (item == tpToPrev)
+                    {
+                        await TeleportToPrevTPLocation();
                     }
                     else if (item == tpToTempLocation)
                     {
+                        SetPrevTpLocation(tempTpCoords, tempTpHeading, true);
                         await TeleportToTemporaryLocation();
                     }
                     else if (item == saveTempLocationBtn)
                     {
                         SaveTemporaryLocation(false);
+                        tpToTempLocation.Enabled = true;
                     }
                     else if (item == savePersonalLocationBtn)
                     {
@@ -328,12 +387,19 @@ namespace vMenuClient
                 {
                     menu.AddMenuItem(tpToCoord);
                 }
+                if (IsAllowed(Permission.TPTeleportToPrev))
+                {
+                    tpToPrev.Enabled = false;
+                    menu.AddMenuItem(tpToPrev);
+                }
                 if (IsAllowed(Permission.TPTeleportTempLocation))
                 {
+                    tpToTempLocation.Enabled = false;
                     menu.AddMenuItem(tpToTempLocation);
                 }
                 if (IsAllowed(Permission.TPTeleportPersonalLocations))
                 {
+                    personalTpLocationsBtn.Enabled = false;
                     menu.AddMenuItem(personalTpLocationsBtn);
                     LoadPersonalPlayerLocations();
                 }
@@ -363,7 +429,7 @@ namespace vMenuClient
                                 MenuItem teleportSubMenuBtn = new MenuItem(location.name, $"Teleport to ~b~{location.name}~w~, added by the server owner.") { Label = "→→→" };
                                 teleportMenu.AddMenuItem(teleportSubMenuBtn);
 
-                                
+
                                 foreach (var tplocations in data.teleports)
                                 {
                                     var x = Math.Round(tplocations.coordinates.X, 2);
@@ -383,6 +449,7 @@ namespace vMenuClient
                                 {
                                     if (item.ItemData is vMenuShared.ConfigManager.TeleportLocation tl)
                                     {
+                                        SetPrevTpLocation(tl.coordinates, tl.heading, true);
                                         await TeleportToCoords(tl.coordinates, true);
                                         SetEntityHeading(Game.PlayerPed.Handle, tl.heading);
                                         SetGameplayCamRelativeHeading(0f);
