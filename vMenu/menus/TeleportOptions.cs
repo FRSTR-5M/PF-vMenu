@@ -53,24 +53,12 @@ namespace vMenuClient
                 RegisterKeyMapping($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:tpToTempLocation", "vMenu TP To Temp. Location", "keyboard", "");
                 RegisterCommand($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:tpToTempLocation", new Action<dynamic, List<dynamic>, string>(async (dynamic source, List<dynamic> args, string rawCommand) =>
                 {
-                    if (!IsAllowed(Permission.TPTeleportTempLocation))
-                    {
-                        Notify.Error("Teleporting to temporary location not allowed.");
-                        return;
-                    }
-
                     await TeleportToTemporaryLocation();
                 }), false);
 
                 RegisterKeyMapping($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:saveTempLocation", "vMenu Save Temp. TP Location", "keyboard", "");
                 RegisterCommand($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:saveTempLocation", new Action<dynamic, List<dynamic>, string>((dynamic source, List<dynamic> args, string rawCommand) =>
                 {
-                    if(!IsAllowed(Permission.TPTeleportTempLocation))
-                    {
-                        Notify.Error("Saving temporary teleport location not allowed.");
-                        return;
-                    }
-
                     SaveTemporaryLocation(true);
                 }), false);
             }
@@ -221,17 +209,20 @@ namespace vMenuClient
 
             tpLocMenu.OnItemSelect += async (sender, item, index) =>
             {
-                if (item == tpBtn) {
+                if (item == tpBtn)
+                {
                     SetPrevTpLocation(tpLoc.coordinates, tpLoc.heading, true);
                     await TeleportToCoords(tpLoc.coordinates, true);
                     SetEntityHeading(Game.PlayerPed.Handle, tpLoc.heading);
                     SetGameplayCamRelativeHeading(0f);
                 }
-                else if (item == delBtn) {
+                else if (item == delBtn)
+                {
                     tpLocMenu.GoBack();
                     personalTpLocationsMenu.RemoveMenuItem(tpLocBtn);
                     RemovePersonalPlayerLocation(tpLoc);
-                    if (personalTpLocations.Count == 0) {
+                    if (personalTpLocations.Count == 0)
+                    {
                         personalTpLocationsMenu.GoBack();
                         personalTpLocationsBtn.Enabled = false;
                     }
@@ -392,11 +383,6 @@ namespace vMenuClient
                     tpToPrev.Enabled = false;
                     menu.AddMenuItem(tpToPrev);
                 }
-                if (IsAllowed(Permission.TPTeleportTempLocation))
-                {
-                    tpToTempLocation.Enabled = false;
-                    menu.AddMenuItem(tpToTempLocation);
-                }
                 if (IsAllowed(Permission.TPTeleportPersonalLocations))
                 {
                     personalTpLocationsBtn.Enabled = false;
@@ -459,22 +445,25 @@ namespace vMenuClient
 
                         }
                     };
-
-
-
-                    if (IsAllowed(Permission.TPTeleportTempLocation))
-                    {
-                        menu.AddMenuItem(saveTempLocationBtn);
-                    }
-                    if (IsAllowed(Permission.TPTeleportPersonalLocations))
-                    {
-                        menu.AddMenuItem(savePersonalLocationBtn);
-                    }
-                    if (IsAllowed(Permission.TPTeleportSaveLocation))
-                    {
-                        menu.AddMenuItem(saveLocationBtn);
-                    };
                 }
+                if (IsAllowed(Permission.TPTeleportTempLocation))
+                {
+                    tpToTempLocation.Enabled = false;
+                    menu.AddMenuItem(tpToTempLocation);
+                }
+
+                if (IsAllowed(Permission.TPTeleportTempLocation))
+                {
+                    menu.AddMenuItem(saveTempLocationBtn);
+                }
+                if (IsAllowed(Permission.TPTeleportPersonalLocations))
+                {
+                    menu.AddMenuItem(savePersonalLocationBtn);
+                }
+                if (IsAllowed(Permission.TPTeleportSaveLocation))
+                {
+                    menu.AddMenuItem(saveLocationBtn);
+                };
             }
         }
 
