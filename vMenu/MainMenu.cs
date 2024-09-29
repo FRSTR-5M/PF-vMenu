@@ -64,7 +64,20 @@ namespace vMenuClient
         public static bool DontOpenMenus { get { return MenuController.DontOpenAnyMenu; } set { MenuController.DontOpenAnyMenu = value; } }
         public static bool DisableControls { get { return MenuController.DisableMenuButtons; } set { MenuController.DisableMenuButtons = value; } }
 
-        public static bool vMenuEnabled { get; private set; } = true;
+        private static bool _vMenuEnabled = true;
+        public static bool vMenuEnabled
+        { 
+            get => _vMenuEnabled;
+            private set
+            {
+                _vMenuEnabled = value;
+                MenuController.EnableMenuToggleKeyOnController = value;
+                if (!value)
+                {
+                    MenuController.CloseAllMenus();
+                }
+            }
+        }
 
         private const int currentCleanupVersion = 2;
         private static readonly LanguageManager Lm = new LanguageManager();
@@ -133,6 +146,9 @@ namespace vMenuClient
             #region keymapping stuff
             RegisterCommand($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:NoClip", new Action<dynamic, List<dynamic>, string>((dynamic source, List<dynamic> args, string rawCommand) =>
                {
+                    if (!vMenuEnabled)
+                        return;
+
                     if ( IsAllowed(Permission.NoClip) )
                     {
                         if (Game.PlayerPed.IsInVehicle())
@@ -157,17 +173,17 @@ namespace vMenuClient
 
             RegisterCommand($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:toggle", new Action<dynamic, List<dynamic>, string>((dynamic source, List<dynamic> args, string rawCommand) =>
                {
-                   if (vMenuEnabled)
-                   {
-                       if (!MenuController.IsAnyMenuOpen())
-                       {
-                           Menu.OpenMenu();
-                       }
-                       else
-                       {
-                           MenuController.CloseAllMenus();
-                       }
-                   }
+                    if (!vMenuEnabled)
+                        return;
+
+                    if (!MenuController.IsAnyMenuOpen())
+                    {
+                        Menu.OpenMenu();
+                    }
+                    else
+                    {
+                        MenuController.CloseAllMenus();
+                    }
                }), false);
             if (!(GetSettingsString(Setting.vmenu_menu_toggle_key) == null))
             {
@@ -504,6 +520,9 @@ namespace vMenuClient
             // Request server state from the server.
             TriggerServerEvent("vMenu:RequestServerState");
             MenuController.MenuToggleKey = (Control)(-1); // disables the menu toggle key
+
+            Exports.Add("enable", new Action(() => vMenuEnabled = true));
+            Exports.Add("disable", new Action(() => vMenuEnabled = false));
         }
 
         #region Infinity bits

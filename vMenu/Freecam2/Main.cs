@@ -37,6 +37,9 @@ namespace Freecam2
             RegisterKeyMapping($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:freecam", "vMenu Freecam Toggle Button", "keyboard", FreecamKey);
             RegisterCommand($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:freecam", new Action<int, List<object>, string>((source, args, raw) =>
             {
+                if (!MainMenu.vMenuEnabled)
+                    return;
+
                 if (IsAllowed(Permission.Freecam))
                 {
                     IsInFreecam = !IsInFreecam;

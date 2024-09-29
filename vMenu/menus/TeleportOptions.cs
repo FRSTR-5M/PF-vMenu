@@ -44,6 +44,9 @@ namespace vMenuClient
                 RegisterKeyMapping($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:tpToPrevLocation", "vMenu TP To Prev. Location", "keyboard", "");
                 RegisterCommand($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:tpToPrevLocation", new Action<dynamic, List<dynamic>, string>(async (dynamic source, List<dynamic> args, string rawCommand) =>
                 {
+                    if (!MainMenu.vMenuEnabled)
+                        return;
+
                     await TeleportToPrevTPLocation();
                 }), false);
             }
@@ -53,12 +56,18 @@ namespace vMenuClient
                 RegisterKeyMapping($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:tpToTempLocation", "vMenu TP To Temp. Location", "keyboard", "");
                 RegisterCommand($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:tpToTempLocation", new Action<dynamic, List<dynamic>, string>(async (dynamic source, List<dynamic> args, string rawCommand) =>
                 {
+                    if (!MainMenu.vMenuEnabled)
+                        return;
+
                     await TeleportToTemporaryLocation();
                 }), false);
 
                 RegisterKeyMapping($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:saveTempLocation", "vMenu Save Temp. TP Location", "keyboard", "");
                 RegisterCommand($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:saveTempLocation", new Action<dynamic, List<dynamic>, string>((dynamic source, List<dynamic> args, string rawCommand) =>
                 {
+                    if (!MainMenu.vMenuEnabled)
+                        return;
+
                     SaveTemporaryLocation(true);
                 }), false);
             }
