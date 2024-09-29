@@ -106,6 +106,7 @@ namespace vMenuClient
         {
             if (tempTpCoords is Vector3 coords)
             {
+                SetPrevTpLocation(tempTpCoords, tempTpHeading, true);
                 await TeleportToCoords(coords, true);
                 SetEntityHeading(Game.PlayerPed.Handle, tempTpHeading);
                 SetGameplayCamRelativeHeading(0f);
@@ -352,7 +353,6 @@ namespace vMenuClient
                     }
                     else if (item == tpToTempLocation)
                     {
-                        SetPrevTpLocation(tempTpCoords, tempTpHeading, true);
                         await TeleportToTemporaryLocation();
                     }
                     else if (item == saveTempLocationBtn)
