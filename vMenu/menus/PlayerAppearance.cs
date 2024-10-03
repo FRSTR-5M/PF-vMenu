@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 using CitizenFX.Core;
 
@@ -8,6 +9,7 @@ using MenuAPI;
 
 using static CitizenFX.Core.Native.API;
 using static vMenuClient.CommonFunctions;
+using static vMenuShared.ConfigManager;
 using static vMenuShared.PermissionsManager;
 
 namespace vMenuClient.menus
@@ -35,12 +37,96 @@ namespace vMenuClient.menus
 
         private static readonly LanguageManager Lm = new LanguageManager();
 
+        private HashSet<uint> allowedPlayerModels = new HashSet<uint>();
+        private HashSet<uint> allowedPedModels = new HashSet<uint>();
+
+        private async Task<bool> SetPlayerSkinChecked(string modelName, PedInfo pedCustomizationOptions, bool keepWeapons = true) => await SetPlayerSkinChecked((uint)GetHashKey(modelName), pedCustomizationOptions, keepWeapons);
+        private async Task<bool> SetPlayerSkinChecked(uint modelHash, PedInfo pedCustomizationOptions, bool keepWeapons = true)
+        {
+            if (!allowedPlayerModels.Contains(modelHash)) 
+            {
+                Notify.Error(CommonErrors.NotAllowed, placeholderValue: "spawn this ped model");
+                return false;
+            }
+
+            await SetPlayerSkin(modelHash, pedCustomizationOptions, keepWeapons);
+            return true;
+        }
+
         #region create the menu
         /// <summary>
         /// Creates the menu(s).
         /// </summary>
         private void CreateMenu()
         {
+            if (IsAllowed(Permission.PAAddonPeds))
+            {
+                foreach (var ped in AddonPeds.Keys)
+                {
+                    allowedPlayerModels.Add((uint)GetHashKey(ped));
+                    allowedPedModels.Add((uint)GetHashKey(ped));
+                }
+            }
+
+            if (IsAllowed(Permission.PAAnimalPeds))
+            {
+                foreach (var animal in animalModels.Keys)
+                {
+                    allowedPlayerModels.Add((uint)GetHashKey(animal));
+                }
+            }
+
+            foreach (var ped in mainModels.Keys)
+            {
+                allowedPlayerModels.Add((uint)GetHashKey(ped));
+                allowedPedModels.Add((uint)GetHashKey(ped));
+            }
+            foreach (var ped in maleModels.Keys)
+            {
+                allowedPlayerModels.Add((uint)GetHashKey(ped));
+                allowedPedModels.Add((uint)GetHashKey(ped));
+            }
+            foreach (var ped in femaleModels.Keys)
+            {
+                allowedPlayerModels.Add((uint)GetHashKey(ped));
+                allowedPedModels.Add((uint)GetHashKey(ped));
+            }
+            foreach (var ped in otherPeds.Keys)
+            {
+                allowedPlayerModels.Add((uint)GetHashKey(ped));
+                allowedPedModels.Add((uint)GetHashKey(ped));
+            }
+
+            var disallowedPlayerModelsStr = GetSettingsString(Setting.vmenu_disallowed_player_models);
+            if (!string.IsNullOrEmpty(disallowedPlayerModelsStr))
+            {
+                disallowedPlayerModelsStr = disallowedPlayerModelsStr.Replace(" ", "");
+                disallowedPlayerModelsStr = disallowedPlayerModelsStr.Replace("\t", "");
+                disallowedPlayerModelsStr = disallowedPlayerModelsStr.Replace("\n", "");
+
+                foreach (var model in disallowedPlayerModelsStr.Split([',']))
+                {
+                    if (string.IsNullOrEmpty(model))
+                    {
+                        continue;
+                    }
+                    else if (AddonPeds.ContainsKey(model) ||
+                        mainModels.ContainsKey(model) ||
+                        animalModels.ContainsKey(model) ||
+                        maleModels.ContainsKey(model) ||
+                        femaleModels.ContainsKey(model) ||
+                        otherPeds.ContainsKey(model))
+                    {
+                        allowedPlayerModels.Remove((uint)GetHashKey(model));
+                        allowedPedModels.Remove((uint)GetHashKey(model));
+                    }
+                    else
+                    {
+                        Debug.WriteLine($"^3[vMenu] [Warning]^7 vmenu_disallowed_player_models contains invalid model \"{model}\"");
+                    }
+                }
+            }
+
             // Create the menu.
             menu = new Menu(Game.Player.Name, "Player Appearance");
             savedPedsMenu = new Menu(Game.Player.Name, "Saved Peds");
@@ -131,7 +217,7 @@ namespace vMenuClient.menus
             {
                 if (item == spawnSavedPed)
                 {
-                    await SetPlayerSkin(savedPed.Value.model, savedPed.Value, true);
+                    await SetPlayerSkinChecked(savedPed.Value.model, savedPed.Value, true);
                 }
                 else if (item == cloneSavedPed)
                 {
@@ -328,7 +414,7 @@ namespace vMenuClient.menus
 
                 addonPedsMenu.OnItemSelect += async (sender, item, index) =>
                 {
-                    await SetPlayerSkin((uint)GetHashKey(item.Text), new PedInfo() { version = -1 }, true);
+                    await SetPlayerSkinChecked((uint)GetHashKey(item.Text), new PedInfo() { version = -1 }, true);
                 };
             }
 
@@ -359,30 +445,45 @@ namespace vMenuClient.menus
 
                 foreach (var animal in animalModels)
                 {
+                    if (!allowedPlayerModels.Contains((uint)GetHashKey(animal.Key)))
+                        continue;
+
                     var animalBtn = new MenuItem(animal.Key, "Click to spawn this animal.") { Label = $"({animal.Value})" };
                     animalsPedsMenu.AddMenuItem(animalBtn);
                 }
 
                 foreach (var ped in mainModels)
                 {
+                    if (!allowedPlayerModels.Contains((uint)GetHashKey(ped.Key)))
+                        continue;
+
                     var pedBtn = new MenuItem(ped.Key, "Click to spawn this ped.") { Label = $"({ped.Value})" };
                     mainPedsMenu.AddMenuItem(pedBtn);
                 }
 
                 foreach (var ped in maleModels)
                 {
+                    if (!allowedPlayerModels.Contains((uint)GetHashKey(ped.Key)))
+                        continue;
+
                     var pedBtn = new MenuItem(ped.Key, "Click to spawn this ped.") { Label = $"({ped.Value})" };
                     malePedsMenu.AddMenuItem(pedBtn);
                 }
 
                 foreach (var ped in femaleModels)
                 {
+                    if (!allowedPlayerModels.Contains((uint)GetHashKey(ped.Key)))
+                        continue;
+
                     var pedBtn = new MenuItem(ped.Key, "Click to spawn this ped.") { Label = $"({ped.Value})" };
                     femalePedsMenu.AddMenuItem(pedBtn);
                 }
 
                 foreach (var ped in otherPeds)
                 {
+                    if (!allowedPlayerModels.Contains((uint)GetHashKey(ped.Key)))
+                        continue;
+
                     var pedBtn = new MenuItem(ped.Key, "Click to spawn this ped.") { Label = $"({ped.Value})" };
                     otherPedsMenu.AddMenuItem(pedBtn);
                 }
@@ -449,7 +550,10 @@ namespace vMenuClient.menus
                         if (m == animalsPedsMenu)
                         {
                             Game.PlayerPed.Weapons.RemoveAll();
-                            await SetPlayerSkin(model, new PedInfo() { version = -1 }, false);
+
+                            if (!await SetPlayerSkinChecked(model, new PedInfo() { version = -1 }, false))
+                                return;
+
                             await Delay(1000);
                             SetPedComponentVariation(Game.PlayerPed.Handle, 0, 0, 0, 0);
                             await Delay(1000);
@@ -459,7 +563,7 @@ namespace vMenuClient.menus
                         }
                         else
                         {
-                            await SetPlayerSkin(model, new PedInfo() { version = -1 }, true);
+                            await SetPlayerSkinChecked(model, new PedInfo() { version = -1 }, true);
                         }
                     }
                     else
@@ -481,7 +585,7 @@ namespace vMenuClient.menus
                         var model = await GetUserInput("Ped Model Name", 30);
                         if (!string.IsNullOrEmpty(model))
                         {
-                            await SetPlayerSkin(model, new PedInfo() { version = -1 }, true);
+                            await SetPlayerSkinChecked(model, new PedInfo() { version = -1 }, true);
                         }
                         else
                         {
@@ -618,6 +722,28 @@ namespace vMenuClient.menus
             return menu;
         }
         #endregion
+
+        public async Task SpawnAllowedPed(int index)
+        {
+            index %= allowedPedModels.Count;
+
+            var it = allowedPedModels.GetEnumerator();
+            for(int i = 0; i < index; i++)
+            {
+                it.MoveNext();
+            }
+
+            await SetPlayerSkinChecked(it.Current, new PedInfo() { version = -1 }, false);
+        }
+
+        public async Task SpawnRandomAllowedPed() => await SpawnAllowedPed(GetRandomIntInRange(0, allowedPedModels.Count));
+        public async Task SpawnDefaultAllowedPed()
+        {
+            var playerName = GetPlayerName(-1);
+            var playerHash = (uint)GetHashKey(playerName);
+            var index = (int)(playerHash % allowedPedModels.Count);
+            await SpawnAllowedPed(index);
+        }
 
         #region Ped Customization Menu
         ///// <summary>

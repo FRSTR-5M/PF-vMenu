@@ -47,6 +47,11 @@ namespace vMenuShared
             vmenu_log_ban_actions,
             vmenu_log_kick_actions,
 
+            // Player appearance settings
+            vmenu_disallowed_player_models,
+            vmenu_disable_spawn_as_allowed_ped,
+            vmenu_spawn_as_deterministic_allowed_ped,
+
             // Weather settings
             vmenu_enable_weather_sync,
             vmenu_enable_dynamic_weather,

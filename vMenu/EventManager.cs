@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -93,6 +93,17 @@ namespace vMenuClient
                 if (MainMenu.MiscSettingsMenu != null && MainMenu.MpPedCustomizationMenu != null && MainMenu.MiscSettingsMenu.MiscRespawnDefaultCharacter && !string.IsNullOrEmpty(GetResourceKvpString("vmenu_default_character")) && IsAllowed(Permission.PASpawnAsDefault))
                 {
                     await MainMenu.MpPedCustomizationMenu.SpawnThisCharacter(GetResourceKvpString("vmenu_default_character"), false);
+                }
+                else if (MainMenu.PlayerAppearanceMenu != null && !GetSettingsBool(Setting.vmenu_disable_spawn_as_allowed_ped))
+                {
+                    if (GetSettingsBool(Setting.vmenu_spawn_as_deterministic_allowed_ped))
+                    {
+                        await MainMenu.PlayerAppearanceMenu.SpawnDefaultAllowedPed();
+                    }
+                    else
+                    {
+                        await MainMenu.PlayerAppearanceMenu.SpawnRandomAllowedPed();
+                    }
                 }
                 while (!IsScreenFadedIn() || IsPlayerSwitchInProgress() || IsPauseMenuActive() || GetIsLoadingScreenActive())
                 {
