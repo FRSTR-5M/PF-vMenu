@@ -181,6 +181,12 @@ namespace vMenuClient
             get { return GetSettingsBool("vehicleSpawnerReplacePrevious"); }
             set { SetSavedSettingsBool("vehicleSpawnerReplacePrevious", value); }
         }
+
+        public static bool VehicleSpawnerSpawnNpcLike
+        {
+            get { return GetSettingsBool("vehicleSpawnerSpawnNpcLike"); }
+            set { SetSavedSettingsBool("vehicleSpawnerSpawnNpcLike", value); }
+        }
         #endregion
 
         #region Weapon Options

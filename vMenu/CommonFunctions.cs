@@ -1190,7 +1190,7 @@ namespace vMenuClient
         /// <param name="vehicleName">Vehicle model name. If "custom" the user will be asked to enter a model name.</param>
         /// <param name="spawnInside">Warp the player inside the vehicle after spawning.</param>
         /// <param name="replacePrevious">Replace the previous vehicle of the player.</param>
-        public static async Task<int> SpawnVehicle(string vehicleName = "custom", bool spawnInside = false, bool replacePrevious = false)
+        public static async Task<int> SpawnVehicle(string vehicleName = "custom", bool spawnInside = false, bool replacePrevious = false, bool despawnable = false)
         {
             if (vehicleName == "custom")
             {
@@ -1202,7 +1202,7 @@ namespace vMenuClient
                     // Convert it into a model hash.
                     var model = (uint)GetHashKey(result);
                     return await SpawnVehicle(vehicleHash: model, spawnInside: spawnInside, replacePrevious: replacePrevious, skipLoad: false, vehicleInfo: new VehicleInfo(),
-                        saveName: null);
+                        saveName: null, despawnable: despawnable);
                 }
                 // Result was invalid.
                 else
@@ -1212,7 +1212,7 @@ namespace vMenuClient
                 }
             }
             return await SpawnVehicle(vehicleHash: (uint)GetHashKey(vehicleName), spawnInside: spawnInside, replacePrevious: replacePrevious, skipLoad: false,
-                    vehicleInfo: new VehicleInfo(), saveName: null);
+                vehicleInfo: new VehicleInfo(), saveName: null, despawnable: despawnable);
         }
         #endregion
 
@@ -1226,7 +1226,7 @@ namespace vMenuClient
         /// <param name="skipLoad">Does not attempt to load the vehicle, but will spawn it right a way.</param>
         /// <param name="vehicleInfo">All information needed for a saved vehicle to re-apply all mods.</param>
         /// <param name="saveName">Used to get/set info about the saved vehicle data.</param>
-        public static async Task<int> SpawnVehicle(uint vehicleHash, bool spawnInside, bool replacePrevious, bool skipLoad, VehicleInfo vehicleInfo, string saveName = null, float x = 0f, float y = 0f, float z = 0f, float heading = -1f)
+        public static async Task<int> SpawnVehicle(uint vehicleHash, bool spawnInside, bool replacePrevious, bool skipLoad, VehicleInfo vehicleInfo, string saveName = null, float x = 0f, float y = 0f, float z = 0f, float heading = -1f, bool despawnable = false)
         {
             var speed = 0f;
             var rpm = 0f;
@@ -1406,6 +1406,12 @@ namespace vMenuClient
 
             // Discard the model.
             SetModelAsNoLongerNeeded(vehicleHash);
+
+            if (despawnable)
+            {
+                int handle = vehicle.Handle;
+                SetVehicleAsNoLongerNeeded(ref handle);
+            }
 
             return vehicle.Handle;
         }

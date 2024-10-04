@@ -23,6 +23,7 @@ namespace vMenuClient.menus
         public static Dictionary<string, uint> AddonVehicles;
         public bool SpawnInVehicle { get; private set; } = UserDefaults.VehicleSpawnerSpawnInside;
         public bool ReplaceVehicle { get; private set; } = UserDefaults.VehicleSpawnerReplacePrevious;
+        public bool SpawnNpcLike { get; private set; } = UserDefaults.VehicleSpawnerSpawnNpcLike;
         public bool loadcarnames { get; private set; }
 
         public static List<bool> allowedCategories;
@@ -39,6 +40,7 @@ namespace vMenuClient.menus
             var spawnByName = new MenuItem("Spawn Vehicle By Model Name", "Enter the name of a vehicle to spawn.");
             var spawnInVeh = new MenuCheckboxItem("Spawn Inside Vehicle", "This will teleport you into the vehicle when you spawn it.", SpawnInVehicle);
             var replacePrev = new MenuCheckboxItem("Replace Previous Vehicle", "This will automatically delete your previously spawned vehicle when you spawn a new vehicle.", ReplaceVehicle);
+            var spawnNpcLike = new MenuCheckboxItem("Spawn NPC-Like Vehicle", "This will make the spawned vehicle behave more like an NPC vehicle. It can, for example, explode on heavy impact and despawn when too far away.", SpawnNpcLike);
 
             // Add the items to the menu.
             if (IsAllowed(Permission.VSSpawnByName))
@@ -47,6 +49,7 @@ namespace vMenuClient.menus
             }
             menu.AddMenuItem(spawnInVeh);
             menu.AddMenuItem(replacePrev);
+            menu.AddMenuItem(spawnNpcLike);
             #endregion
 
             #region addon cars menu
@@ -184,9 +187,9 @@ namespace vMenuClient.menus
                                 MenuController.AddSubmenu(ManuMenu, brandMenu);
                                 MenuController.BindMenuItem(ManuMenu, brandMenu, brandBtn);
 
-                                brandMenu.OnItemSelect += (sender, item, index) =>
+                                brandMenu.OnItemSelect += async (sender, item, index) =>
                                 {
-                                    SpawnVehicle(item.ItemData.ToString(), SpawnInVehicle, ReplaceVehicle);
+                                    await SpawnVehicle(item.ItemData.ToString(), SpawnInVehicle, ReplaceVehicle, SpawnNpcLike);
                                 };
                             }
                         }
@@ -308,9 +311,9 @@ namespace vMenuClient.menus
                                 MenuController.AddSubmenu(CaterMenu, categoryMenu);
                                 MenuController.BindMenuItem(CaterMenu, categoryMenu, categoryBtn);
 
-                                categoryMenu.OnItemSelect += (sender, item, index) =>
+                                categoryMenu.OnItemSelect += async (sender, item, index) =>
                                 {
-                                    SpawnVehicle(item.ItemData.ToString(), SpawnInVehicle, ReplaceVehicle);
+                                    await SpawnVehicle(item.ItemData.ToString(), SpawnInVehicle, ReplaceVehicle, SpawnNpcLike);
                                 };
                             }
                             else
@@ -627,7 +630,7 @@ namespace vMenuClient.menus
                 // Handle button presses
                 vehicleClassMenu.OnItemSelect += async (sender2, item2, index2) =>
                 {
-                    await SpawnVehicle(VehicleData.Vehicles.VehicleClasses[className][index2], SpawnInVehicle, ReplaceVehicle);
+                    await SpawnVehicle(VehicleData.Vehicles.VehicleClasses[className][index2], SpawnInVehicle, ReplaceVehicle, SpawnNpcLike);
                 };
 
                 static void HandleStatsPanel(Menu openedMenu, MenuItem currentItem)
@@ -666,7 +669,7 @@ namespace vMenuClient.menus
                 if (item == spawnByName)
                 {
                     // Passing "custom" as the vehicle name, will ask the user for input.
-                    await SpawnVehicle("custom", SpawnInVehicle, ReplaceVehicle);
+                    await SpawnVehicle("custom", SpawnInVehicle, ReplaceVehicle, SpawnNpcLike);
                 }
             };
 
@@ -680,6 +683,10 @@ namespace vMenuClient.menus
                 else if (item == replacePrev)
                 {
                     ReplaceVehicle = _checked;
+                }
+                else if (item == spawnNpcLike)
+                {
+                    SpawnNpcLike = _checked;
                 }
             };
             #endregion
