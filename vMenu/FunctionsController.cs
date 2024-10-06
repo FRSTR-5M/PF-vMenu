@@ -195,14 +195,17 @@ namespace vMenuClient
 
         private async Task PlayerHeadPropsTick()
         {
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             if (Game.PlayerPed is not null && Game.PlayerPed.Exists())
             {
                 var ped = Game.PlayerPed.Handle;
-                await Delay(100);
                 if (Game.PlayerPed.Handle != ped)
                 {
                     SetPedCanLosePropsOnDamage(Game.PlayerPed.Handle, false, 0);
                 }
+                await Delay(100);
             }
             else
             {
@@ -237,6 +240,9 @@ namespace vMenuClient
         /// <returns></returns>
         private async Task GeneralTasks()
         {
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             // Check if the player has switched to a new vehicle.
             if (Game.PlayerPed.IsInVehicle()) // added this for improved performance.
             {
@@ -260,6 +266,9 @@ namespace vMenuClient
         /// <returns></returns>
         private async Task PlayerOptions()
         {
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             // perms
             var godmodeAllowed = IsAllowed(Permission.POGod);
             var noRagdollAllowed = IsAllowed(Permission.PONoRagdoll);
@@ -328,6 +337,9 @@ namespace vMenuClient
         /// <returns></returns>
         private async Task DoPlayerAndVehicleChecks()
         {
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             var god = IsAllowed(Permission.POGod) && MainMenu.PlayerOptionsMenu != null && MainMenu.PlayerOptionsMenu.PlayerGodMode;
             await Delay(100);
 
@@ -364,6 +376,9 @@ namespace vMenuClient
         /// <returns></returns>
         private async Task VehicleOptions()
         {
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             // When the player is in a valid vehicle:
             if (IsPedInAnyVehicle(Game.PlayerPed.Handle, true))
             {
@@ -607,6 +622,9 @@ namespace vMenuClient
         /// <returns></returns>
         private async Task VehicleHighbeamFlashTick()
         {
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             if (MainMenu.VehicleOptionsMenu.FlashHighbeamsOnHonk && IsPedInAnyVehicle(Game.PlayerPed.Handle, true))
             {
                 var veh = GetVehicle();
@@ -636,6 +654,9 @@ namespace vMenuClient
         /// <returns></returns>
         private async Task VehicleShowHealthOnScreenTick()
         {
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             if (MainMenu.VehicleOptionsMenu.VehicleShowHealth)
             {
                 var veh = GetVehicle();
@@ -673,7 +694,9 @@ namespace vMenuClient
         #region Weather Options
         private async Task WeatherOptions()
         {
-            await Delay(100);
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             var weatherMenu = MainMenu.WeatherOptionsMenu.GetMenu();
             if (weatherMenu != null && weatherMenu.Visible)
             {
@@ -704,6 +727,7 @@ namespace vMenuClient
                     });
                 }
             }
+            await Delay(100);
         }
         #endregion
 
@@ -767,6 +791,9 @@ namespace vMenuClient
         /// <returns></returns>
         private async Task UpdateLocation()
         {
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             if (MainMenu.MiscSettingsMenu.ShowLocation)
             {
                 // Get the current location.
@@ -885,6 +912,9 @@ namespace vMenuClient
         /// <returns></returns>
         private async Task MiscSettings()
         {
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             DrawMiscSettingsText();
 
             #region Misc Settings
@@ -1051,6 +1081,9 @@ namespace vMenuClient
         /// <returns></returns>
         private async Task MiscRecordingKeybinds()
         {
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             if (MainMenu.MiscSettingsMenu.KbRecordKeys)
             {
                 if (!IsPauseMenuActive() && IsScreenFadedIn() && !IsPlayerSwitchInProgress() && !MenuController.IsAnyMenuOpen())
@@ -1192,6 +1225,9 @@ namespace vMenuClient
         /// <returns></returns>
         private async Task DeathNotifications()
         {
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             // Death notifications
             if (MainMenu.MiscSettingsMenu.DeathNotifications)
             {
@@ -1289,6 +1325,9 @@ namespace vMenuClient
         /// <returns></returns>
         private async Task TimeOptions()
         {
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             if (MainMenu.TimeOptionsMenu.freezeTimeToggle != null && MainMenu.TimeOptionsMenu.GetMenu().Visible && IsAllowed(Permission.TOFreezeTime))
             {
                 // Update the current time displayed in the Time Options menu (only when the menu is actually visible).
@@ -1310,6 +1349,9 @@ namespace vMenuClient
         /// <returns></returns>
         private async Task WeaponOptions()
         {
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             // If no reload is enabled.
             if (MainMenu.WeaponOptionsMenu.NoReload && Game.PlayerPed.Weapons.Current.Hash != WeaponHash.Minigun && IsAllowed(Permission.WPNoReload))
             {
@@ -1357,6 +1399,9 @@ namespace vMenuClient
         /// <returns></returns>
         private async Task SpectateHandling()
         {
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             if (MainMenu.PermissionsSetupComplete && MainMenu.OnlinePlayersMenu != null && IsAllowed(Permission.OPMenu) && IsAllowed(Permission.OPSpectate))
             {
                 // When the player dies while spectating, cancel the spectating to prevent an infinite black loading screen.
@@ -1458,6 +1503,9 @@ namespace vMenuClient
         /// <returns></returns>
         private async Task ManageCamera()
         {
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             if (Game.PlayerPed.IsInVehicle())
             {
                 if (MainMenu.MpPedCustomizationMenu.editPedBtn != null && MainMenu.MpPedCustomizationMenu.editPedBtn.Enabled)
@@ -1826,6 +1874,9 @@ namespace vMenuClient
         /// <returns></returns>
         private async Task DisableMovement()
         {
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             if (IsMpCharEditorOpen())
             {
                 Game.DisableControlThisFrame(0, Control.MoveDown);
@@ -1880,6 +1931,9 @@ namespace vMenuClient
         /// <returns></returns>
         private async Task RestorePlayerAfterBeingDead()
         {
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             if (MainMenu.MiscSettingsMenu != null && Game.PlayerPed.IsDead)
             {
                 var restoreDefault = false;
@@ -1945,6 +1999,9 @@ namespace vMenuClient
         #region Player clothing animations controller.
         private async Task PlayerClothingAnimationsController()
         {
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             if (!DecorIsRegisteredAsType(clothingAnimationDecor, 3))
             {
                 try
@@ -2056,6 +2113,9 @@ namespace vMenuClient
         #region player blips tasks
         private async Task PlayerBlipsControl()
         {
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             if (DecorIsRegisteredAsType("vmenu_player_blip_sprite_id", 3))
             {
                 var sprite = 1;
@@ -2211,6 +2271,9 @@ namespace vMenuClient
         /// <returns></returns>
         private async Task PlayerOverheadNamesControl()
         {
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             await Delay(500);
 
             if (MainMenu.MiscSettingsMenu != null)
@@ -2275,6 +2338,9 @@ namespace vMenuClient
         /// <returns></returns>
         private async Task OnlinePlayersTasks()
         {
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             await Delay(500);
             if (MainMenu.OnlinePlayersMenu.PlayersWaypointList.Count > 0)
             {
@@ -2442,6 +2508,9 @@ namespace vMenuClient
         /// <returns></returns>
         private async Task AnimationsAndInteractions()
         {
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             if (!(MenuController.IsAnyMenuOpen() || MainMenu.DontOpenMenus || !Fading.IsFadedIn || Game.IsPaused || IsPlayerSwitchInProgress() || Game.PlayerPed.IsDead))
             {
                 // snowballs
@@ -2502,6 +2571,9 @@ namespace vMenuClient
         /// <returns></returns>
         private async Task SnowballPickupHelpMessageTask()
         {
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             if (EventManager.IsSnowEnabled)
             {
                 void ShowSnowballInfoMessage()
@@ -2552,6 +2624,9 @@ namespace vMenuClient
         /// <returns></returns>
         private async Task ModelDrawDimensions()
         {
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             if (MainMenu.PermissionsSetupComplete && MainMenu.MiscSettingsMenu != null)
             {
                 // Vehicles
@@ -2705,6 +2780,9 @@ namespace vMenuClient
         /// <returns></returns>
         private async Task AnimalPedCameraChangeBlocker()
         {
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             var model = (uint)GetEntityModel(Game.PlayerPed.Handle);
             if (AnimalHashes.Contains(model))
             {
@@ -2813,6 +2891,9 @@ namespace vMenuClient
         /// <returns></returns>
         private async Task SlowMiscTick()
         {
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             const int delay = 50;
             if (MainMenu.PermissionsSetupComplete && MainMenu.MiscSettingsMenu != null)
             {
@@ -2857,6 +2938,9 @@ namespace vMenuClient
         /// <returns></returns>
         private async Task PersonalVehicleOptions()
         {
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             if (MainMenu.PermissionsSetupComplete && MainMenu.PersonalVehicleMenu != null && MainMenu.PersonalVehicleMenu.CurrentPersonalVehicle != null)
             {
                 if (!Game.PlayerPed.IsInVehicle(MainMenu.PersonalVehicleMenu.CurrentPersonalVehicle) && !Game.PlayerPed.IsGettingIntoAVehicle)
@@ -2915,6 +2999,9 @@ namespace vMenuClient
 
         private async Task PersonalVehicleBlip()
         {
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             if (MainMenu.PersonalVehicleMenu.enableBlip.Checked  && MainMenu.PersonalVehicleMenu.CurrentPersonalVehicle != null)
             {
                 if (DoesEntityExist(MainMenu.PersonalVehicleMenu.CurrentPersonalVehicle.Handle))
@@ -3241,6 +3328,9 @@ namespace vMenuClient
         #region Time & Weather Options
         public async Task PlayerWeatherOptions()
         {
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             var menu = MainMenu.PlayerTimeWeatherOptionsMenu;
             if (menu == null)
                 return;
@@ -3251,22 +3341,24 @@ namespace vMenuClient
 
         public async Task PlayerTimeOptions()
         {
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             var menu = MainMenu.PlayerTimeWeatherOptionsMenu;
             if (menu == null)
                 return;
 
             menu.ApplyTimeTick();
             await Delay(100);
-            if (MainMenu.PlayerTimeWeatherOptionsMenu != null && MainMenu.PlayerTimeWeatherOptionsMenu != null && MainMenu.PlayerTimeWeatherOptionsMenu.clientSidedEnabled.Checked)
-            {
-                NetworkOverrideClockTime(MainMenu.PlayerTimeWeatherOptionsMenu.timeDataList.ListIndex, 0, 0);
-            }
         }
         #endregion
 
         #region NPC Density
         public async Task NPCDensity()
         {
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             float valsvdm = GetSettingsFloat(Setting.vmenu_set_vehicle_density_multiplier)+0.0f;
             float valspdm = GetSettingsFloat(Setting.vmenu_set_ped_density_multiplier)+0.0f;
             float valsrvdm = GetSettingsFloat(Setting.vmenu_set_random_vehicle_density_multiplier)+0.0f;
@@ -3347,7 +3439,9 @@ namespace vMenuClient
         #endregion
         public async Task TeleportOptions()
         {
-            await Delay(100);
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             if (MainMenu.TeleportOptionsMenu.KbTpToWaypoint)
             {
                 if (IsAllowed(Permission.TPTeleportToWp))
@@ -3369,6 +3463,7 @@ namespace vMenuClient
                     }
                 }
             }
+            await Delay(100);
         }
     }
 }

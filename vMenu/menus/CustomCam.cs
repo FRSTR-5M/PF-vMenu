@@ -575,6 +575,9 @@ namespace vMenuClient
         /// <returns></returns>
         private async Task RunDriftCam()
         {
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             if (LeadCam)
             {
                 int vehicleEntity = GetVehiclePedIsIn(PlayerPedId(), false);
@@ -772,6 +775,9 @@ namespace vMenuClient
         /// <returns></returns>
         private async Task RunChaseCam()
         {
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             if (ChaseCam)
             {
                 // Get player's vehicle

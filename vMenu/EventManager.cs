@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -259,6 +259,8 @@ namespace vMenuClient
         /// <returns></returns>
         private async Task WeatherSync()
         {
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
 
             if (MainMenu.PlayerTimeWeatherOptionsMenu != null)
             {
@@ -288,6 +290,9 @@ namespace vMenuClient
         /// <returns></returns>
         private async Task TimeSync()
         {
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             if (MainMenu.PlayerTimeWeatherOptionsMenu != null)
             {
                 if (!MainMenu.PlayerTimeWeatherOptionsMenu.clientSidedEnabled.Checked)

@@ -439,6 +439,9 @@ namespace vMenuClient
         /// <returns></returns>
         private async Task RunDroneCam()
         {
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             if (DroneCamVar)
             {
                 if (EnhancedCamera.droneCamera != null)
@@ -481,6 +484,9 @@ namespace vMenuClient
         /// <returns></returns>
         private async Task AntiAfk()
         {
+            if (!await MainMenu.CheckVMenuEnabled())
+                return;
+
             if (menu != null)
             {
                 if (DroneCamVar)

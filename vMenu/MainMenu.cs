@@ -79,6 +79,15 @@ namespace vMenuClient
             }
         }
 
+        public static async Task<bool> CheckVMenuEnabled()
+        {
+            if (vMenuEnabled)
+                return true;
+
+            await Delay(1000);
+            return false;
+        }
+
         private const int currentCleanupVersion = 2;
         private static readonly LanguageManager Lm = new LanguageManager();
         #endregion
@@ -723,6 +732,8 @@ namespace vMenuClient
         /// <returns></returns>
         private async Task OnTick()
         {
+            if (!await CheckVMenuEnabled())
+                return;
 
             // If the setup (permissions) is done, and it's not the first tick, then do this:
             if (ConfigOptionsSetupComplete)
