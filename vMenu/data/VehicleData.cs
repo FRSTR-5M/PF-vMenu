@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 using static CitizenFX.Core.Native.API;
 
@@ -351,20 +351,20 @@ namespace vMenuClient.data
             #region Compacts
             public static List<string> Compacts { get; } = new List<string>()
             {
+                "ISSI4",
                 "ASBO", // CASINO HEIST (MPHEIST3) DLC - Requires b2060
                 "BLISTA",
-                "BRIOSO",
+                "KANJO", // CASINO HEIST (MPHEIST3) DLC - Requires b2060
                 "BRIOSO2", // CAYO PERICO (MPHEIST4) DLC - Requires b2189
                 "BRIOSO3", // CRIMINAL ENTERPRISES (MPSUM2) DLC - Requires b2699
+                "BRIOSO",
                 "CLUB", // SUMMER SPECIAL (MPSUM) DLC - Requires b2060
                 "DILETTANTE",
                 "DILETTANTE2",
+                "ISSI5",
                 "ISSI2",
                 "ISSI3",
-                "ISSI4",
-                "ISSI5",
                 "ISSI6",
-                "KANJO", // CASINO HEIST (MPHEIST3) DLC - Requires b2060
                 "PANTO",
                 "PRAIRIE",
                 "RHAPSODY",
@@ -377,11 +377,12 @@ namespace vMenuClient.data
                 "ASEA",
                 "ASEA2",
                 "ASTEROPE",
+				"ASTEROPE2", // CHOP SHOP DLC - Requires b3095
                 "CINQUEMILA", // THE CONTRACT (MPSECURITY) DLC - Requires b2545
-                "COG55",
-                "COG552",
                 "COGNOSCENTI",
                 "COGNOSCENTI2",
+                "COG55",
+                "COG552",
                 "DEITY", // THE CONTRACT (MPSECURITY) DLC - Requires b2545
                 "EMPEROR",
                 "EMPEROR2",
@@ -391,7 +392,6 @@ namespace vMenuClient.data
                 "GLENDALE2", // SUMMER SPECIAL (MPSUM) DLC - Requires b2060
                 "INGOT",
                 "INTRUDER",
-                "LIMO2",
                 "PREMIER",
                 "PRIMO",
                 "PRIMO2",
@@ -399,8 +399,8 @@ namespace vMenuClient.data
                 "RHINEHART", // CRIMINAL ENTERPRISES (MPSUM2) DLC - Requires b2699
                 "ROMERO",
                 "SCHAFTER2",
-                "SCHAFTER5",
                 "SCHAFTER6",
+                "SCHAFTER5",
                 "STAFFORD",
                 "STANIER",
                 "STRATUM",
@@ -409,6 +409,9 @@ namespace vMenuClient.data
                 "SURGE",
                 "TAILGATER",
                 "TAILGATER2", // LS TUNERS (MPTUNER) DLC - Requires b2372
+                "LIMO2",
+				"VORSCHLAGHAMMER", // BOTTOM DOLLAR BOUNTIES DLC - Requires b3258
+				"DRIFTVORSCHLAG", // BOTTOM DOLLAR BOUNTIES DLC - Requires b3258
                 "WARRENER",
                 "WARRENER2", // LS TUNERS (MPTUNER) DLC - Requires b2372
                 "WASHINGTON",
@@ -417,18 +420,23 @@ namespace vMenuClient.data
             #region SUVs
             public static List<string> SUVs { get; } = new List<string>()
             {
+                "ALEUTIAN", // CHOP SHOP DLC - Requires b3095
                 "ASTRON", // THE CONTRACT (MPSECURITY) DLC - Requires b2545
                 "BALLER",
                 "BALLER2",
                 "BALLER3",
-                "BALLER4",
                 "BALLER5",
+                "BALLER4",
                 "BALLER6",
                 "BALLER7", // THE CONTRACT (MPSECURITY) DLC - Requires b2545
+				"BALLER8", // CHOP SHOP DLC - Requires b3095
                 "BJXL",
+				"CASTIGATOR", // BOTTOM DOLLAR BOUNTIES DLC - Requires b3258
                 "CAVALCADE",
                 "CAVALCADE2",
+                "CAVALCADE3", // CHOP SHOP DLC - Requires b3095
                 "CONTENDER",
+				"DORADO", // CHOP SHOP DLC - Requires b3095
                 "DUBSTA",
                 "DUBSTA2",
                 "FQ2",
@@ -437,8 +445,8 @@ namespace vMenuClient.data
                 "GRESLEY",
                 "HABANERO",
                 "HUNTLEY",
-                "ISSI8", // LOS SANTOS DRUG WARS (mpchristmas3) DLC - Requires b2802
                 "IWAGEN", // THE CONTRACT (MPSECURITY) DLC - Requires b2545
+                "ISSI8", // LOS SANTOS DRUG WARS (mpchristmas3) DLC - Requires b2802
                 "JUBILEE", // THE CONTRACT (MPSECURITY) DLC - Requires b2545
                 "LANDSTALKER",
                 "LANDSTALKER2", // SUMMER SPECIAL (MPSUM) DLC - Requires b2060
@@ -455,6 +463,7 @@ namespace vMenuClient.data
                 "SERRANO",
                 "SQUADDIE", // CAYO PERICO (MPHEIST4) DLC - Requires b2189
                 "TOROS",
+				"VIVANITE", // CHOP SHOP DLC - Requires b3095
                 "XLS",
                 "XLS2",
             };
@@ -463,18 +472,21 @@ namespace vMenuClient.data
             public static List<string> Coupes { get; } = new List<string>()
             {
                 "COGCABRIO",
+				"EUROSX32", // BOTTOM DOLLAR BOUNTIES DLC - Requires b3258
                 "EXEMPLAR",
                 "F620",
                 "FELON",
                 "FELON2",
+				"FR36", // CHOP SHOP DLC - Requires b3095
+				"DRIFTFR36", // CHOP SHOP DLC - Requires b3095
                 "JACKAL",
                 "KANJOSJ", // CRIMINAL ENTERPRISES (MPSUM2) DLC - Requires b2699
-                "ORACLE",
                 "ORACLE2",
+                "ORACLE",
                 "POSTLUDE", // CRIMINAL ENTERPRISES (MPSUM2) DLC - Requires b2699
                 "PREVION", // LS TUNERS (MPTUNER) DLC - Requires b2372
-                "SENTINEL",
                 "SENTINEL2",
+                "SENTINEL",
                 "WINDSOR",
                 "WINDSOR2",
                 "ZION",
@@ -484,13 +496,19 @@ namespace vMenuClient.data
             #region Muscle
             public static List<string> Muscle { get; } = new List<string>()
             {
+                "DOMINATOR4",
+                "IMPALER2",
+                "IMPERATOR",
+                "SLAMVAN4",
+                "DUKES3", // SUMMER SPECIAL (MPSUM) DLC - Requires b2060
                 "BLADE",
                 "BRIGHAM",  // SAN ANDREAS MERCENARIES (MP2023_01) DLC - Requires b2944
                 "BROADWAY", // LOS SANTOS DRUG WARS (mpchristmas3) DLC - Requires b2802
                 "BUCCANEER",
                 "BUCCANEER2",
-                "BUFFALO4", // THE CONTRACT (MPSECURITY) DLC - Requires b2545
                 "BUFFALO5", // SAN ANDREAS MERCENARIES (MP2023_01) DLC - Requires b2944
+                "BUFFALO4", // THE CONTRACT (MPSECURITY) DLC - Requires b2545
+                "STALION2",
                 "CHINO",
                 "CHINO2",
                 "CLIQUE",
@@ -498,126 +516,127 @@ namespace vMenuClient.data
                 "COQUETTE3",
                 "DEVIANT",
                 "DOMINATOR",
-                "DOMINATOR2",
-                "DOMINATOR3",
-                "DOMINATOR4",
-                "DOMINATOR5",
-                "DOMINATOR6",
                 "DOMINATOR7", // LS TUNERS (MPTUNER) DLC - Requires b2372
+                "DOMINATOR10", // BOTTOM DOLLAR BOUNTIES DLC - Requires b3258
+                "DOMINATOR9", // CHOP SHOP DLC - Requires b3095
                 "DOMINATOR8", // LS TUNERS (MPTUNER) DLC - Requires b2372
-                "DUKES",
+                "DOMINATOR3",
+                "YOSEMITE2", // CASINO HEIST (MPHEIST3) DLC - Requires b2060
+				"DRIFTYOSEMITE", // CHOP SHOP DLC - Requires b3095
                 "DUKES2",
-                "DUKES3", // SUMMER SPECIAL (MPSUM) DLC - Requires b2060
+                "DUKES",
                 "ELLIE",
                 "EUDORA", // LOS SANTOS DRUG WARS (mpchristmas3) DLC - Requires b2802
                 "FACTION",
                 "FACTION2",
                 "FACTION3",
+                "DOMINATOR5",
+                "IMPALER3",
+                "IMPERATOR2",
+                "SLAMVAN5",
                 "GAUNTLET",
-                "GAUNTLET2",
                 "GAUNTLET3", // CASINO AND RESORT (MPVINEWOOD) DLC - Requires b2060
-                "GAUNTLET4", // CASINO AND RESORT (MPVINEWOOD) DLC - Requires b2060
                 "GAUNTLET5", // SUMMER SPECIAL (MPSUM) DLC - Requires b2060
+                "GAUNTLET4", // CASINO AND RESORT (MPVINEWOOD) DLC - Requires b2060
                 "GREENWOOD", // CRIMINAL ENTERPRISES (MPSUM2) DLC - Requires b2699
                 "HERMES",
                 "HOTKNIFE",
                 "HUSTLER",
                 "IMPALER",
-                "IMPALER2",
-                "IMPALER3",
-                "IMPALER4",
-                "IMPERATOR",
-                "IMPERATOR2",
-                "IMPERATOR3",
+                "IMPALER6", // CHOP SHOP DLC - Requires b3095
+                "IMPALER5", // CHOP SHOP DLC - Requires b3095
+                "SLAMVAN2",
                 "LURCHER",
                 "MANANA2", // SUMMER SPECIAL (MPSUM) DLC - Requires b2060
                 "MOONBEAM",
                 "MOONBEAM2",
+                "DOMINATOR6",
+                "IMPALER4",
+                "IMPERATOR3",
+                "SLAMVAN6",
                 "NIGHTSHADE",
                 "PEYOTE2", // CASINO AND RESORT (MPVINEWOOD) DLC - Requires b2060
                 "PHOENIX",
                 "PICADOR",
+                "DOMINATOR2",
                 "RATLOADER",
                 "RATLOADER2",
+                "GAUNTLET2",
                 "RUINER",
-                "RUINER2",
                 "RUINER3",
+                "RUINER2",
                 "RUINER4", // CRIMINAL ENTERPRISES (MPSUM2) DLC - Requires b2699
                 "SABREGT",
                 "SABREGT2",
                 "SLAMVAN",
-                "SLAMVAN2",
                 "SLAMVAN3",
-                "SLAMVAN4",
-                "SLAMVAN5",
-                "SLAMVAN6",
                 "STALION",
-                "STALION2",
                 "TAHOMA", // LOS SANTOS DRUG WARS (mpchristmas3) DLC - Requires b2802
                 "TAMPA",
-                "TAMPA3",
                 "TULIP",
                 "TULIP2", // LOS SANTOS DRUG WARS (mpchristmas3) DLC - Requires b2802
                 "VAMOS",
                 "VIGERO",
                 "VIGERO2", // CRIMINAL ENTERPRISES (MPSUM2) DLC - Requires b2699
+                "VIGERO3", // CHOP SHOP DLC - Requires b3095
                 "VIRGO",
-                "VIRGO2",
                 "VIRGO3",
-                "VOODOO",
+                "VIRGO2",
                 "VOODOO2",
+                "VOODOO",
+                "TAMPA3",
                 "WEEVIL2", // CRIMINAL ENTERPRISES (MPSUM2) DLC - Requires b2699
                 "YOSEMITE",
-                "YOSEMITE2", // CASINO HEIST (MPHEIST3) DLC - Requires b2060
             };
             #endregion
             #region SportsClassics
             public static List<string> SportsClassics { get; } = new List<string>()
             {
+                "Z190",
                 "ARDENT",
-                "BTYPE",
-                "BTYPE2",
-                "BTYPE3",
                 "CASCO",
                 "CHEBUREK",
                 "CHEETAH2",
                 "COQUETTE2",
+                "COQUETTE5", // BOTTOM DOLLAR BOUNTIES DLC - Requires b3258
                 "DELUXO",
                 "DYNASTY", // CASINO AND RESORT (MPVINEWOOD) DLC - Requires b2060
                 "FAGALOA",
-                "FELTZER3", // Stirling GT
+                "BTYPE2",
                 "GT500",
                 "INFERNUS2",
                 "JB700",
                 "JB7002", // CASINO HEIST (MPHEIST3) DLC - Requires b2060
-                "JESTER3",
                 "MAMBA",
                 "MANANA",
                 "MICHELLI",
                 "MONROE",
                 "NEBULA", // CASINO AND RESORT (MPVINEWOOD) DLC - Requires b2060
+				"DRIFTNEBULA", // BOTTOM DOLLAR BOUNTIES DLC - Requires b3258
                 "PEYOTE",
                 "PEYOTE3", // SUMMER SPECIAL (MPSUM) DLC - Requires b2060
                 "PIGALLE",
                 "RAPIDGT3",
                 "RETINUE",
                 "RETINUE2", // CASINO HEIST (MPHEIST3) DLC - Requires b2060
+                "BTYPE",
+                "BTYPE3",
                 "SAVESTRA",
                 "STINGER",
                 "STINGERGT",
+                "FELTZER3", // Stirling GT
                 "STROMBERG",
                 "SWINGER",
                 "TOREADOR", // CAYO PERICO (MPHEIST4) DLC - Requires b2189
                 "TORERO",
-                "TORNADO",
-                "TORNADO2",
                 "TORNADO3",
+                "TORNADO2",
                 "TORNADO4",
+                "TORNADO",
                 "TORNADO5",
                 "TORNADO6",
                 "TURISMO2",
                 "VISERIS",
-                "Z190",
                 "ZION3", // CASINO AND RESORT (MPVINEWOOD) DLC - Requires b2060
                 "ZTYPE",
             };
@@ -625,114 +644,127 @@ namespace vMenuClient.data
             #region Sports
             public static List<string> Sports { get; } = new List<string>()
             {
+                "TENF", // CRIMINAL ENTERPRISES (MPSUM2) DLC - Requires b2699
+                "TENF2", // CRIMINAL ENTERPRISES (MPSUM2) DLC - Requires b2699
+                "R300", // LOS SANTOS DRUG WARS (mpchristmas3) DLC - Requires b2802
+                "DRAFTER", // CASINO AND RESORT (MPVINEWOOD) DLC - Requires b2060
+                "NINEF",
+                "NINEF2",
                 "ALPHA",
+                "ZR380",
                 "BANSHEE",
                 "BESTIAGTS",
                 "BLISTA2",
-                "BLISTA3",
                 "BUFFALO",
                 "BUFFALO2",
-                "BUFFALO3",
                 "CALICO", // LS TUNERS (MPTUNER) DLC - Requires b2372
                 "CARBONIZZARE",
                 "COMET2",
-                "COMET4",
-                "COMET5",
+                "COMET3",
                 "COMET6", // LS TUNERS (MPTUNER) DLC - Requires b2372
                 "COMET7", // THE CONTRACT (MPSECURITY) DLC - Requires b2545
+                "COMET4",
+                "COMET5",
                 "COQUETTE",
                 "COQUETTE4", // SUMMER SPECIAL (MPSUM) DLC - Requires b2060
                 "CORSITA", // CRIMINAL ENTERPRISES (MPSUM2) DLC - Requires b2699
-                "COUREUR",  // SAN ANDREAS MERCENARIES (MP2023_01) DLC - Requires b2944
                 "CYPHER", // LS TUNERS (MPTUNER) DLC - Requires b2372
-                "DRAFTER", // CASINO AND RESORT (MPVINEWOOD) DLC - Requires b2060
+				"DRIFTCYPHER", // BOTTOM DOLLAR BOUNTIES DLC - Requires b3258
+                "TAMPA2",
+				"DRIFTTAMPA", // CHOP SHOP DLC - Requires b3095
                 "ELEGY",
                 "ELEGY2",
+				"ENVISAGE", // BOTTOM DOLLAR BOUNTIES DLC - Requires b3258
                 "EUROS", // LS TUNERS (MPTUNER) DLC - Requires b2372
-                "EVERON2", // LOS SANTOS DRUG WARS (mpchristmas3) DLC - Requires b2802
+				"DRIFTEUROS", // CHOP SHOP DLC - Requires b3095
                 "FELTZER2",
                 "FLASHGT",
                 "FUROREGT",
                 "FUSILADE",
                 "FUTO",
+				"DRIFTFUTO", // CHOP SHOP DLC - Requires b3095
                 "FUTO2", // LS TUNERS (MPTUNER) DLC - Requires b2372
-                "GAUNTLET6",  // SAN ANDREAS MERCENARIES (MP2023_01) DLC - Requires b2944
+                "ZR3802",
                 "GB200",
+                "BLISTA3",
                 "GROWLER", // LS TUNERS (MPTUNER) DLC - Requires b2372
+                "EVERON2", // LOS SANTOS DRUG WARS (mpchristmas3) DLC - Requires b2802
+                "GAUNTLET6",  // SAN ANDREAS MERCENARIES (MP2023_01) DLC - Requires b2944
                 "HOTRING",
                 "IMORGON", // CASINO HEIST (MPHEIST3) DLC - Requires b2060
                 "ISSI7", // CASINO AND RESORT (MPVINEWOOD) DLC - Requires b2060
                 "ITALIGTO",
+                "STINGERTT",  // SAN ANDREAS MERCENARIES (MP2023_01) DLC - Requires b2944
                 "ITALIRSX", // CAYO PERICO (MPHEIST4) DLC - Requires b2189
                 "JESTER",
+                "JESTER3",
                 "JESTER2",
                 "JESTER4", // LS TUNERS (MPTUNER) DLC - Requires b2372
+				"DRIFTJESTER", // CHOP SHOP DLC - Requires b3095
                 "JUGULAR", // CASINO AND RESORT (MPVINEWOOD) DLC - Requires b2060
                 "KHAMELION",
                 "KOMODA", // CASINO HEIST (MPHEIST3) DLC - Requires b2060
                 "KURUMA",
                 "KURUMA2",
+                "COUREUR",  // SAN ANDREAS MERCENARIES (MP2023_01) DLC - Requires b2944
                 "LOCUST", // CASINO AND RESORT (MPVINEWOOD) DLC - Requires b2060
                 "LYNX",
                 "MASSACRO",
                 "MASSACRO2",
                 "NEO", // CASINO AND RESORT (MPVINEWOOD) DLC - Requires b2060
                 "NEON",
-                "NINEF",
-                "NINEF2",
+                "ZR3803",
+				"NIOBE", // BOTTOM DOLLAR BOUNTIES DLC - Requires b3258
                 "OMNIS",
                 "OMNISEGT", // CRIMINAL ENTERPRISES (MPSUM2) DLC - Requires b2699
                 "PANTHERE", // LOS SANTOS DRUG WARS (mpchristmas3) DLC - Requires b2802
                 "PARAGON", // CASINO AND RESORT (MPVINEWOOD) DLC - Requires b2060
                 "PARAGON2", // CASINO AND RESORT (MPVINEWOOD) DLC - Requires b2060
+				"PARAGON3", // BOTTOM DOLLAR BOUNTIES DLC - Requires b3258
                 "PARIAH",
                 "PENUMBRA",
                 "PENUMBRA2", // SUMMER SPECIAL (MPSUM) DLC - Requires b2060
-                "R300", // LOS SANTOS DRUG WARS (mpchristmas3) DLC - Requires b2802
                 "RAIDEN",
                 "RAPIDGT",
                 "RAPIDGT2",
                 "RAPTOR",
                 "REMUS", // LS TUNERS (MPTUNER) DLC - Requires b2372
+				"DRIFTREMUS", // CHOP SHOP DLC - Requires b3095
                 "REVOLTER",
                 "RT3000", // LS TUNERS (MPTUNER) DLC - Requires b2372
                 "RUSTON",
-                "SCHAFTER2",
-                "SCHAFTER3",
                 "SCHAFTER4",
-                "SCHAFTER5",
+                "SCHAFTER3",
                 "SCHLAGEN",
                 "SCHWARZER",
                 "SENTINEL3",
                 "SENTINEL4", // CRIMINAL ENTERPRISES (MPSUM2) DLC - Requires b2699
+				"DRIFTSENTINEL", // BOTTOM DOLLAR BOUNTIES DLC - Requires b3258
                 "SEVEN70",
                 "SM722", // CRIMINAL ENTERPRISES (MPSUM2) DLC - Requires b2699 
                 "SPECTER",
                 "SPECTER2",
-                "STINGERTT",  // SAN ANDREAS MERCENARIES (MP2023_01) DLC - Requires b2944
+                "BUFFALO3",
+                "STREITER",
                 "SUGOI", // CASINO HEIST (MPHEIST3) DLC - Requires b2060
                 "SULTAN",
                 "SULTAN2", // CASINO HEIST (MPHEIST3) DLC - Requires b2060
                 "SULTAN3", // LS TUNERS (MPTUNER) DLC - Requires b2372
                 "SURANO",
-                "TAMPA2",
-                "TENF", // CRIMINAL ENTERPRISES (MPSUM2) DLC - Requires b2699
-                "TENF2", // CRIMINAL ENTERPRISES (MPSUM2) DLC - Requires b2699
                 "TROPOS",
-                "VERLIERER2",
                 "VECTRE", // LS TUNERS (MPTUNER) DLC - Requires b2372
+                "VERLIERER2",
                 "VETO", // CAYO PERICO (MPHEIST4) DLC - Requires b2189
                 "VETO2", // CAYO PERICO (MPHEIST4) DLC - Requires b2189
                 "VSTR", // CASINO HEIST (MPHEIST3) DLC - Requires b2060
                 "ZR350", // LS TUNERS (MPTUNER) DLC - Requires b2372
-                "ZR380",
-                "ZR3802",
-                "ZR3803",
+				"DRIFTZR350", // CHOP SHOP DLC - Requires b3095
             };
             #endregion
             #region Super
             public static List<string> Super { get; } = new List<string>()
             {
+                "PFISTER811",
                 "ADDER",
                 "AUTARCH",
                 "BANSHEE2",
@@ -742,9 +774,10 @@ namespace vMenuClient.data
                 "CYCLONE",
                 "DEVESTE",
                 "EMERUS", // CASINO AND RESORT (MPVINEWOOD) DLC - Requires b2060
+                "ENTITY3", // LOS SANTOS DRUG WARS (mpchristmas3) DLC - Requires b2802
                 "ENTITYXF",
                 "ENTITY2",
-                "ENTITY3", // LOS SANTOS DRUG WARS (mpchristmas3) DLC - Requires b2802
+                "SHEAVA", // ETR1
                 "FMJ",
                 "FURIA", // CASINO HEIST (MPHEIST3) DLC - Requires b2060
                 "GP1",
@@ -753,19 +786,18 @@ namespace vMenuClient.data
                 "ITALIGTB",
                 "ITALIGTB2",
                 "KRIEGER", // CASINO AND RESORT (MPVINEWOOD) DLC - Requires b2060
-                "LE7B",
                 "LM87", // CRIMINAL ENTERPRISES (MPSUM2) DLC - Requires b2699
                 "NERO",
                 "NERO2",
                 "OSIRIS",
                 "PENETRATOR",
-                "PFISTER811",
-                "PROTOTIPO",
+				"PIPISTRELLO", // BOTTOM DOLLAR BOUNTIES DLC - Requires b3258
+                "LE7B",
                 "REAPER",
+                "VOLTIC2",
                 "S80", // CASINO AND RESORT (MPVINEWOOD) DLC - Requires b2060
                 "SC1",
                 "SCRAMJET",
-                "SHEAVA", // ETR1
                 "SULTANRS",
                 "T20",
                 "TAIPAN",
@@ -774,6 +806,7 @@ namespace vMenuClient.data
                 "THRAX", // CASINO AND RESORT (MPVINEWOOD) DLC - Requires b2060
                 "TIGON", // SUMMER SPECIAL (MPSUM) DLC - Requires b2060
                 "TORERO2", // CRIMINAL ENTERPRISES (MPSUM2) DLC - Requires b2699
+                "TURISMO3", // CHOP SHOP DLC - Requires b3095
                 "TURISMOR",
                 "TYRANT",
                 "TYRUS",
@@ -783,7 +816,7 @@ namespace vMenuClient.data
                 "VIRTUE", // LOS SANTOS DRUG WARS (mpchristmas3) DLC - Requires b2802
                 "VISIONE",
                 "VOLTIC",
-                "VOLTIC2",
+                "PROTOTIPO",
                 "XA21",
                 "ZENO", // THE CONTRACT (MPSECURITY) DLC - Requires b2545
                 "ZENTORNO",
@@ -794,6 +827,7 @@ namespace vMenuClient.data
             public static List<string> Motorcycles { get; } = new List<string>()
             {
                 "AKUMA",
+                "DEATHBIKE",
                 "AVARUS",
                 "BAGGER",
                 "BATI",
@@ -805,19 +839,17 @@ namespace vMenuClient.data
                 "DAEMON",
                 "DAEMON2",
                 "DEFILER",
-                "DEATHBIKE",
-                "DEATHBIKE2",
-                "DEATHBIKE3",
                 "DIABLOUS",
                 "DIABLOUS2",
                 "DOUBLE",
                 "ENDURO",
                 "ESSKEY",
-                "FAGGIO",
                 "FAGGIO2",
                 "FAGGIO3",
+                "FAGGIO",
                 "FCR",
                 "FCR2",
+                "DEATHBIKE2",
                 "GARGOYLE",
                 "HAKUCHOU",
                 "HAKUCHOU2",
@@ -829,16 +861,18 @@ namespace vMenuClient.data
                 "MANCHEZ3", // LOS SANTOS DRUG WARS (mpchristmas3) DLC - Requires b2802
                 "NEMESIS",
                 "NIGHTBLADE",
+                "DEATHBIKE3",
                 "OPPRESSOR",
                 "OPPRESSOR2",
                 "PCJ",
+				"PIZZABOY", // BOTTOM DOLLAR BOUNTIES DLC - Requires b3258
                 "POWERSURGE", // LOS SANTOS DRUG WARS (mpchristmas3) DLC - Requires b2802
+                "RROCKET", // CASINO AND RESORT (MPVINEWOOD) DLC - Requires b2060
                 "RATBIKE",
                 "REEVER", // THE CONTRACT (MPSECURITY) DLC - Requires b2545
-                "RROCKET", // CASINO AND RESORT (MPVINEWOOD) DLC - Requires b2060
                 "RUFFIAN",
-                "SANCHEZ",
                 "SANCHEZ2",
+                "SANCHEZ",
                 "SANCTUS",
                 "SHINOBI", // THE CONTRACT (MPSECURITY) DLC - Requires b2545
                 "SHOTARO",
@@ -856,69 +890,71 @@ namespace vMenuClient.data
             #region OffRoad
             public static List<string> OffRoad { get; } = new List<string>()
             {
-                "BFINJECTION",
+                "BRUISER",
+                "BRUTUS",
+                "MONSTER3",
                 "BIFTA",
                 "BLAZER",
-                "BLAZER2",
-                "BLAZER3",
-                "BLAZER4",
                 "BLAZER5",
+                "BLAZER2",
                 "BODHI2",
                 "BOOR", // LOS SANTOS DRUG WARS (mpchristmas3) DLC - Requires b2802
                 "BRAWLER",
-                "BRUISER",
-                "BRUISER2",
-                "BRUISER3",
-                "BRUTUS",
-                "BRUTUS2",
-                "BRUTUS3",
                 "CARACARA",
                 "CARACARA2", // CASINO AND RESORT (MPVINEWOOD) DLC - Requires b2060
-                "DLOADER",
+                "TROPHYTRUCK2",
                 "DRAUGUR", // CRIMINAL ENTERPRISES (MPSUM2) DLC - Requires b2699
                 "DUBSTA3",
                 "DUNE",
-                "DUNE2",
                 "DUNE3",
-                "DUNE4",
-                "DUNE5",
+                "DLOADER",
                 "EVERON", // CASINO HEIST (MPHEIST3) DLC - Requires b2060
                 "FREECRAWLER",
+                "BRUISER2",
+                "BRUTUS2",
+                "MONSTER4",
                 "HELLION", // CASINO AND RESORT (MPVINEWOOD) DLC - Requires b2060
-                "INSURGENT",
+                "BLAZER3",
+                "BFINJECTION",
                 "INSURGENT2",
+                "INSURGENT",
                 "INSURGENT3",
                 "KALAHARI",
                 "KAMACHO",
-                "L35", // SAN ANDREAS MERCENARIES (MP2023_01) DLC - Requires b2944
+                "MONSTER",
                 "MARSHALL",
                 "MENACER",
                 "MESA3",
-                "MONSTER",
-                "MONSTER3",
-                "MONSTER4",
-                "MONSTER5",
                 "MONSTROCITI",  // SAN ANDREAS MERCENARIES (MP2023_01) DLC - Requires b2944
+                "BRUISER3",
+                "BRUTUS3",
+                "MONSTER5",
                 "NIGHTSHARK",
                 "OUTLAW", // CASINO HEIST (MPHEIST3) DLC - Requires b2060
                 "PATRIOT3", // THE CONTRACT (MPSECURITY) DLC - Requires b2545
+                "DUNE4",
+                "DUNE5",
                 "RANCHERXL",
                 "RANCHERXL2",
                 "RATEL",  // SAN ANDREAS MERCENARIES (MP2023_01) DLC - Requires b2944
                 "RCBANDITO",
-                "REBEL",
                 "REBEL2",
                 "RIATA",
-                "SANDKING",
+                "REBEL",
                 "SANDKING2",
+                "SANDKING",
+                "DUNE2",
+                "BLAZER4",
                 "TECHNICAL",
                 "TECHNICAL2",
                 "TECHNICAL3",
+				"TERMINUS", // CHOP SHOP DLC - Requires b3095
                 "TROPHYTRUCK",
-                "TROPHYTRUCK2",
                 "VAGRANT", // CASINO HEIST (MPHEIST3) DLC - Requires b2060
                 "VERUS", // CAYO PERICO (MPHEIST4) DLC - Requires b2189
+                "L35", // SAN ANDREAS MERCENARIES (MP2023_01) DLC - Requires b2944
                 "WINKY", // CAYO PERICO (MPHEIST4) DLC - Requires b2189
+                "YOSEMITE1500", // BOTTOM DOLLAR BOUNTIES DLC - Requires b3258
                 "YOSEMITE3", // SUMMER SPECIAL (MPSUM) DLC - Requires b2060
                 "ZHABA", // CASINO HEIST (MPHEIST3) DLC - Requires b2060
             };
@@ -926,12 +962,12 @@ namespace vMenuClient.data
             #region Industrial
             public static List<string> Industrial { get; } = new List<string>()
             {
-                "BULLDOZER",
                 "CUTTER",
+                "HANDLER",
+                "BULLDOZER",
                 "DUMP",
                 "FLATBED",
                 "GUARDIAN",
-                "HANDLER",
                 "MIXER",
                 "MIXER2",
                 "RUBBLE",
@@ -943,10 +979,12 @@ namespace vMenuClient.data
             public static List<string> Utility { get; } = new List<string>()
             {
                 "AIRTUG",
-                "CADDY",
-                "CADDY2",
                 "CADDY3",
+                "CADDY2",
+                "CADDY",
                 "DOCKTUG",
+                "TRACTOR2", // Fieldmaster
+                "TRACTOR3", // Fieldmaster
                 "FORKLIFT",
                 "MOWER", // Lawnmower
                 "RIPLEY",
@@ -954,24 +992,24 @@ namespace vMenuClient.data
                 "SADLER2",
                 "SCRAP",
                 "SLAMTRUCK", // CAYO PERICO (MPHEIST4) DLC - Requires b2189
+                "TOWTRUCK4", // CHOP SHOP DLC - Requires b3095
+                "TOWTRUCK3", // CHOP SHOP DLC - Requires b3095
                 "TOWTRUCK",
                 "TOWTRUCK2",
                 "TRACTOR", // Tractor (rusted/old)
-                "TRACTOR2", // Fieldmaster
-                "TRACTOR3", // Fieldmaster
-                "UTILLITRUCK",
                 "UTILLITRUCK2",
+                "UTILLITRUCK",
                 "UTILLITRUCK3",
 
                 /// Trailers
 
                 /// Army Trailers
-                "ARMYTRAILER", // Military
                 "ARMYTRAILER2", // Civillian
-                "FREIGHTTRAILER", // Extended
+                "ARMYTRAILER", // Military
                 "ARMYTANKER", // Army Tanker
+                "FREIGHTTRAILER", // Extended
                 "TRAILERLARGE", // Mobile Operations Center
-            
+
                 /// Large Trailers
                 "DOCKTRAILER", // Shipping Container Trailer
                 "TR3", // Large Boat Trailer (Sailboat)
@@ -979,23 +1017,27 @@ namespace vMenuClient.data
                 "TR4", // Large Vehicle Trailer (Mission Cars)
                 "TRFLAT", // Large Flatbed Empty Trailer
                 "TRAILERS", // Container/Curtain Trailer
-                "TRAILERS4", // White Container Trailer
                 "TRAILERS2", // Box Trailer
                 "TRAILERS3", // Ramp Box Trailer
+                "TRAILERS4", // White Container Trailer
+                "TRAILERS5", // Christmas Trailer CHOP SHOP DLC - Requires b3095
                 "TVTRAILER", // Fame or Shame Trailer
+                "TVTRAILER2", // LS Panic CHOP SHOP DLC - Requires b3095
                 "TRAILERLOGS", // Logs Trailer
                 "TANKER", // Ron Oil Tanker Trailer
                 "TANKER2", // Ron Oil Tanker Trailer (Heist Version)
-            
+
                 /// Medium Trailers
                 "BALETRAILER", // (Tractor Hay Bale Trailer)
                 "GRAINTRAILER", // (Tractor Grain Trailer)
-            
+
                 // Ortega's trailer, we don't want this one because you can't drive them.
                 //"PROPTRAILER",
 
                 /// Small Trailers
                 "BOATTRAILER", // Small Boat Trailer
+				"BOATTRAILER2", // CHOP SHOP DLC - Requires b3095
+				"BOATTRAILER3", // CHOP SHOP DLC - Requires b3095
                 "RAKETRAILER", // Tractor Tow Plow/Rake
                 "TRAILERSMALL", // Small Utility Trailer
             };
@@ -1003,21 +1045,23 @@ namespace vMenuClient.data
             #region Vans
             public static List<string> Vans { get; } = new List<string>()
             {
-                "BISON",
+                "BOXVILLE5",
                 "BISON2",
                 "BISON3",
+                "BISON",
                 "BOBCATXL",
-                "BOXVILLE",
                 "BOXVILLE2",
                 "BOXVILLE3",
+                "BOXVILLE",
                 "BOXVILLE4",
-                "BOXVILLE5",
-                "BURRITO",
+                "BOXVILLE6", // CHOP SHOP DLC - Requires b3095
                 "BURRITO2",
                 "BURRITO3",
+                "BURRITO",
                 "BURRITO4",
                 "BURRITO5",
                 "CAMPER",
+                "SPEEDO2",
                 "GBURRITO",
                 "GBURRITO2",
                 "JOURNEY",
@@ -1031,7 +1075,6 @@ namespace vMenuClient.data
                 "RUMPO2",
                 "RUMPO3",
                 "SPEEDO",
-                "SPEEDO2",
                 "SPEEDO4",
                 "SPEEDO5", // SAN ANDREAS MERCENARIES (MP2023_01) DLC - Requires b2944
                 "SURFER",
@@ -1049,44 +1092,44 @@ namespace vMenuClient.data
             {
                 "BMX",
                 "CRUISER",
+                "TRIBIKE2",
                 "FIXTER",
                 "INDUCTOR", // SAN ANDREAS MERCENARIES (MP2023_01) DLC - Requires b2944
                 "INDUCTOR2", // SAN ANDREAS MERCENARIES (MP2023_01) DLC - Requires b2944
                 "SCORCHER",
-                "TRIBIKE",
-                "TRIBIKE2",
                 "TRIBIKE3",
+                "TRIBIKE",
             };
             #endregion
             #region Boats
             public static List<string> Boats { get; } = new List<string>()
             {
                 "AVISA", // CAYO PERICO (MPHEIST4) DLC - Requires b2189
-                "DINGHY",
                 "DINGHY2",
+                "DINGHY",
                 "DINGHY3",
                 "DINGHY4",
-                "DINGHY5", // CAYO PERICO (MPHEIST4) DLC - Requires b2189
                 "JETMAX",
                 "KOSATKA", // CAYO PERICO (MPHEIST4) DLC - Requires b2189
+                "SUBMERSIBLE2",
+                "PATROLBOAT", // CAYO PERICO (MPHEIST4) DLC - Requires b2189
                 "LONGFIN", // CAYO PERICO (MPHEIST4) DLC - Requires b2189
                 "MARQUIS",
-                "PATROLBOAT", // CAYO PERICO (MPHEIST4) DLC - Requires b2189
                 "PREDATOR",
                 "SEASHARK",
                 "SEASHARK2",
                 "SEASHARK3",
-                "SPEEDER",
                 "SPEEDER2",
+                "SPEEDER",
                 "SQUALO",
                 "SUBMERSIBLE",
-                "SUBMERSIBLE2",
                 "SUNTRAP",
                 "TORO",
                 "TORO2",
                 "TROPIC",
                 "TROPIC2",
                 "TUG",
+                "DINGHY5", // CAYO PERICO (MPHEIST4) DLC - Requires b2189
             };
             #endregion
             #region Helicopters
@@ -1095,25 +1138,24 @@ namespace vMenuClient.data
                 "AKULA",
                 "ANNIHILATOR",
                 "ANNIHILATOR2", // CAYO PERICO (MPHEIST4) DLC - Requires b2189
-                "BUZZARD",
                 "BUZZARD2",
+                "BUZZARD",
                 "CARGOBOB",
+                "CARGOBOB4",
                 "CARGOBOB2",
                 "CARGOBOB3",
-                "CARGOBOB4",
                 "CONADA", // CRIMINAL ENTERPRISES (MPSUM2) DLC - Requires b2699
-                "CONADA2", // SAN ANDREAS MERCENARIES (MP2023_01) DLC - Requires b2944
+                "HUNTER",
                 "FROGGER",
                 "FROGGER2",
                 "HAVOK",
-                "HUNTER",
                 "MAVERICK",
                 "POLMAV",
                 "SAVAGE",
                 "SEASPARROW",
+                "SKYLIFT",
                 "SEASPARROW2", // CAYO PERICO (MPHEIST4) DLC - Requires b2189
                 "SEASPARROW3", // CAYO PERICO (MPHEIST4) DLC - Requires b2189
-                "SKYLIFT",
                 "SUPERVOLITO",
                 "SUPERVOLITO2",
                 "SWIFT",
@@ -1121,54 +1163,56 @@ namespace vMenuClient.data
                 "VALKYRIE",
                 "VALKYRIE2",
                 "VOLATUS",
+                "CONADA2", // SAN ANDREAS MERCENARIES (MP2023_01) DLC - Requires b2944
             };
             #endregion
             #region Planes
             public static List<string> Planes { get; } = new List<string>()
             {
-                "ALKONOST", // CAYO PERICO (MPHEIST4) DLC - Requires b2189
                 "ALPHAZ1",
+                "BLIMP",
                 "AVENGER",
                 "AVENGER2",
                 "AVENGER3",  // SAN ANDREAS MERCENARIES (MP2023_01) DLC - Requires b2944
                 "AVENGER4",
+                "STRIKEFORCE",
                 "BESRA",
-                "BLIMP",
-                "BLIMP2",
                 "BLIMP3",
-                "BOMBUSHKA",
                 "CARGOPLANE",
+                "CARGOPLANE2",
                 "CUBAN800",
                 "DODO",
                 "DUSTER",
+                "RAIJU",  // SAN ANDREAS MERCENARIES (MP2023_01) DLC - Requires b2944
                 "HOWARD",
                 "HYDRA",
                 "JET",
-                "LAZER",
+                "STARLING",
                 "LUXOR",
                 "LUXOR2",
+                "STUNT",
                 "MAMMATUS",
-                "MICROLIGHT",
                 "MILJET",
                 "MOGUL",
-                "MOLOTOK",
                 "NIMBUS",
                 "NOKOTA",
+                "LAZER",
                 "PYRO",
-                "RAIJU",  // SAN ANDREAS MERCENARIES (MP2023_01) DLC - Requires b2944
+                "BOMBUSHKA",
+                "ALKONOST", // CAYO PERICO (MPHEIST4) DLC - Requires b2189
                 "ROGUE",
                 "SEABREEZE",
                 "SHAMAL",
-                "STARLING",
                 "STREAMER216",
-                "STRIKEFORCE",
-                "STUNT",
                 "TITAN",
                 "TULA",
+                "MICROLIGHT",
+                "MOLOTOK",
                 "VELUM",
                 "VELUM2",
                 "VESTRA",
                 "VOLATOL",
+                "BLIMP2",
             };
             #endregion
             #region Service
@@ -1179,8 +1223,8 @@ namespace vMenuClient.data
                 "BRICKADE2", // LOS SANTOS DRUG WARS (mpchristmas3) DLC - Requires b2802
                 "BUS",
                 "COACH",
-                "PBUS2",
                 "RALLYTRUCK",
+                "PBUS2",
                 "RENTALBUS",
                 "TAXI",
                 "TOURBUS",
@@ -1202,13 +1246,19 @@ namespace vMenuClient.data
                 "POLICE2",
                 "POLICE3",
                 "POLICE4",
+                "POLICE5", // CHOP SHOP DLC - Requires b3095
                 "POLICEB",
                 "POLICEOLD1",
                 "POLICEOLD2",
                 "POLICET",
-                "POLMAV",
+                "POLICET3", // BOTTOM DOLLAR BOUNTIES DLC - Requires b3258
+				"POLDOMINATOR10", // BOTTOM DOLLAR BOUNTIES DLC - Requires b3258
+				"POLDORADO", // BOTTOM DOLLAR BOUNTIES DLC - Requires b3258
+				"POLGAUNTLET", // CHOP SHOP DLC - Requires b3095
+				"POLGREENWOOD", // BOTTOM DOLLAR BOUNTIES DLC - Requires b3258
+				"POLIMPALER5", // BOTTOM DOLLAR BOUNTIES DLC - Requires b3258
+				"POLIMPALER6", // BOTTOM DOLLAR BOUNTIES DLC - Requires b3258
                 "PRANGER",
-                "PREDATOR",
                 "RIOT",
                 "RIOT2",
                 "SHERIFF",
@@ -1219,43 +1269,45 @@ namespace vMenuClient.data
             public static List<string> Military { get; } = new List<string>()
             {
                 "APC",
+                "SCARAB",
                 "BARRACKS",
-                "BARRACKS2",
                 "BARRACKS3",
+                "BARRACKS2",
                 "BARRAGE",
                 "CHERNOBOG",
                 "CRUSADER",
-                "HALFTRACK",
-                "KHANJALI",
-                "MINITANK", // CASINO HEIST (MPHEIST3) DLC - Requires b2060
-                "RHINO",
-                "SCARAB",
                 "SCARAB2",
+                "HALFTRACK",
+                "MINITANK", // CASINO HEIST (MPHEIST3) DLC - Requires b2060
                 "SCARAB3",
+                "RHINO",
                 "THRUSTER", // Jetpack
-                "TRAILERSMALL2", // Anti Aircraft Trailer
+                "KHANJALI",
                 "VETIR", // CAYO PERICO (MPHEIST4) DLC - Requires b2189
+                "TRAILERSMALL2", // Anti Aircraft Trailer
             };
             #endregion
             #region Commercial
             public static List<string> Commercial { get; } = new List<string>()
             {
-                "BENSON",
-                "BIFF",
                 "CERBERUS",
+                "BENSON",
+				"BENSON2", // CHOP SHOP DLC - Requires b3095
+                "BIFF",
                 "CERBERUS2",
-                "CERBERUS3",
                 "HAULER",
                 "HAULER2",
                 "MULE",
-                "MULE2",
                 "MULE3",
-                "MULE4",
+                "MULE2",
                 "MULE5", // THE CONTRACT (MPSECURITY) DLC - Requires b2545
+                "MULE4",
+                "CERBERUS3",
                 "PACKER",
                 "PHANTOM",
-                "PHANTOM2",
+                "PHANTOM4", // CHOP SHOP DLC - Requires b3095
                 "PHANTOM3",
+                "PHANTOM2",
                 "POUNDER",
                 "POUNDER2",
                 "STOCKADE",
@@ -1268,6 +1320,7 @@ namespace vMenuClient.data
             {
                 "CABLECAR",
                 "FREIGHT",
+                "FREIGHT2", // CHOP SHOP DLC - Requires b3095
                 "FREIGHTCAR",
                 "FREIGHTCONT1",
                 "FREIGHTCONT2",
@@ -1279,10 +1332,10 @@ namespace vMenuClient.data
             #region OpenWheel
             public static List<string> OpenWheel { get; } = new List<string>()
             {
-                "FORMULA",
-                "FORMULA2",
                 "OPENWHEEL1", // SUMMER SPECIAL (MPSUM) DLC - Requires b2060
                 "OPENWHEEL2", // SUMMER SPECIAL (MPSUM) DLC - Requires b2060
+                "FORMULA",
+                "FORMULA2",
             };
             #endregion
 
