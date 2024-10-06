@@ -3241,20 +3241,21 @@ namespace vMenuClient
         #region Time & Weather Options
         public async Task PlayerWeatherOptions()
         {
+            var menu = MainMenu.PlayerTimeWeatherOptionsMenu;
+            if (menu == null)
+                return;
+
+            menu.ApplyWeatherTick();
             await Delay(100);
-            if (MainMenu.PlayerTimeWeatherOptionsMenu != null && MainMenu.PlayerTimeWeatherOptionsMenu != null && MainMenu.PlayerTimeWeatherOptionsMenu.clientSidedEnabled.Checked)
-            {
-                ClearOverrideWeather();
-                ClearWeatherTypePersist();
-                SetWeatherTypeOverTime(MainMenu.PlayerTimeWeatherOptionsMenu.weatherList.GetCurrentSelection(), 0.0f);
-                SetWeatherTypePersist(MainMenu.PlayerTimeWeatherOptionsMenu.weatherList.GetCurrentSelection());
-                SetWeatherTypeNow(MainMenu.PlayerTimeWeatherOptionsMenu.weatherList.GetCurrentSelection());
-                SetWeatherTypeNowPersist(MainMenu.PlayerTimeWeatherOptionsMenu.weatherList.GetCurrentSelection());
-            }
         }
 
         public async Task PlayerTimeOptions()
         {
+            var menu = MainMenu.PlayerTimeWeatherOptionsMenu;
+            if (menu == null)
+                return;
+
+            menu.ApplyTimeTick();
             await Delay(100);
             if (MainMenu.PlayerTimeWeatherOptionsMenu != null && MainMenu.PlayerTimeWeatherOptionsMenu != null && MainMenu.PlayerTimeWeatherOptionsMenu.clientSidedEnabled.Checked)
             {

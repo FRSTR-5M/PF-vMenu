@@ -523,6 +523,9 @@ namespace vMenuClient
 
             Exports.Add("enable", new Action(() => vMenuEnabled = true));
             Exports.Add("disable", new Action(() => vMenuEnabled = false));
+
+            Exports.Add("enable_client_sided_time_weather", new Action(() => PlayerTimeWeatherOptionsMenu.Enabled = true));
+            Exports.Add("disable_client_sided_time_weather", new Action(() => PlayerTimeWeatherOptionsMenu.Enabled = false));
         }
 
         #region Infinity bits

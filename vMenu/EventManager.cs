@@ -254,32 +254,6 @@ namespace vMenuClient
         }
 
         /// <summary>
-        /// Loads/unloads the snow fx particles if needed.
-        /// </summary>
-        private async Task UpdateWeatherParticles()
-        {
-            ForceSnowPass(IsSnowEnabled);
-            SetForceVehicleTrails(IsSnowEnabled);
-            SetForcePedFootstepsTracks(IsSnowEnabled);
-            if (IsSnowEnabled)
-            {
-                if (!HasNamedPtfxAssetLoaded("core_snow"))
-                {
-                    RequestNamedPtfxAsset("core_snow");
-                    while (!HasNamedPtfxAssetLoaded("core_snow"))
-                    {
-                        await Delay(0);
-                    }
-                }
-                UseParticleFxAssetNextCall("core_snow");
-            }
-            else
-            {
-                RemoveNamedPtfxAsset("core_snow");
-            }
-        }
-
-        /// <summary>
         /// OnTick loop to keep the weather synced.
         /// </summary>
         /// <returns></returns>
@@ -288,9 +262,12 @@ namespace vMenuClient
 
             if (MainMenu.PlayerTimeWeatherOptionsMenu != null)
             {
-                if (!MainMenu.PlayerTimeWeatherOptionsMenu.ClientWeatherTimeBool)
+                if (!MainMenu.PlayerTimeWeatherOptionsMenu.clientSidedEnabled.Checked)
                 {
-                    await UpdateWeatherParticles();
+                    ForceSnowPass(IsSnowEnabled);
+                    SetForceVehicleTrails(IsSnowEnabled);
+                    SetForcePedFootstepsTracks(IsSnowEnabled);
+
                     SetArtificialLightsState(IsBlackoutEnabled);
                     SetArtificialLightsStateAffectsVehicles(false);
                     if (GetNextWeatherType() != GetHashKey(GetServerWeather))
@@ -313,7 +290,7 @@ namespace vMenuClient
         {
             if (MainMenu.PlayerTimeWeatherOptionsMenu != null)
             {
-                if (!MainMenu.PlayerTimeWeatherOptionsMenu.ClientWeatherTimeBool)
+                if (!MainMenu.PlayerTimeWeatherOptionsMenu.clientSidedEnabled.Checked)
                 {
                     NetworkOverrideClockTime(GetServerHours, GetServerMinutes, 0);
                     if (IsServerTimeFrozen || IsServerTimeSyncedWithMachineTime)
