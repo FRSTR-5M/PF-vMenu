@@ -46,7 +46,7 @@
     <None Update="config\addons.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="config\vehname.json">
+    <None Update="config\vehicle-classes.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="config\vehblips.json">

@@ -1,9 +1,0 @@
-{
-	"vehname":{ // should work for brand names or vehicle names
-		"chr20": "Charger Hellcat 2020",
-		"DODGE": "Dodge",
-		"cullinan": "Cullinan 2019",
-		"ROLLSROYCE": "Rolls-Royce"
-	}
-
-}

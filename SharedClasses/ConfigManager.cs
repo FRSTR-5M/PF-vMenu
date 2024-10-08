@@ -40,6 +40,8 @@ namespace vMenuShared
             // Vehicle Chameleon Colours
             vmenu_using_chameleon_colours,
 
+            vmenu_only_custom_classes,
+
             // Kick & ban settings
             vmenu_default_ban_message_information,
             vmenu_auto_ban_cheaters,
