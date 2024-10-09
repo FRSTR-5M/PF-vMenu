@@ -12,6 +12,7 @@ using vMenuClient.data;
 
 using static CitizenFX.Core.Native.API;
 using static vMenuClient.CommonFunctions;
+using static vMenuShared.ConfigManager;
 using static vMenuShared.PermissionsManager;
 
 namespace vMenuClient.menus
@@ -621,7 +622,10 @@ namespace vMenuClient.menus
             }
             // always allowed keybind menu options
             keybindMenu.AddMenuItem(kbRecordKeys);
-            keybindMenu.AddMenuItem(kbRadarKeys);
+            if (!GetSettingsBool(Setting.vmenu_disable_radar_control))
+            {
+                keybindMenu.AddMenuItem(kbRadarKeys);
+            }
             keybindMenu.AddMenuItem(kbPointKeysCheckbox);
             keybindMenu.AddMenuItem(backBtn);
 
@@ -684,7 +688,10 @@ namespace vMenuClient.menus
             }
 
             // Always allowed
-            menu.AddMenuItem(hideRadar);
+            if (!GetSettingsBool(Setting.vmenu_disable_radar_control))
+            {
+                menu.AddMenuItem(hideRadar);
+            }
             menu.AddMenuItem(hideHud);
             menu.AddMenuItem(lockCamX);
             menu.AddMenuItem(lockCamY);

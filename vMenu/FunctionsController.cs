@@ -919,14 +919,17 @@ namespace vMenuClient
 
             #region Misc Settings
             // Hide radar.
-            if (MainMenu.MiscSettingsMenu.HideRadar)
+            if (!GetSettingsBool(Setting.vmenu_disable_radar_control))
             {
-                DisplayRadar(false);
-            }
-            // Show radar (or hide it if the user disabled it in pausemenu > settings > display > show radar.
-            else if (!IsRadarHidden()) // this should allow other resources to still disable it
-            {
-                DisplayRadar(IsRadarPreferenceSwitchedOn());
+                if (MainMenu.MiscSettingsMenu.HideRadar)
+                {
+                    DisplayRadar(false);
+                }
+                // Show radar (or hide it if the user disabled it in pausemenu > settings > display > show radar.
+                else if (!IsRadarHidden()) // this should allow other resources to still disable it
+                {
+                    DisplayRadar(IsRadarPreferenceSwitchedOn());
+                }
             }
             #endregion
 
@@ -1045,28 +1048,31 @@ namespace vMenuClient
                 }
             }
 
-            if (GetProfileSetting(221) == 1) // 221 = settings > display > expanded radar
+            if (!GetSettingsBool(Setting.vmenu_disable_radar_control))
             {
-                SetBigmapActive(true, false);
-            }
-            else
-            {
-                if (IsBigmapActive() && GetGameTimer() - radarSwitchTimer > 8000)
+                if (GetProfileSetting(221) == 1) // 221 = settings > display > expanded radar
                 {
-                    SetBigmapActive(false, false);
+                    SetBigmapActive(true, false);
                 }
-                if (Game.IsControlJustReleased(0, Control.MultiplayerInfo) && Game.IsControlEnabled(0, Control.MultiplayerInfo) && MainMenu.MiscSettingsMenu.KbRadarKeys && !MenuController.IsAnyMenuOpen() && !IsPauseMenuActive())
+                else
                 {
-                    var radarExpanded = IsBigmapActive();
-
-                    if (radarExpanded)
+                    if (IsBigmapActive() && GetGameTimer() - radarSwitchTimer > 8000)
                     {
                         SetBigmapActive(false, false);
                     }
-                    else
+                    if (Game.IsControlJustReleased(0, Control.MultiplayerInfo) && Game.IsControlEnabled(0, Control.MultiplayerInfo) && MainMenu.MiscSettingsMenu.KbRadarKeys && !MenuController.IsAnyMenuOpen() && !IsPauseMenuActive())
                     {
-                        SetBigmapActive(true, false);
-                        radarSwitchTimer = GetGameTimer();
+                        var radarExpanded = IsBigmapActive();
+
+                        if (radarExpanded)
+                        {
+                            SetBigmapActive(false, false);
+                        }
+                        else
+                        {
+                            SetBigmapActive(true, false);
+                            radarSwitchTimer = GetGameTimer();
+                        }
                     }
                 }
             }

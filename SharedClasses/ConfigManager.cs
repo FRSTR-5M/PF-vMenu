@@ -36,6 +36,7 @@ namespace vMenuShared
             vmenu_disable_entity_outlines_tool,
             vmenu_disable_player_stats_setup,
             pfvmenu_moshnotify_setting,
+            vmenu_disable_radar_control,
 
             // Vehicle Chameleon Colours
             vmenu_using_chameleon_colours,
