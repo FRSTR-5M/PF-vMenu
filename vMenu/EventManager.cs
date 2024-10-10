@@ -18,6 +18,7 @@ namespace vMenuClient
 {
     public class EventManager : BaseScript
     {
+        public static bool IsTimeWeatherSyncEnabled { get; set; } = false;
         public static bool IsSnowEnabled => GetSettingsBool(Setting.vmenu_enable_snow);
         public static int GetServerMinutes => MathUtil.Clamp(GetSettingsInt(Setting.vmenu_current_minute), 0, 59);
         public static int GetServerHours => MathUtil.Clamp(GetSettingsInt(Setting.vmenu_current_hour), 0, 23);
@@ -245,7 +246,7 @@ namespace vMenuClient
             if (!await MainMenu.CheckVMenuEnabled())
                 return;
 
-            if (MainMenu.PlayerTimeWeatherOptionsMenu != null)
+            if (!IsTimeWeatherSyncEnabled && MainMenu.PlayerTimeWeatherOptionsMenu != null)
             {
                 if (!MainMenu.PlayerTimeWeatherOptionsMenu.clientSidedEnabled.Checked)
                 {
@@ -276,7 +277,7 @@ namespace vMenuClient
             if (!await MainMenu.CheckVMenuEnabled())
                 return;
 
-            if (MainMenu.PlayerTimeWeatherOptionsMenu != null)
+            if (!IsTimeWeatherSyncEnabled && MainMenu.PlayerTimeWeatherOptionsMenu != null)
             {
                 if (!MainMenu.PlayerTimeWeatherOptionsMenu.clientSidedEnabled.Checked)
                 {
@@ -290,6 +291,10 @@ namespace vMenuClient
                         await Delay(MathUtil.Clamp(GetServerMinuteDuration, 100, 2000));
                     }
                 }
+            }
+            else
+            {
+                await Delay(1000);
             }
         }
 
