@@ -41,7 +41,7 @@ namespace vMenuClient.menus
         /// </summary>
         private void CreateMenu()
         {
-            menu = new Menu(Game.Player.Name, "Banned Players Management");
+            menu = new Menu(MenuTitle, "Banned Players Management");
 
             menu.InstructionalButtons.Add(Control.Jump, "Filter Options");
             menu.ButtonPressHandlers.Add(new Menu.ButtonPressHandler(Control.Jump, Menu.ControlPressCheckType.JUST_RELEASED, new Action<Menu, Control>(async (a, b) =>

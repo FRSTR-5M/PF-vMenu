@@ -29,7 +29,7 @@ namespace vMenuClient.menus
         public Menu tattoosMenu = Lm.GetMenu(new("vMenu", "Character Tattoo Options"));
         public Menu clothesMenu = Lm.GetMenu(new("vMenu", "Character Clothing Options"));
         public Menu propsMenu = Lm.GetMenu(new("vMenu", "Character Props Options"));
-        private Menu manageSavedCharacterMenu = Lm.GetMenu(new Menu("vMenu", "Manage MP Character"));
+        private Menu manageSavedCharacterMenu = Lm.GetMenu(new Menu(MenuTitle, "Manage MP Character"));
 
         // Need to be able to disable/enable these buttons from another class.
         internal MenuItem createMaleBtn = new("Create Male Character", "Create a new male character.") { Label = "→→→" };
@@ -754,7 +754,7 @@ namespace vMenuClient.menus
         private void CreateMenu()
         {
             // Create the menu.
-            menu = new Menu(Game.Player.Name, "MP Ped Customization");
+            menu = new Menu(MenuTitle, "MP Ped Customization");
 
             var savedCharacters = new MenuItem("Saved Characters", "Spawn, edit or delete your existing saved multiplayer characters.")
             {

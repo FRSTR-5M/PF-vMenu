@@ -42,7 +42,7 @@ namespace vMenuClient.menus
 
             #region create main weapon options menu and add items
             // Create the menu.
-            menu = new Menu(Game.Player.Name, "Weapon Options");
+            menu = new Menu(MenuTitle, "Weapon Options");
 
             var getAllWeapons = new MenuItem("Get All Weapons", "Get all weapons.");
             var removeAllWeapons = new MenuItem("Remove All Weapons", "Removes all weapons in your inventory.");
@@ -82,7 +82,7 @@ namespace vMenuClient.menus
 
             #region addonweapons submenu
             var addonWeaponsBtn = new MenuItem("Addon Weapons", "Equip / remove addon weapons available on this server.");
-            var addonWeaponsMenu = new Menu("Addon Weapons", "Equip/Remove Addon Weapons");
+            var addonWeaponsMenu = new Menu(MenuTitle, "Equip/Remove Addon Weapons");
             menu.AddMenuItem(addonWeaponsBtn);
 
             #region manage creating and accessing addon weapons menu
@@ -133,7 +133,7 @@ namespace vMenuClient.menus
             if (IsAllowed(Permission.WPParachute))
             {
                 // main parachute options menu setup
-                var parachuteMenu = Lm.GetMenu(new Menu("Parachute Options", "Parachute Options"));
+                var parachuteMenu = Lm.GetMenu(new Menu(MenuTitle, "Parachute Options"));
                 var parachuteBtn = new MenuItem("Parachute Options", "All parachute related options can be changed here.") { Label = "→→→" };
 
                 MenuController.AddSubmenu(menu, parachuteMenu);
@@ -288,28 +288,28 @@ namespace vMenuClient.menus
             var spacer = GetSpacerMenuItem("↓ Weapon Categories ↓");
             menu.AddMenuItem(spacer);
 
-            var handGuns = Lm.GetMenu(new Menu("Weapons", "Handguns"));
+            var handGuns = Lm.GetMenu(new Menu(MenuTitle, "Handguns"));
             var handGunsBtn = new MenuItem("Handguns");
 
-            var rifles = Lm.GetMenu(new Menu("Weapons", "Assault Rifles"));
+            var rifles = Lm.GetMenu(new Menu(MenuTitle, "Assault Rifles"));
             var riflesBtn = new MenuItem("Assault Rifles");
 
-            var shotguns = Lm.GetMenu(new Menu("Weapons", "Shotguns"));
+            var shotguns = Lm.GetMenu(new Menu(MenuTitle, "Shotguns"));
             var shotgunsBtn = new MenuItem("Shotguns");
 
-            var smgs = Lm.GetMenu(new Menu("Weapons", "Sub-/Light Machine Guns"));
+            var smgs = Lm.GetMenu(new Menu(MenuTitle, "Sub-/Light Machine Guns"));
             var smgsBtn = new MenuItem("Sub-/Light Machine Guns");
 
-            var throwables = Lm.GetMenu(new Menu("Weapons", "Throwables"));
+            var throwables = Lm.GetMenu(new Menu(MenuTitle, "Throwables"));
             var throwablesBtn = new MenuItem("Throwables");
 
-            var melee = Lm.GetMenu(new Menu("Weapons", "Melee"));
+            var melee = Lm.GetMenu(new Menu(MenuTitle, "Melee"));
             var meleeBtn = new MenuItem("Melee");
 
-            var heavy = Lm.GetMenu(new Menu("Weapons", "Heavy Weapons"));
+            var heavy = Lm.GetMenu(new Menu(MenuTitle, "Heavy Weapons"));
             var heavyBtn = new MenuItem("Heavy Weapons");
 
-            var snipers = Lm.GetMenu(new Menu("Weapons", "Sniper Rifles"));
+            var snipers = Lm.GetMenu(new Menu(MenuTitle, "Sniper Rifles"));
             var snipersBtn = new MenuItem("Sniper Rifles");
 
             MenuController.AddSubmenu(menu, handGuns);
@@ -364,7 +364,7 @@ namespace vMenuClient.menus
                 {
                     //Log($"[DEBUG LOG] [WEAPON-BUG] {weapon.Name} - {weapon.Perm} = {IsAllowed(weapon.Perm)} & All = {IsAllowed(Permission.WPGetAll)}");
                     #region Create menu for this weapon and add buttons
-                    var weaponMenu = new Menu("Weapon Options", weapon.Name)
+                    var weaponMenu = new Menu(MenuTitle, weapon.Name)
                     {
                         ShowWeaponStatsPanel = true
                     };

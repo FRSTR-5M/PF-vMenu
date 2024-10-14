@@ -24,7 +24,7 @@ namespace vMenuClient
 
         public static bool PermissionsSetupComplete => ArePermissionsSetup;
         public static bool ConfigOptionsSetupComplete = false;
-        
+
         public static string NoClipKey { get; private set; } = "F2"; // F2 by default (ReplayStartStopRecordingSecondary)
         public static Menu Menu { get; private set; }
         public static Menu PlayerSubmenu { get; private set; }
@@ -64,7 +64,7 @@ namespace vMenuClient
 
         private static bool _vMenuEnabled = true;
         public static bool vMenuEnabled
-        { 
+        {
             get => _vMenuEnabled;
             private set
             {
@@ -208,7 +208,7 @@ namespace vMenuClient
 
             RegisterKeyMapping($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:toggle", "vMenu Toggle Button", "keyboard", vMenuKey);
             #endregion
-            
+
             if (EnableExperimentalFeatures)
             {
                 RegisterCommand("testped", new Action<dynamic, List<dynamic>, string>((dynamic source, List<dynamic> args, string rawCommand) =>
@@ -277,14 +277,14 @@ namespace vMenuClient
                                 }
                             }
                         }
-                    } 
+                    }
                 }), false);
                 TriggerEvent("chat:addSuggestion", "/dv", "Deletes the vehicle you're sat in, or standing next to.");
             }
 
             RegisterCommand("dvall", new Action<dynamic, List<dynamic>, string>((dynamic source, List<dynamic> args, string rawCommand) =>
             {
-            
+
 
                 if (IsAllowed(Permission.DVAll))
                 {
@@ -300,7 +300,7 @@ namespace vMenuClient
                 }
             }), false);
 
-            
+
             TriggerEvent("chat:addSuggestion", "/dvall", "Deletes all vehicles");
             static async void DelVeh(Vehicle veh, int maxtimeout, int vehicle)
             {
@@ -309,7 +309,7 @@ namespace vMenuClient
                 {
                     veh.Delete();
                 }
-                if ( DoesEntityExist(vehicle) && timeout < maxtimeout)            
+                if ( DoesEntityExist(vehicle) && timeout < maxtimeout)
                 {
                     while (DoesEntityExist(vehicle) && timeout < maxtimeout)
                     {
@@ -326,7 +326,7 @@ namespace vMenuClient
                         var retry = 0;
                         while (!(NetworkHasControlOfEntity(vehicle) || (retry > 10)))
                         {
-                            retry++;                       
+                            retry++;
                             await Delay(10);
                             NetworkRequestControlOfEntity(vehicle);
                         }
@@ -343,7 +343,7 @@ namespace vMenuClient
                         }
                         timeout++;
                         await Delay(1000);
-                        if ( DoesEntityExist(vehicle) && timeout == maxtimeout -1)            
+                        if ( DoesEntityExist(vehicle) && timeout == maxtimeout -1)
                         {
                            Notify.Error($"Failed to delete vehicle, after {maxtimeout} retries.");
                            if (vMenuShared.ConfigManager.GetSettingsBool(vMenuShared.ConfigManager.Setting.pfvmenu_moshnotify_setting))
@@ -375,7 +375,7 @@ namespace vMenuClient
                 if (IsEntityAVehicle(vehicle))
                 {
 
-                    return vehicle; 
+                    return vehicle;
                 }
                 else
                 {
@@ -693,9 +693,9 @@ namespace vMenuClient
                 NoClipKey = "F2";
             }
             // Create the main menu.
-            Menu = Lm.GetMenu(new Menu(Game.Player.Name, "Main Menu"));
-            PlayerSubmenu = Lm.GetMenu(new Menu(Game.Player.Name, "Player Related Options"));
-            VehicleSubmenu = Lm.GetMenu(new Menu(Game.Player.Name, "Vehicle Related Options"));
+            Menu = Lm.GetMenu(new Menu(MenuTitle, "Main Menu"));
+            PlayerSubmenu = Lm.GetMenu(new Menu(MenuTitle, "Player Related Options"));
+            VehicleSubmenu = Lm.GetMenu(new Menu(MenuTitle, "Vehicle Related Options"));
 
             // Add the main menu to the menu pool.
             MenuController.AddMenu(Menu);
@@ -707,7 +707,7 @@ namespace vMenuClient
             // Create all (sub)menus.
             CreateSubmenus();
 
-            // Grab the original language 
+            // Grab the original language
             LanguageManager.UpdateOriginalLanguage();
 
             if (!GetSettingsBool(Setting.vmenu_disable_player_stats_setup))
@@ -832,7 +832,7 @@ namespace vMenuClient
             }
             if (IsAllowed(Permission.OPMenu))
             {
-              
+
                 var menu = OnlinePlayersMenu.GetMenu();
                 var button = new MenuItem("Online Players", "All currently connected players.")
                 {
@@ -960,7 +960,7 @@ namespace vMenuClient
                     {
                     Menu.GoUp();
                     }
-                }   
+                }
             };
             Menu.OnMenuClose += (sender) =>
             {
@@ -1181,7 +1181,7 @@ namespace vMenuClient
                 AddMenu(Menu, menu, button);
             }
 
-            if (IsAllowed(Permission.WRNPCOptions, true) && GetSettingsBool(Setting.vmenu_enable_npc_density)) 
+            if (IsAllowed(Permission.WRNPCOptions, true) && GetSettingsBool(Setting.vmenu_enable_npc_density))
             {
                 DensityOptions = new NPCDensityMenu();
                 var menu = DensityOptions.GetMenu();
@@ -1302,7 +1302,7 @@ namespace vMenuClient
                     {
                     Menu.GoUp();
                     }
-                }   
+                }
             };
             Menu.OnMenuClose += (sender) =>
             {

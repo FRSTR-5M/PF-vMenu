@@ -18,8 +18,8 @@ namespace vMenuClient.menus
     {
         // Variables
         private Menu menu = null;
-        private Menu SavedLoadoutsMenu = new Menu("Saved Loadouts", "Saved weapon loadouts list");
-        private Menu ManageLoadoutMenu = Lm.GetMenu(new Menu("Manage Loadout", "Manage saved weapon loadout"));
+        private Menu SavedLoadoutsMenu = new Menu(MenuTitle, "Saved weapon loadouts list");
+        private Menu ManageLoadoutMenu = Lm.GetMenu(new Menu(MenuTitle, "Manage saved weapon loadout"));
         public bool WeaponLoadoutsSetLoadoutOnRespawn { get; private set; } = UserDefaults.WeaponLoadoutsSetLoadoutOnRespawn;
 
         private readonly Dictionary<string, List<ValidWeapon>> SavedWeapons = new();
@@ -84,7 +84,7 @@ namespace vMenuClient.menus
         /// </summary>
         public void CreateMenu()
         {
-            menu = new Menu(Game.Player.Name, "weapon loadouts management");
+            menu = new Menu(MenuTitle, "weapon loadouts management");
 
             MenuController.AddSubmenu(menu, SavedLoadoutsMenu);
             MenuController.AddSubmenu(SavedLoadoutsMenu, ManageLoadoutMenu);

@@ -128,11 +128,11 @@ namespace vMenuClient.menus
             }
 
             // Create the menu.
-            menu = new Menu(Game.Player.Name, "Player Appearance");
-            savedPedsMenu = new Menu(Game.Player.Name, "Saved Peds");
-            pedCustomizationMenu = Lm.GetMenu(new Menu(Game.Player.Name, "Customize Saved Ped"));
-            spawnPedsMenu = Lm.GetMenu(new Menu(Game.Player.Name, "Spawn Ped"));
-            addonPedsMenu = new Menu(Game.Player.Name, "Addon Peds");
+            menu = new Menu(MenuTitle, "Player Appearance");
+            savedPedsMenu = new Menu(MenuTitle, "Saved Peds");
+            pedCustomizationMenu = Lm.GetMenu(new Menu(MenuTitle, "Customize Saved Ped"));
+            spawnPedsMenu = Lm.GetMenu(new Menu(MenuTitle, "Spawn Ped"));
+            addonPedsMenu = new Menu(MenuTitle, "Addon Peds");
 
 
             // Add the (submenus) to the menu pool.
@@ -190,7 +190,7 @@ namespace vMenuClient.menus
             MenuController.BindMenuItem(menu, savedPedsMenu, savedPedsBtn);
             MenuController.BindMenuItem(menu, spawnPedsMenu, spawnPedsBtn);
 
-            var selectedSavedPedMenu = Lm.GetMenu(new Menu("Saved Ped", "renameme"));
+            var selectedSavedPedMenu = Lm.GetMenu(new Menu(MenuTitle, "renameme"));
             MenuController.AddSubmenu(savedPedsMenu, selectedSavedPedMenu);
             var spawnSavedPed = new MenuItem("Spawn Saved Ped", "Spawn this saved ped.");
             var cloneSavedPed = new MenuItem("Clone Saved Ped", "Clone this saved ped.");

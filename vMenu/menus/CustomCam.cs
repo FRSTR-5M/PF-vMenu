@@ -61,7 +61,7 @@ namespace vMenuClient
         private Menu menu;
         private Dictionary<MenuItem, KeyValuePair<string, CameraInfo>> scMenuItems = new Dictionary<MenuItem, KeyValuePair<string, CameraInfo>>();
         private Menu savedCamerasMenu;
-        private Menu selectedCameraMenu = new Menu("Manage Camera", "Manage this saved camera.");
+        private Menu selectedCameraMenu = new Menu(MenuTitle, "Manage this saved camera.");
         private static KeyValuePair<string, CameraInfo> currentlySelectedCamera = new KeyValuePair<string, CameraInfo>();
 
         #endregion
@@ -129,7 +129,7 @@ namespace vMenuClient
 
         private void CreateMenu()
         {
-            menu = new Menu("Enhanced camera", "Lead/chase camera parameters");
+            menu = new Menu(MenuTitle, "Lead/chase camera parameters");
 
             #region checkbox items
 
@@ -286,7 +286,7 @@ namespace vMenuClient
             menu.AddMenuItem(customCamSideOffsetList);
 
             // Presets
-            Menu presetsMenu = new Menu("Presets", "Spawn camera presets");
+            Menu presetsMenu = new Menu(MenuTitle, "Spawn camera presets");
             MenuItem tandemCamPreset = new MenuItem("Tandem Camera 1.0", "Chef's specialty")
             {
                 Label = $"→→→"
@@ -354,7 +354,7 @@ namespace vMenuClient
 
             // Saving/Loading cameras
             MenuItem savedCamerasButton = new MenuItem("Saved cameras", "User created cameras");
-            savedCamerasMenu = new Menu("Saved cameras");
+            savedCamerasMenu = new Menu(MenuTitle);
             MenuController.AddSubmenu(menu, savedCamerasMenu);
             menu.AddMenuItem(savedCamerasButton);
             savedCamerasButton.Label = "→→→";
@@ -1095,7 +1095,7 @@ namespace vMenuClient
                 }
             }
             var camerasList = new Dictionary<string, CameraInfo>();
-            // Loop through all save names (keys) from the list above, convert the string into a dictionary 
+            // Loop through all save names (keys) from the list above, convert the string into a dictionary
             // and add it to the dictionary above, with the camera save name as the key.
             foreach (var saveName in savedCameraNames)
             {

@@ -28,7 +28,7 @@ namespace vMenuClient
         private void CreateMenu()
         {
             // Create the menu
-            menu = new Menu(Game.Player.Name, "Plugins Menu");
+            menu = new Menu(MenuTitle, "Plugins Menu");
 
             MenuItem easydpm = new MenuItem("Easy Drift Plus", "Easy Drift Plus Plugin Controls.")
             {
@@ -48,7 +48,7 @@ namespace vMenuClient
             };
 
             #region 
-            EasyDriftPlusMenu = Lm.GetMenu(new Menu("Easy Drift Plus Menu", "Easy Drift Plus Menu"));
+            EasyDriftPlusMenu = Lm.GetMenu(new Menu(MenuTitle, "Easy Drift Plus Menu"));
 
             MenuController.AddSubmenu(menu, EasyDriftPlusMenu);            
 

@@ -21,7 +21,7 @@ namespace vMenuClient
         private void CreateMenu()
         {
             // Create the menu
-            menu = new Menu(Game.Player.Name, "NPC Density Options (Experimental)");
+            menu = new Menu(MenuTitle, "NPC Density Options (Experimental)");
             //TriggerServerEvent("vMenu:GetPrimaryMaterial_Sync", VehToNet(vehicle))
             var valsvdm = GetSettingsFloat(Setting.vmenu_set_vehicle_density_multiplier);   
             var valspdm = GetSettingsFloat(Setting.vmenu_set_ped_density_multiplier);       

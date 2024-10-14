@@ -91,11 +91,11 @@ namespace vMenuClient.menus
         private void CreateMenu()
         {
             // Create the menu.
-            menu = new Menu(Game.Player.Name, "Vehicle Options");
+            menu = new Menu(MenuTitle, "Vehicle Options");
 
             #region menu items variables
             // vehicle god mode menu
-            var vehGodMenu = Lm.GetMenu(new Menu("Vehicle God Mode", "Vehicle God Mode Options"));
+            var vehGodMenu = Lm.GetMenu(new Menu(MenuTitle, "Vehicle God Mode Options"));
             var vehGodMenuBtn = new MenuItem("God Mode Options", "Enable or disable specific damage types.") { Label = "→→→" };
             MenuController.AddSubmenu(menu, vehGodMenu);
 
@@ -300,7 +300,7 @@ namespace vMenuClient.menus
 
             #region Submenus
             // Submenu's
-            VehicleModMenu = Lm.GetMenu(new Menu("Mod Menu", "Vehicle Mods"));
+            VehicleModMenu = Lm.GetMenu(new Menu(MenuTitle, "Vehicle Mods"));
             VehicleModMenu.InstructionalButtons.Add(Control.Jump, "Toggle Vehicle Doors");
             VehicleModMenu.ButtonPressHandlers.Add(new Menu.ButtonPressHandler(Control.Jump, Menu.ControlPressCheckType.JUST_PRESSED, new Action<Menu, Control>((m, c) =>
             {
@@ -321,13 +321,13 @@ namespace vMenuClient.menus
                     }
                 }
             }), false));
-            VehicleDoorsMenu = Lm.GetMenu(new Menu("Vehicle Doors", "Vehicle Doors Management"));
-            VehicleWindowsMenu = Lm.GetMenu(new Menu("Vehicle Windows", "Vehicle Windows Management"));
-            VehicleComponentsMenu = Lm.GetMenu(new Menu("Vehicle Extras", "Vehicle Extras/Components"));
-            VehicleLiveriesMenu = Lm.GetMenu(new Menu("Vehicle Liveries", "Vehicle Liveries"));
-            VehicleColorsMenu = Lm.GetMenu(new Menu("Vehicle Colours", "Vehicle Colours"));
-            DeleteConfirmMenu = Lm.GetMenu(new Menu("Confirm Action", "Delete Vehicle, are you sure?"));
-            //VehicleUnderglowMenu = Lm.GetMenu(new Menu("Vehicle Neon Kits", "Vehicle Neon Underglow Options"));
+            VehicleDoorsMenu = Lm.GetMenu(new Menu(MenuTitle, "Vehicle Doors Management"));
+            VehicleWindowsMenu = Lm.GetMenu(new Menu(MenuTitle, "Vehicle Windows Management"));
+            VehicleComponentsMenu = Lm.GetMenu(new Menu(MenuTitle, "Vehicle Extras/Components"));
+            VehicleLiveriesMenu = Lm.GetMenu(new Menu(MenuTitle, "Vehicle Liveries"));
+            VehicleColorsMenu = Lm.GetMenu(new Menu(MenuTitle, "Vehicle Colours"));
+            DeleteConfirmMenu = Lm.GetMenu(new Menu(MenuTitle, "Delete Vehicle, are you sure?"));
+            //VehicleUnderglowMenu = Lm.GetMenu(new Menu(MenuTitle, "Vehicle Neon Underglow Options"));
 
             MenuController.AddSubmenu(menu, VehicleModMenu);
             MenuController.AddSubmenu(menu, VehicleDoorsMenu);
@@ -1083,7 +1083,7 @@ namespace vMenuClient.menus
 
             #region Vehicle Colours Submenu Stuff
             // primary menu
-            var primaryColorsMenu = Lm.GetMenu(new Menu("Vehicle Colours", "Primary Colours"));
+            var primaryColorsMenu = Lm.GetMenu(new Menu(MenuTitle, "Primary Colours"));
             MenuController.AddSubmenu(VehicleColorsMenu, primaryColorsMenu);
 
             var primaryColorsBtn = new MenuItem("Primary Colour") { Label = "→→→" };
@@ -1091,7 +1091,7 @@ namespace vMenuClient.menus
             MenuController.BindMenuItem(VehicleColorsMenu, primaryColorsMenu, primaryColorsBtn);
 
             // secondary menu
-            var secondaryColorsMenu = Lm.GetMenu(new Menu("Vehicle Colours", "Secondary Colours"));
+            var secondaryColorsMenu = Lm.GetMenu(new Menu(MenuTitle, "Secondary Colours"));
             MenuController.AddSubmenu(VehicleColorsMenu, secondaryColorsMenu);
 
             var secondaryColorsBtn = new MenuItem("Secondary Colour") { Label = "→→→" };
@@ -1211,7 +1211,7 @@ namespace vMenuClient.menus
             VehicleColorsMenu.AddMenuItem(wheelColorsList);
 
             // Underglow menu
-            var UnderglowColorsMenu = Lm.GetMenu(new Menu("Underglow Colours", "Underglow Colours"));
+            var UnderglowColorsMenu = Lm.GetMenu(new Menu(MenuTitle, "Underglow Colours"));
             MenuController.AddSubmenu(VehicleColorsMenu, UnderglowColorsMenu);
 
             var UnderglowColorsBtn = new MenuItem("Underglow Colour") { Label = "→→→" };
@@ -1416,7 +1416,7 @@ namespace vMenuClient.menus
                 }
             }
 
-            var primaryColorsMenuRGB = Lm.GetMenu(new Menu("Primary RGB Colours", "Primary RGB Colours"));
+            var primaryColorsMenuRGB = Lm.GetMenu(new Menu(MenuTitle, "Primary RGB Colours"));
             MenuController.AddSubmenu(primaryColorsMenu, primaryColorsMenuRGB);
 
             var primaryColorsRGBBtn = new MenuItem("Primary Colour RGB") { Label = "→→→" };
@@ -1644,7 +1644,7 @@ namespace vMenuClient.menus
 
                 }
             };
-            var SecondaryColorsMenuRGB = Lm.GetMenu(new Menu("Secondary RGB Colours", "Secondary RGB Colours"));
+            var SecondaryColorsMenuRGB = Lm.GetMenu(new Menu(MenuTitle, "Secondary RGB Colours"));
             MenuController.AddSubmenu(secondaryColorsMenu, SecondaryColorsMenuRGB);
 
             var SecondaryColorsRGBBtn = new MenuItem("Secondary Colour RGB") { Label = "→→→" };

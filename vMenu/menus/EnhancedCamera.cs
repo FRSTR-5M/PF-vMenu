@@ -47,7 +47,7 @@ namespace vMenuClient
         private void CreateMenu()
         {
             // Create the menu.
-            menu = new Menu("Enhanced Camera", "Lead, chase and drone camera options.");
+            menu = new Menu(MenuTitle, "Lead, chase and drone camera options.");
 
             #region checkbox items
 

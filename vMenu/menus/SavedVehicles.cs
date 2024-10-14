@@ -17,8 +17,8 @@ namespace vMenuClient.menus
     {
         // Variables
         private Menu menu;
-        private readonly Menu selectedVehicleMenu = Lm.GetMenu(new Menu("Manage Vehicle", "Manage this saved vehicle."));
-        private readonly Menu unavailableVehiclesMenu = Lm.GetMenu(new Menu("Missing Vehicles", "Unavailable Saved Vehicles"));
+        private readonly Menu selectedVehicleMenu = Lm.GetMenu(new Menu(MenuTitle, "Manage this saved vehicle."));
+        private readonly Menu unavailableVehiclesMenu = Lm.GetMenu(new Menu(MenuTitle, "Unavailable Saved Vehicles"));
         private Dictionary<string, VehicleInfo> savedVehicles = new();
         private readonly List<Menu> subMenus = new();
         private Dictionary<MenuItem, KeyValuePair<string, VehicleInfo>> svMenuItems = new();
@@ -33,10 +33,9 @@ namespace vMenuClient.menus
         /// </summary>
         private void CreateMenu()
         {
-            var menuTitle = "Saved Vehicles";
             #region Create menus and submenus
             // Create the menu.
-            menu = new Menu(menuTitle, "Manage Saved Vehicles");
+            menu = new Menu(MenuTitle, "Manage Saved Vehicles");
 
             var saveVehicle = new MenuItem("Save Current Vehicle", "Save the vehicle you are currently sitting in.");
             menu.AddMenuItem(saveVehicle);
@@ -59,7 +58,7 @@ namespace vMenuClient.menus
 
             for (var i = 0; i < 23; i++)
             {
-                var categoryMenu = new Menu("Saved Vehicles", GetLabelText($"VEH_CLASS_{i}"));
+                var categoryMenu = new Menu(MenuTitle, GetLabelText($"VEH_CLASS_{i}"));
 
                 var categoryButton = new MenuItem(GetLabelText($"VEH_CLASS_{i}"), $"All saved vehicles from the {GetLabelText($"VEH_CLASS_{i}")} category.");
                 subMenus.Add(categoryMenu);

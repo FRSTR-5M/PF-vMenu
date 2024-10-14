@@ -33,7 +33,7 @@ namespace vMenuClient.menus
         private void CreateMenu()
         {
             // Create the menu.
-            menu = new Menu(Game.Player.Name, "Vehicle Spawner");
+            menu = new Menu(MenuTitle, "Vehicle Spawner");
 
             var spawnByName = new MenuItem("Spawn Vehicle By Model Name", "Enter the name of a vehicle to spawn.");
             var searchVehicles = new MenuItem("Search Vehicle By Name", "Search all vehicles by (model) name.");
@@ -314,7 +314,7 @@ namespace vMenuClient.menus
                     {
                         Label = "→→→"
                     };
-                    var childMenu = new Menu(nonNullName, nonNullName);
+                    var childMenu = new Menu(MenuTitle, nonNullName);
 
                     var vehicleList = SortAndFilterVehicles(group.Item2);
                     if (vehicleList.Count > 0)
@@ -334,7 +334,7 @@ namespace vMenuClient.menus
                 {
                     Label = "→→→"
                 };
-                allVehiclesMenu = new Menu("All Vehicles", "All Vehicles");
+                allVehiclesMenu = new Menu(MenuTitle, "All Vehicles");
 
                 var vehicleList = SortAndFilterVehicles(VehicleData.AllVehicles.Values);
                 SetupSpawnVehiclesMenu(allVehiclesMenu, vehicleList);
@@ -349,7 +349,7 @@ namespace vMenuClient.menus
                 {
                     Label = "→→→"
                 };
-                var vehiclesByManufacturerMenu = new Menu("Manufacturers", "Manufacturers");
+                var vehiclesByManufacturerMenu = new Menu(MenuTitle, "Manufacturers");
 
                 var groups = VehicleData.VehiclesByManufacturer
                     .OrderBy(kv => kv.Key, Comparer<string>.Create(StringCompareNullLast))
@@ -377,7 +377,7 @@ namespace vMenuClient.menus
                 {
                     Label = "→→→"
                 };
-                var vehiclesByCustomClassMenu = new Menu($"{textPrefix}Classes", $"{textPrefix}Classes");
+                var vehiclesByCustomClassMenu = new Menu(MenuTitle, $"{textPrefix}Classes");
 
                 var groups = VehicleData.CustomVehiclesClasses
                     .Select(c => new Tuple<string, List<VehicleData.VehicleInfo>>(c.Name, c.Vehicles))
@@ -399,7 +399,7 @@ namespace vMenuClient.menus
                 {
                     Label = "→→→"
                 };
-                var vehiclesByDefaultClassMenu = new Menu($"{textPrefix}Classes", $"{textPrefix}Classes");
+                var vehiclesByDefaultClassMenu = new Menu(MenuTitle, $"{textPrefix}Classes");
 
                 var groups = VehicleData.VehiclesByClass
                     .OrderBy(kv => kv.Key, Comparer<int>.Create(CompareVehicleClass))
@@ -414,7 +414,7 @@ namespace vMenuClient.menus
             }
 
             {
-                var spawnOptionsMenu = new Menu("Spawn Options", "Spawn Options");
+                var spawnOptionsMenu = new Menu(MenuTitle, "Spawn Options");
                 var spawnOptionsBtn = new MenuItem("Spawn Options", "Change vehicle spawn options.");
 
                 var spawnInVeh = new MenuCheckboxItem("Spawn Inside Vehicle", "This will teleport you into the vehicle when you spawn it.", SpawnInVehicle);

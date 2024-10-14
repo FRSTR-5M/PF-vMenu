@@ -1,5 +1,7 @@
 ﻿using MenuAPI;
 
+using static vMenuClient.CommonFunctions;
+
 namespace vMenuClient.menus
 {
     public class About
@@ -10,7 +12,7 @@ namespace vMenuClient.menus
         private void CreateMenu()
         {
             // Create the menu.
-            menu = new Menu("vMenu", "About PF-vMenu");
+            menu = new Menu(MenuTitle, "About PF-vMenu");
 
             // Create menu items.
             var version = new MenuItem("PF-vMenu Version", $"This server is using PF-vMenu ~b~~h~{MainMenu.Version}~h~~s~. \n\nDownload PF-vMenu: ~b~~h~github.com/BenniCubed/PF-vMenu~h~~s~")

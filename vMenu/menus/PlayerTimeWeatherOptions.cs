@@ -2,11 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-using Newtonsoft.Json;
-
 using MenuAPI;
 
 using vMenuShared;
+
+using static vMenuClient.CommonFunctions;
 
 namespace vMenuClient
 {
@@ -98,7 +98,7 @@ namespace vMenuClient
         /// </summary>
         private void CreateMenu()
         {
-            menu = new Menu("Time & Weather", "Local Time & Weather");
+            menu = new Menu(MenuTitle, "Local Time & Weather");
 
             timeList = new MenuListItem("Time", new List<string>{"Server", "GTA Online", "Custom"}, 0, "Select the time to use.");
             menu.AddMenuItem(timeList);

@@ -35,7 +35,7 @@ namespace vMenuClient.menus
         /// </summary>
         private void CreateMenu()
         {
-            menu = new Menu("Time & Weather", "Server Time & Weather");
+            menu = new Menu(MenuTitle, "Server Time & Weather");
 
             overrideTime = new MenuCheckboxItem("Override Time", "Whether to override the GTA Online time.", false);
             menu.AddMenuItem(overrideTime);

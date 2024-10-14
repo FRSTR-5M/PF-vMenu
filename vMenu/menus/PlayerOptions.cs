@@ -31,7 +31,7 @@ namespace vMenuClient.menus
         public bool PlayerIsIgnored { get; private set; } = UserDefaults.EveryoneIgnorePlayer;
         public bool PlayerStayInVehicle { get; private set; } = UserDefaults.PlayerStayInVehicle;
         public bool PlayerFrozen { get; private set; } = false;
-        private readonly Menu CustomDrivingStyleMenu = Lm.GetMenu(new Menu("Driving Style", "Custom Driving Style"));
+        private readonly Menu CustomDrivingStyleMenu = Lm.GetMenu(new Menu(MenuTitle, "Custom Driving Style"));
 
         private static readonly LanguageManager Lm = new LanguageManager();
 
@@ -42,7 +42,7 @@ namespace vMenuClient.menus
         {
             #region create menu and menu items
             // Create the menu.
-            menu = new Menu(Game.Player.Name, "Player Options");
+            menu = new Menu(MenuTitle, "Player Options");
 
             // Create all checkboxes.
             var playerGodModeCheckbox = new MenuCheckboxItem("Godmode", "Makes you invincible.", PlayerGodMode);
@@ -70,7 +70,7 @@ namespace vMenuClient.menus
             var wetPlayerBtn = new MenuItem("Wet Player Clothes", "Make your player clothes wet.");
             var suicidePlayerBtn = new MenuItem("~r~Commit Suicide", "Kill yourself by taking the pill. Or by using a pistol if you have one.");
 
-            var vehicleAutoPilot = Lm.GetMenu(new Menu("Auto Pilot", "Vehicle auto pilot options."));
+            var vehicleAutoPilot = Lm.GetMenu(new Menu(MenuTitle, "Vehicle auto pilot options."));
 
             MenuController.AddSubmenu(menu, vehicleAutoPilot);
 

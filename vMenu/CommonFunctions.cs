@@ -14,6 +14,7 @@ using vMenuClient.menus;
 
 using static CitizenFX.Core.Native.API;
 using static CitizenFX.Core.UI.Screen;
+using static vMenuShared.ConfigManager;
 using static vMenuShared.PermissionsManager;
 
 namespace vMenuClient
@@ -26,6 +27,13 @@ namespace vMenuClient
 
         internal static bool DriveToWpTaskActive = false;
         internal static bool DriveWanderTaskActive = false;
+        #endregion
+
+        #region Menu title
+        public static string MenuTitle
+        {
+            get => GetSettingsString(Setting.vmenu_server_name, GetPlayerName(-1));
+        }
         #endregion
 
         #region some misc functions copied from base script

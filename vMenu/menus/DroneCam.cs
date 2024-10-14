@@ -24,7 +24,7 @@ namespace vMenuClient
         // Private variables
         private Menu menu;
         private Menu savedDronesMenu;
-        private Menu selectedDroneMenu = new Menu("Manage Drone", "Manage this saved drone parameters.");
+        private Menu selectedDroneMenu = new Menu(MenuTitle, "Manage this saved drone parameters.");
         private MenuListItem modeList;
         private Dictionary<MenuItem, KeyValuePair<string, DroneSaveInfo>> sdMenuItems = new Dictionary<MenuItem, KeyValuePair<string, DroneSaveInfo>>();
         private static KeyValuePair<string, DroneSaveInfo> currentlySelectedDrone = new KeyValuePair<string, DroneSaveInfo>();
@@ -87,7 +87,7 @@ namespace vMenuClient
 
         private void CreateMenu()
         {
-            menu = new Menu("Enhanced camera", "Drone Camera parameters");
+            menu = new Menu(MenuTitle, "Drone Camera parameters");
 
             #region main parameters
 
@@ -230,7 +230,7 @@ namespace vMenuClient
 
             // Saving/Loading cameras
             MenuItem savedDronesButton = new MenuItem("Saved drones", "User created drone params");
-            savedDronesMenu = new Menu("Saved drone params");
+            savedDronesMenu = new Menu(MenuTitle, "Saved Drones Parameters");
             MenuController.AddSubmenu(menu, savedDronesMenu);
             menu.AddMenuItem(savedDronesButton);
             savedDronesButton.Label = "→→→";

@@ -181,7 +181,7 @@ namespace vMenuClient
             float x = tpLoc.coordinates.X, y = tpLoc.coordinates.Y, z = tpLoc.coordinates.Z;
 
             var tpLocBtn = new MenuItem(tpLoc.name, $"Teleport to ~b~{tpLoc.name}~w~") { Label = "→→→" };
-            var tpLocMenu = new Menu(tpLoc.name);
+            var tpLocMenu = new Menu(MenuTitle, tpLoc.name);
 
             var tpBtn = new MenuItem("Teleport", $"Teleport to~n~x: ~y~{x}~n~~s~y: ~y~{y}~n~~s~z: ~y~{z}~n~~s~heading: ~y~{tpLoc.heading}");
             var delBtn = new MenuItem("~r~Delete~s~", "~r~Delete this teleport location.~n~Warning: this can NOT be undone!~s~");
@@ -232,14 +232,14 @@ namespace vMenuClient
         private void CreateMenu()
         {
 
-            menu = new Menu("Teleport Options", "Teleport Related Options");
+            menu = new Menu(MenuTitle, "Teleport Related Options");
             // menu items
-            var teleportMenu = new Menu("Teleport Locations", "Teleport Locations");
+            var teleportMenu = new Menu(MenuTitle, "Teleport Locations");
             var teleportMenuBtn = new MenuItem("Server Teleport Locations", "Teleport to pre-configured locations, added by the server owner.");
             MenuController.AddSubmenu(menu, teleportMenu);
             MenuController.BindMenuItem(menu, teleportMenu, teleportMenuBtn);
 
-            personalTpLocationsMenu = new Menu("Teleport Locations", "Teleport Locations");
+            personalTpLocationsMenu = new Menu(MenuTitle, "Teleport Locations");
             personalTpLocationsBtn = new MenuItem("Personal Teleport Locations", "Teleport to your personal teleport locations.") { Label = "→→→" };
             MenuController.AddSubmenu(menu, personalTpLocationsMenu);
             MenuController.BindMenuItem(menu, personalTpLocationsMenu, personalTpLocationsBtn);
@@ -386,7 +386,7 @@ namespace vMenuClient
 
                                 var jsonFile = LoadResourceFile(GetCurrentResourceName(), "config/locations/" + location.JsonName);
                                 var data = JsonConvert.DeserializeObject<vMenuShared.ConfigManager.Locationsteleport>(jsonFile);
-                                Menu teleportSubMenu = new Menu(location.name, location.name);
+                                Menu teleportSubMenu = new Menu(MenuTitle, location.name);
                                 MenuItem teleportSubMenuBtn = new MenuItem(location.name, $"Teleport to ~b~{location.name}~w~, added by the server owner.") { Label = "→→→" };
                                 teleportMenu.AddMenuItem(teleportSubMenuBtn);
 
