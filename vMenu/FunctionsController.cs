@@ -12,6 +12,7 @@ using Newtonsoft.Json;
 
 using vMenuClient.data;
 using vMenuClient.menus;
+using vMenuShared;
 
 using static CitizenFX.Core.Native.API;
 using static CitizenFX.Core.UI.Screen;
@@ -82,19 +83,12 @@ namespace vMenuClient
                 Tick += PlayerHeadPropsTick;
             }
 
-            // Configuration and permissions based
-            if (IsAllowed(Permission.WOMenu) && GetSettingsBool(Setting.vmenu_enable_weather_sync))
+            Tick += UpdateTime;
+            Tick += UpdateWeather;
+            if (MainMenu.TimeWeatherOptionsMenu != null)
             {
-                Tick += WeatherOptions;
+                Tick += MainMenu.TimeWeatherOptionsMenu.Sync;
             }
-            
-            if (IsAllowed(Permission.TOMenu) && GetSettingsBool(Setting.vmenu_enable_time_sync))
-            {
-                Tick += TimeOptions;
-            }
-
-            Tick += PlayerTimeOptions;
-            Tick += PlayerWeatherOptions;
 
             if (IsAllowed(Permission.TPMenu))
             {
@@ -117,7 +111,7 @@ namespace vMenuClient
             if (GetSettingsBool(Setting.vmenu_enable_npc_density))
             {
                 Tick += NPCDensity;
-            }              
+            }
             if (!GetSettingsBool(Setting.vmenu_disable_entity_outlines_tool))
             {
                 Tick += SlowMiscTick;
@@ -589,7 +583,7 @@ namespace vMenuClient
                         MainMenu.VehicleOptionsMenu.VehicleComponentsMenu,
                         MainMenu.VehicleOptionsMenu.VehicleDoorsMenu,
                         MainMenu.VehicleOptionsMenu.VehicleLiveriesMenu,
-                        MainMenu.VehicleOptionsMenu.VehicleModMenu,              
+                        MainMenu.VehicleOptionsMenu.VehicleModMenu,
                         MainMenu.VehicleOptionsMenu.VehicleWindowsMenu,
                     };
                 foreach (var m in subMenus)
@@ -688,46 +682,6 @@ namespace vMenuClient
             }
 
             await Task.FromResult(0);
-        }
-        #endregion
-
-        #region Weather Options
-        private async Task WeatherOptions()
-        {
-            if (!await MainMenu.CheckVMenuEnabled())
-                return;
-
-            var weatherMenu = MainMenu.WeatherOptionsMenu.GetMenu();
-            if (weatherMenu != null && weatherMenu.Visible)
-            {
-                if (IsAllowed(Permission.WODynamic))
-                {
-                    MainMenu.WeatherOptionsMenu.dynamicWeatherEnabled.Checked = EventManager.DynamicWeatherEnabled;
-                }
-                if (IsAllowed(Permission.WOBlackout))
-                {
-                    MainMenu.WeatherOptionsMenu.blackout.Checked = EventManager.IsBlackoutEnabled;
-                }
-                if (IsAllowed(Permission.WOSetWeather))
-                {
-                    MainMenu.WeatherOptionsMenu.snowEnabled.Checked = EventManager.IsSnowEnabled;
-                    weatherMenu.GetMenuItems().ForEach(it =>
-                    {
-                        if (it.ItemData is string weatherType)
-                        {
-                            if (weatherType == EventManager.GetServerWeather)
-                            {
-                                it.RightIcon = MenuItem.Icon.TICK;
-                            }
-                            else
-                            {
-                                it.RightIcon = MenuItem.Icon.NONE;
-                            }
-                        }
-                    });
-                }
-            }
-            await Delay(100);
         }
         #endregion
 
@@ -1324,30 +1278,6 @@ namespace vMenuClient
         #endregion
         #endregion
 
-        #region Update Time Options Menu (current time display)
-        /// <summary>
-        /// Update the current time display in the time options menu.
-        /// </summary>
-        /// <returns></returns>
-        private async Task TimeOptions()
-        {
-            if (!await MainMenu.CheckVMenuEnabled())
-                return;
-
-            if (MainMenu.TimeOptionsMenu.freezeTimeToggle != null && MainMenu.TimeOptionsMenu.GetMenu().Visible && IsAllowed(Permission.TOFreezeTime))
-            {
-                // Update the current time displayed in the Time Options menu (only when the menu is actually visible).
-                var hours = GetClockHours();
-                var minutes = GetClockMinutes();
-                var hoursString = hours < 10 ? "0" + hours.ToString() : hours.ToString();
-                var minutesString = minutes < 10 ? "0" + minutes.ToString() : minutes.ToString();
-                MainMenu.TimeOptionsMenu.freezeTimeToggle.Label = $"(Current Time {hoursString}:{minutesString})";
-            }
-            // This only needs to be updated once every 2 seconds so we can delay it.
-            await Delay(2000);
-        }
-        #endregion
-
         #region Weapon Options Tasks
         /// <summary>
         /// Manage all weapon options that need to be handeled every tick.
@@ -1839,7 +1769,7 @@ namespace vMenuClient
                         // 3 = right arm
                         2 or 3 => 6,
 
-                        // 4 = left leg 
+                        // 4 = left leg
                         // 5 = right leg
                         4 or 5 => 3,
 
@@ -2520,7 +2450,7 @@ namespace vMenuClient
             if (!(MenuController.IsAnyMenuOpen() || MainMenu.DontOpenMenus || !Fading.IsFadedIn || Game.IsPaused || IsPlayerSwitchInProgress() || Game.PlayerPed.IsDead))
             {
                 // snowballs
-                if (EventManager.IsSnowEnabled && IsAllowed(Permission.WPSnowball))
+                if (SnowOnGround && IsAllowed(Permission.WPSnowball))
                 {
                     if (Game.IsControlJustReleased(0, Control.Detonate))
                     {
@@ -2580,7 +2510,7 @@ namespace vMenuClient
             if (!await MainMenu.CheckVMenuEnabled())
                 return;
 
-            if (EventManager.IsSnowEnabled)
+            if (SnowOnGround)
             {
                 void ShowSnowballInfoMessage()
                 {
@@ -2808,7 +2738,7 @@ namespace vMenuClient
         /// <returns></returns>
          static string FilterString(string tofilter)
         {
-            var filter = new Dictionary<string, string>() 
+            var filter = new Dictionary<string, string>()
             {
             {"^0", ""},
             {"^1", ""},
@@ -2832,7 +2762,7 @@ namespace vMenuClient
             };
             foreach ( var filtervl in new Dictionary<string, string>(filter))
             {
-            tofilter = tofilter.Replace(filtervl.Key, filtervl.Value);           
+            tofilter = tofilter.Replace(filtervl.Key, filtervl.Value);
             }
             return tofilter;
         }
@@ -2844,12 +2774,12 @@ namespace vMenuClient
             GetStreetNameAtCoord(playerloc.X, playerloc.Y, playerloc.Z, ref streetName, ref crossingRoad);
             var street = GetStreetNameFromHashKey(streetName);
             int vehicle = GetVehiclePedIsIn(Game.PlayerPed.Handle, false);
-            var model = (uint)GetEntityModel(vehicle);           
+            var model = (uint)GetEntityModel(vehicle);
             string currentvehicle = GetLabelText(GetDisplayNameFromVehicleModel(model));
 
-            Substitutes = Substitutes.Replace("%playercount%", $"{GetActivePlayers().Count}/{GetConvar("sv_maxClients", "48")}");  
-            Substitutes = Substitutes.Replace("%playername%", $"{FilterString(Game.Player.Name)}"); 
-            Substitutes = Substitutes.Replace("%playerid%", $"{Game.Player.ServerId}"); 
+            Substitutes = Substitutes.Replace("%playercount%", $"{GetActivePlayers().Count}/{GetConvar("sv_maxClients", "48")}");
+            Substitutes = Substitutes.Replace("%playername%", $"{FilterString(Game.Player.Name)}");
+            Substitutes = Substitutes.Replace("%playerid%", $"{Game.Player.ServerId}");
             Substitutes = Substitutes.Replace("%playerstreet%", $"{street}");
             Substitutes = Substitutes.Replace("%pfversion%", $"{MainMenu.Version}");
             Substitutes = Substitutes.Replace("%pfversion%", $"{MainMenu.Version}");
@@ -3330,31 +3260,301 @@ namespace vMenuClient
         }
         #endregion
 
-        // Client Time and Weather
-        #region Time & Weather Options
-        public async Task PlayerWeatherOptions()
+        // Time and Weather
+        #region Time & Weather
+        public struct TimeState
         {
-            if (!await MainMenu.CheckVMenuEnabled())
-                return;
+            public int Hour { get; set; }
+            public int Minute { get; set; }
+            public bool Frozen { get; set; }
 
-            var menu = MainMenu.PlayerTimeWeatherOptionsMenu;
-            if (menu == null)
-                return;
-
-            menu.ApplyWeatherTick();
-            await Delay(100);
+            public int DayMinutes
+            {
+                get => 60 * Hour + Minute;
+            }
         }
 
-        public async Task PlayerTimeOptions()
+        public struct WeatherState
+        {
+            public bool OverrideGtaOnlineWeatherType { get; set; }
+            public TimeWeatherCommon.WeatherType WeatherType { get; set; }
+            public int WeatherTypeTransitionTime { get; set; }
+            public bool Snow { get; set; }
+            public TimeWeatherCommon.BlackoutState Blackout { get; set; }
+
+            public bool WeatherTypeNeedsUpdate(WeatherState other)
+            {
+                if (OverrideGtaOnlineWeatherType != other.OverrideGtaOnlineWeatherType)
+                    return true;
+
+                if (OverrideGtaOnlineWeatherType && other.OverrideGtaOnlineWeatherType &&
+                    (WeatherType != other.WeatherType))
+                    return true;
+
+                return false; 
+            }
+        }
+
+        public TimeState GetTime()
+        {
+            int hours = 0, minutes = 0, seconds = 0;
+            NetworkGetGlobalMultiplayerClock(ref hours, ref minutes, ref seconds);
+            var gtaOnlineTime = new TimeState
+            {
+                Hour = hours,
+                Minute = minutes,
+                Frozen = false,
+            };
+
+            var serverTime = TimeWeatherCommon.GetServerTime();
+            var time = serverTime.Override
+                ? new TimeState
+                    {
+                        Hour = serverTime.Hour,
+                        Minute = serverTime.Minute,
+                        Frozen = serverTime.Frozen
+                    }
+                : gtaOnlineTime;
+
+            if (MainMenu.PlayerTimeWeatherOptionsMenu == null || !MainMenu.PlayerTimeWeatherOptionsMenu.Enabled)
+                return time;
+
+            var clientTime = MainMenu.PlayerTimeWeatherOptionsMenu.ClientTime;
+
+            switch (clientTime.TimeSource)
+            {
+                case PlayerTimeWeatherOptions.VariableSource.Server:
+                    return time;
+                case PlayerTimeWeatherOptions.VariableSource.GtaOnline:
+                    return gtaOnlineTime;
+                case PlayerTimeWeatherOptions.VariableSource.Custom:
+                    break;
+            }
+
+            time = new TimeState
+            {
+                Hour = clientTime.CustomHour,
+                Minute = clientTime.CustomMinute,
+                Frozen = clientTime.Frozen,
+            };
+            return time;
+        }
+
+        public WeatherState GetWeather()
+        {
+            var serverWeather = TimeWeatherCommon.GetServerWeather();
+            var weather = new WeatherState
+            {
+                OverrideGtaOnlineWeatherType = serverWeather.Override,
+                WeatherType = serverWeather.Override
+                    ? serverWeather.WeatherType
+                    : TimeWeatherCommon.WeatherType.Clear,
+                WeatherTypeTransitionTime = 30,
+                Snow = serverWeather.Snow,
+                Blackout = serverWeather.Blackout,
+            };
+
+            if (MainMenu.PlayerTimeWeatherOptionsMenu == null || !MainMenu.PlayerTimeWeatherOptionsMenu.Enabled)
+                return weather;
+
+            var clientWeather = MainMenu.PlayerTimeWeatherOptionsMenu.ClientWeather;
+
+            if (!clientWeather.Override)
+                return weather;
+
+            weather = new WeatherState()
+            {
+                OverrideGtaOnlineWeatherType = false,
+                WeatherTypeTransitionTime = 5,
+                Snow = clientWeather.Snow,
+                Blackout = clientWeather.Blackout
+            };
+
+            switch (clientWeather.WeatherTypeSource)
+            {
+                case PlayerTimeWeatherOptions.VariableSource.Server:
+                {
+                    if (serverWeather.Override)
+                    {
+                        weather.OverrideGtaOnlineWeatherType = true;
+                        weather.WeatherType = serverWeather.WeatherType;
+                    }
+                    break;
+                }
+                case PlayerTimeWeatherOptions.VariableSource.GtaOnline:
+                    break;
+                case PlayerTimeWeatherOptions.VariableSource.Custom:
+                {
+                    weather.OverrideGtaOnlineWeatherType = true;
+                    weather.WeatherType = clientWeather.CustomWeatherType;
+                    break;
+                }
+            }
+
+            return weather;
+        }
+
+        public bool SnowOnGround
+        {
+            get
+            {
+                var weather = GetWeather();
+                return
+                    weather.Snow ||
+                    (weather.OverrideGtaOnlineWeatherType &&
+                        weather.WeatherType == TimeWeatherCommon.WeatherType.Xmas) ||
+                    (!weather.OverrideGtaOnlineWeatherType && IsPrevWeatherType("xmas"));
+            }
+        }
+
+        public static bool IsTimeWeatherControlEnabled { get; set; } = true;
+
+        private async Task<bool> ChangeTimeTo(TimeState target)
+        {
+            const int DAY_MINUTES = 24 * 60;
+            const int MINUTES_PER_TICK = 3;
+
+            int currentDayMinutes = GetClockHours() * 60 + GetClockMinutes();
+
+            int diff;
+            bool forward;
+            if (target.DayMinutes >= currentDayMinutes)
+            {
+                diff = target.DayMinutes - currentDayMinutes;
+                if (diff <= DAY_MINUTES / 2)
+                {
+                    forward = true;
+                }
+                else
+                {
+                    diff = DAY_MINUTES - diff;
+                    forward = false;
+                }
+            }
+            else /* if (target.DayMinutes < currentDayMinutes) */
+            {
+                diff = currentDayMinutes - target.DayMinutes;
+                if (diff <= DAY_MINUTES / 2)
+                {
+                    forward = false;
+                }
+                else
+                {
+                    diff = DAY_MINUTES - diff;
+                    forward = true;
+                }
+            }
+
+            while (diff >= MINUTES_PER_TICK)
+            {
+                var newTime = GetTime();
+                if (target.DayMinutes != newTime.DayMinutes)
+                    return false;
+
+                currentDayMinutes += forward ? MINUTES_PER_TICK : -MINUTES_PER_TICK;
+                diff -= MINUTES_PER_TICK;
+
+                if (currentDayMinutes < 0)
+                {
+                    currentDayMinutes += DAY_MINUTES;
+                }
+                else if (currentDayMinutes >= DAY_MINUTES)
+                {
+                    currentDayMinutes -= DAY_MINUTES;
+                }
+
+                NetworkOverrideClockTime(currentDayMinutes / 60, currentDayMinutes % 60, 0);
+                await Delay(0);
+            }
+
+            NetworkOverrideClockTime(target.Hour, target.Minute, 0);
+            return true;
+        }
+
+        private TimeState prevTime = new TimeState();
+        private bool initialTimeUpdateDelay = true;
+        public async Task UpdateTime()
         {
             if (!await MainMenu.CheckVMenuEnabled())
                 return;
 
-            var menu = MainMenu.PlayerTimeWeatherOptionsMenu;
-            if (menu == null)
+            if (initialTimeUpdateDelay)
+            {
+                await Delay(2000);
+                initialTimeUpdateDelay = false;
+            }
+
+            if (!IsTimeWeatherControlEnabled)
+            {
+                await Delay(1000);
+                return;
+            }
+
+            int delay = 100;
+
+            var time = GetTime();
+            if (prevTime.DayMinutes != time.DayMinutes || time.Frozen)
+            {
+                delay = time.Frozen ? 10 : delay;
+                var success = await ChangeTimeTo(time);
+                delay = success ? delay : 0;
+            }
+            prevTime = time;
+
+            await Delay(delay);
+        }
+
+        private WeatherState prevWeather = new WeatherState();
+        private bool initialWeatherUpdateDelay = true;
+        public async Task UpdateWeather()
+        {
+            if (!await MainMenu.CheckVMenuEnabled())
                 return;
 
-            menu.ApplyTimeTick();
+            if (initialWeatherUpdateDelay)
+            {
+                await Delay(2000);
+                initialWeatherUpdateDelay = false;
+            }
+
+            if (!IsTimeWeatherControlEnabled)
+            {
+                await Delay(1000);
+                return;
+            }
+
+            var weather = GetWeather();
+
+            if (weather.WeatherTypeNeedsUpdate(prevWeather))
+            {
+                if (weather.OverrideGtaOnlineWeatherType)
+                {
+                    var weatherName = TimeWeatherCommon.WeatherTypeToName[weather.WeatherType];
+                    if (weather.WeatherTypeTransitionTime == 0)
+                    {
+                        SetWeatherTypeNowPersist(weatherName);
+                    }
+                    else
+                    {
+                        SetWeatherTypeOvertimePersist(weatherName, weather.WeatherTypeTransitionTime);
+                    }
+                }
+                else
+                {
+                    ClearOverrideWeather();
+                    ClearWeatherTypePersist();
+                }
+            }
+
+            prevWeather = weather;
+
+            ForceSnowPass(weather.Snow);
+            SetForceVehicleTrails(weather.Snow);
+            SetForcePedFootstepsTracks(weather.Snow);
+
+            SetArtificialLightsState(weather.Blackout != TimeWeatherCommon.BlackoutState.Off);
+            SetArtificialLightsStateAffectsVehicles(weather.Blackout == TimeWeatherCommon.BlackoutState.Everything);
+
             await Delay(100);
         }
         #endregion
@@ -3376,20 +3576,20 @@ namespace vMenuClient
             var valscrcno = GetSettingsBool(Setting.vmenu_set_create_random_cops_not_onscenarios);
             var valscrcos = GetSettingsBool(Setting.vmenu_set_create_random_cops_on_scenarios);
 
-            SetVehicleDensityMultiplierThisFrame(valsvdm); 
+            SetVehicleDensityMultiplierThisFrame(valsvdm);
             SetPedDensityMultiplierThisFrame(valspdm);
-            SetRandomVehicleDensityMultiplierThisFrame(valsrvdm); 
+            SetRandomVehicleDensityMultiplierThisFrame(valsrvdm);
             SetParkedVehicleDensityMultiplierThisFrame(valspvdm);
             SetScenarioPedDensityMultiplierThisFrame(valsdpdm, valsdpdm);
             SetGarbageTrucks(valsgt);
-            SetRandomBoats(valsrb); 
+            SetRandomBoats(valsrb);
             SetCreateRandomCops(valscrc);
-            SetCreateRandomCopsNotOnScenarios(valscrcno); 
+            SetCreateRandomCopsNotOnScenarios(valscrcno);
             SetCreateRandomCopsOnScenarios(valscrcos);
 
             if (((valsgt && valsrb && valscrc && valscrcno && valscrcos) == false) && (((valsvdm + valspdm + valsrvdm + valspvdm + valsdpdm) == 0.0f)))
             {
-                
+
                 ClearAreaOfVehicles(GetEntityCoords(PlayerPedId(), false).X, GetEntityCoords(PlayerPedId(), false).Y, GetEntityCoords(PlayerPedId(), false).Z, 1000, false, false, false, false, false);
                 RemoveVehiclesFromGeneratorsInArea((float)(GetEntityCoords(PlayerPedId(), false).X - 500.0), (float)(GetEntityCoords(PlayerPedId(), false).Y - 500.0), (float)(GetEntityCoords(PlayerPedId(), false).Z - 500.0), (float)(GetEntityCoords(PlayerPedId(), false).X+ 500.0), (float)(GetEntityCoords(PlayerPedId(), false).Y + 500.0), (float)(GetEntityCoords(PlayerPedId(), false).Z + 500.0), 0);
             }
@@ -3397,7 +3597,7 @@ namespace vMenuClient
         }
         #endregion
 
-        #region Vehicle Plates 
+        #region Vehicle Plates
         public void SetPlates()
         {
             if (!PlatesSet)
@@ -3408,7 +3608,7 @@ namespace vMenuClient
                 var defaultNormal = "defaultNormalTexture";
                 CreateRuntimeTextureFromImage(plateTxd, defaultNormal, "plates/plateNormals.png");
 
-                var PlateList = new Dictionary<int, string>() 
+                var PlateList = new Dictionary<int, string>()
                 {
                     {3, "plate01"},
                     {0, "plate02"},
@@ -3417,12 +3617,12 @@ namespace vMenuClient
                     {1, "plate05"},
                     {5, "yankton_plate"},
                 };
-    
+
                 foreach ( var Plates in new Dictionary<int, string>(PlateList))
                 {
 
                     var stuff = GetConvar("vmenu_plate_override_"+Plates.Value, "false");
-    
+
                     if (!(stuff == "false" || stuff == null || stuff == "") )
                     {
                         var data2 = JsonConvert.DeserializeObject<vMenuShared.ConfigManager.PlateStruct>(stuff);

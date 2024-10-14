@@ -189,23 +189,9 @@ namespace vMenuShared
             TPTeleportSaveLocation,
             #endregion
 
-            // Time Options
-            #region time options
-            TOMenu,
-            TOAll,
-            TOFreezeTime,
-            TOSetTime,
-            #endregion
-
-            // Weather Options
-            #region weather options
-            WOMenu,
-            WOAll,
-            WODynamic,
-            WOBlackout,
-            WOSetWeather,
-            WORemoveClouds,
-            WORandomizeClouds,
+            // Server Time/Weather Options
+            #region time & weather options
+            TWMenu,
             #endregion
 
             // Client Time/Weather Options
@@ -660,6 +646,9 @@ namespace vMenuShared
                     break;
                 case "WP":
                     prefix += "WeaponOptions";
+                    break;
+                case "TW":
+                    prefix += "TimeWeatherOptions";
                     break;
                 case "WL":
                     prefix += "WeaponLoadouts";

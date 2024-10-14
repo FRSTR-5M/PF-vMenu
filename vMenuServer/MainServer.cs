@@ -65,80 +65,6 @@ namespace vMenuServer
 
         public static string Version { get { return GetResourceMetadata(GetCurrentResourceName(), "version", 0); } }
 
-        // Time
-        private int CurrentHours
-        {
-            get { return MathUtil.Clamp(GetSettingsInt(Setting.vmenu_current_hour), 0, 23); }
-            set { SetConvarReplicated(Setting.vmenu_current_hour.ToString(), MathUtil.Clamp(value, 0, 23).ToString()); }
-        }
-        private int CurrentMinutes
-        {
-            get { return MathUtil.Clamp(GetSettingsInt(Setting.vmenu_current_minute), 0, 59); }
-            set { SetConvarReplicated(Setting.vmenu_current_minute.ToString(), MathUtil.Clamp(value, 0, 59).ToString()); }
-        }
-        private int MinuteClockSpeed
-        {
-            get
-            {
-                var value = GetSettingsInt(Setting.vmenu_ingame_minute_duration);
-                if (value < 100)
-                {
-                    value = 2000;
-                }
-
-                return value;
-            }
-        }
-        private bool FreezeTime
-        {
-            get { return GetSettingsBool(Setting.vmenu_freeze_time); }
-            set { SetConvarReplicated(Setting.vmenu_freeze_time.ToString(), value.ToString().ToLower()); }
-        }
-        private bool IsServerTimeSynced { get { return GetSettingsBool(Setting.vmenu_sync_to_machine_time); } }
-
-
-        // Weather
-        private string CurrentWeather
-        {
-            get
-            {
-                var value = GetSettingsString(Setting.vmenu_current_weather, "CLEAR");
-                if (!WeatherTypes.Contains(value.ToUpper()))
-                {
-                    return "CLEAR";
-                }
-                return value;
-            }
-            set
-            {
-                if (string.IsNullOrEmpty(value) || !WeatherTypes.Contains(value.ToUpper()))
-                {
-                    SetConvarReplicated(Setting.vmenu_current_weather.ToString(), "CLEAR");
-                }
-                SetConvarReplicated(Setting.vmenu_current_weather.ToString(), value.ToUpper());
-            }
-        }
-        private bool DynamicWeatherEnabled
-        {
-            get { return GetSettingsBool(Setting.vmenu_enable_dynamic_weather); }
-            set { SetConvarReplicated(Setting.vmenu_enable_dynamic_weather.ToString(), value.ToString().ToLower()); }
-        }
-        private bool ManualSnowEnabled
-        {
-            get { return GetSettingsBool(Setting.vmenu_enable_snow); }
-            set { SetConvarReplicated(Setting.vmenu_enable_snow.ToString(), value.ToString().ToLower()); }
-        }
-        private bool BlackoutEnabled
-        {
-            get { return GetSettingsBool(Setting.vmenu_blackout_enabled); }
-            set { SetConvarReplicated(Setting.vmenu_blackout_enabled.ToString(), value.ToString().ToLower()); }
-        }
-        private int DynamicWeatherMinutes
-        {
-            get { return Math.Max(GetSettingsInt(Setting.vmenu_dynamic_weather_timer), 1); }
-        }
-        private long lastWeatherChange = 0;
-
         private readonly List<string> CloudTypes = new()
         {
             "Cloudy 01",
@@ -161,24 +87,6 @@ namespace vMenuServer
             "Stripey",
             "horsey",
             "shower",
-        };
-        private readonly List<string> WeatherTypes = new()
-        {
-            "EXTRASUNNY",
-            "CLEAR",
-            "NEUTRAL",
-            "SMOG",
-            "FOGGY",
-            "CLOUDS",
-            "OVERCAST",
-            "CLEARING",
-            "RAIN",
-            "THUNDER",
-            "BLIZZARD",
-            "SNOW",
-            "SNOWLIGHT",
-            "XMAS",
-            "HALLOWEEN"
         };
         #endregion
 
@@ -309,13 +217,7 @@ namespace vMenuServer
 
                         Tick += PlayersFirstTick;
 
-                        // Start the loops
-                        if (GetSettingsBool(Setting.vmenu_enable_weather_sync))
-                        {
-                            Tick += WeatherLoop;
-                        }
-
-                        if (GetSettingsBool(Setting.vmenu_enable_time_sync))
+                        if (GetSettingsBool(Setting.vmenu_enable_time_weather_sync))
                         {
                             Tick += TimeLoop;
                         }
@@ -368,103 +270,6 @@ namespace vMenuServer
                             Debug.WriteLine("You did not specify a player to unban, you must enter the FULL playername. Usage: vmenuserver unban \"playername\"");
                         }
                         return;
-                    }
-                    else if (args[0].ToString().ToLower() == "weather")
-                    {
-                        if (args.Count < 2 || string.IsNullOrEmpty(args[1].ToString()))
-                        {
-                            Debug.WriteLine("[vMenu] Invalid command syntax. Use 'vmenuserver weather <weatherType>' instead.");
-                        }
-                        else
-                        {
-                            var wtype = args[1].ToString().ToUpper();
-                            if (WeatherTypes.Contains(wtype))
-                            {
-                                TriggerEvent("vMenu:UpdateServerWeather", wtype, BlackoutEnabled, DynamicWeatherEnabled, ManualSnowEnabled);
-                                Debug.WriteLine($"[vMenu] Weather is now set to: {wtype}");
-                            }
-                            else if (wtype.ToLower() == "dynamic")
-                            {
-                                if (args.Count == 3 && !string.IsNullOrEmpty(args[2].ToString()))
-                                {
-                                    if ((args[2].ToString().ToLower() ?? $"{DynamicWeatherEnabled}") == "true")
-                                    {
-                                        TriggerEvent("vMenu:UpdateServerWeather", CurrentWeather, BlackoutEnabled, true, ManualSnowEnabled);
-                                        Debug.WriteLine("[vMenu] Dynamic weather is now turned on.");
-                                    }
-                                    else if ((args[2].ToString().ToLower() ?? $"{DynamicWeatherEnabled}") == "false")
-                                    {
-                                        TriggerEvent("vMenu:UpdateServerWeather", CurrentWeather, BlackoutEnabled, false, ManualSnowEnabled);
-                                        Debug.WriteLine("[vMenu] Dynamic weather is now turned off.");
-                                    }
-                                    else
-                                    {
-                                        Debug.WriteLine("[vMenu] Invalid command usage. Correct syntax: vmenuserver weather dynamic <true|false>");
-                                    }
-                                }
-                                else
-                                {
-                                    Debug.WriteLine("[vMenu] Invalid command usage. Correct syntax: vmenuserver weather dynamic <true|false>");
-                                }
-
-                            }
-                            else
-                            {
-                                Debug.WriteLine("[vMenu] This weather type is not valid!");
-                            }
-                        }
-                    }
-                    else if (args[0].ToString().ToLower() == "time")
-                    {
-                        if (args.Count == 2)
-                        {
-                            if (args[1].ToString().ToLower() == "freeze")
-                            {
-                                TriggerEvent("vMenu:UpdateServerTime", CurrentHours, CurrentMinutes, !FreezeTime);
-                                Debug.WriteLine($"Time is now {(FreezeTime ? "frozen" : "not frozen")}.");
-                            }
-                            else
-                            {
-                                Debug.WriteLine("Invalid syntax. Use: ^5vmenuserver time <freeze|<hour> <minute>>^7 instead.");
-                            }
-                        }
-                        else if (args.Count > 2)
-                        {
-                            if (int.TryParse(args[1].ToString(), out var hour))
-                            {
-                                if (int.TryParse(args[2].ToString(), out var minute))
-                                {
-                                    if (hour is >= 0 and < 24)
-                                    {
-                                        if (minute is >= 0 and < 60)
-                                        {
-                                            TriggerEvent("vMenu:UpdateServerTime", hour, minute, FreezeTime);
-                                            Debug.WriteLine($"Time is now {(hour < 10 ? ("0" + hour.ToString()) : hour.ToString())}:{(minute < 10 ? ("0" + minute.ToString()) : minute.ToString())}.");
-                                        }
-                                        else
-                                        {
-                                            Debug.WriteLine("Invalid minute provided. Value must be between 0 and 59.");
-                                        }
-                                    }
-                                    else
-                                    {
-                                        Debug.WriteLine("Invalid hour provided. Value must be between 0 and 23.");
-                                    }
-                                }
-                                else
-                                {
-                                    Debug.WriteLine("Invalid syntax. Use: ^5vmenuserver time <freeze|<hour> <minute>>^7 instead.");
-                                }
-                            }
-                            else
-                            {
-                                Debug.WriteLine("Invalid syntax. Use: ^5vmenuserver time <freeze|<hour> <minute>>^7 instead.");
-                            }
-                        }
-                        else
-                        {
-                            Debug.WriteLine("Invalid syntax. Use: ^5vmenuserver time <freeze|<hour> <minute>>^7 instead.");
-                        }
                     }
                     else if (args[0].ToString().ToLower() == "ban" && source < 1)  // only do this via server console (server id < 1)
                     {
@@ -628,202 +433,60 @@ namespace vMenuServer
         #endregion
 
         #region Manage weather and time changes.
+        public void SetServerTime(TimeWeatherCommon.ServerTimeState serverTime)
+        {
+            var json = JsonConvert.SerializeObject(serverTime);
+            SetConvarReplicated(Setting.vmenu_server_time.ToString(), json);
+        }
+
+        public void SetServerWeather(TimeWeatherCommon.ServerWeatherState serverWeather)
+        {
+            var json = JsonConvert.SerializeObject(serverWeather);
+            SetConvarReplicated(Setting.vmenu_server_weather.ToString(), json);
+        }
+
         /// <summary>
         /// Loop used for syncing and keeping track of the time in-game.
         /// </summary>
         /// <returns></returns>
         private async Task TimeLoop()
         {
-            if (IsServerTimeSynced)
+            var ts = TimeWeatherCommon.GetServerTime();
+            if (ts.Override && !ts.Frozen)
             {
-                var currentTime = DateTime.Now;
-                CurrentMinutes = currentTime.Minute;
-                CurrentHours = currentTime.Hour;
-
-                // Update this once every 60 seconds.
-                await Delay(60000);
-            }
-            else
-            {
-                if (!FreezeTime)
+                if (++ts.Minute == 60)
                 {
-                    if ((CurrentMinutes + 1) > 59)
+                    ts.Minute = 0;
+                    if (++ts.Hour == 24)
                     {
-                        CurrentMinutes = 0;
-                        if ((CurrentHours + 1) > 23)
-                        {
-                            CurrentHours = 0;
-                        }
-                        else
-                        {
-                            CurrentHours++;
-                        }
-                    }
-                    else
-                    {
-                        CurrentMinutes++;
+                        ts.Hour = 0;
                     }
                 }
-                await Delay(MinuteClockSpeed);
+                SetServerTime(ts);
             }
-        }
-
-        /// <summary>
-        /// Task used for syncing and changing weather dynamically.
-        /// </summary>
-        /// <returns></returns>
-        private async Task WeatherLoop()
-        {
-            if (DynamicWeatherEnabled)
-            {
-                await Delay(DynamicWeatherMinutes * 60000);
-
-                if (GetSettingsBool(Setting.vmenu_enable_weather_sync))
-                {
-                    // Manage dynamic weather changes.
-
-                    {
-                        // Disable dynamic weather because these weather types shouldn't randomly change.
-                        if (CurrentWeather is "XMAS" or "HALLOWEEN" or "NEUTRAL")
-                        {
-                            DynamicWeatherEnabled = false;
-                            return;
-                        }
-
-                        // Is it time to generate a new weather type?
-                        if (GetGameTimer() - lastWeatherChange > (DynamicWeatherMinutes * 60000))
-                        {
-                            // Choose a new semi-random weather type.
-                            RefreshWeather();
-
-                            // Log if debug mode is on how long the change has taken and what the new weather type will be.
-                            if (DebugMode)
-                            {
-                                Log($"Changing weather, new weather: {CurrentWeather}");
-                            }
-                        }
-                    }
-                }
-            }
-            else
-            {
-                await Delay(5000);
-            }
-        }
-
-        /// <summary>
-        /// Select a new random weather type, based on the current weather and some patterns.
-        /// </summary>
-        private void RefreshWeather()
-        {
-            var random = new Random().Next(20);
-            if (CurrentWeather is "RAIN" or "THUNDER")
-            {
-                CurrentWeather = "CLEARING";
-            }
-            else if (CurrentWeather == "CLEARING")
-            {
-                CurrentWeather = "CLOUDS";
-            }
-            else
-            {
-                CurrentWeather = random switch
-                {
-                    0 or 1 or 2 or 3 or 4 or 5 => CurrentWeather == "EXTRASUNNY" ? "CLEAR" : "EXTRASUNNY",
-                    6 or 7 or 8 => CurrentWeather == "SMOG" ? "FOGGY" : "SMOG",
-                    9 or 10 or 11 => CurrentWeather == "CLOUDS" ? "OVERCAST" : "CLOUDS",
-                    12 or 13 or 14 => CurrentWeather == "CLOUDS" ? "OVERCAST" : "CLOUDS",
-                    15 => CurrentWeather == "OVERCAST" ? "THUNDER" : "OVERCAST",
-                    16 => CurrentWeather == "CLOUDS" ? "EXTRASUNNY" : "RAIN",
-                    _ => CurrentWeather == "FOGGY" ? "SMOG" : "FOGGY",
-                };
-            }
-
+            await Delay(2000);
         }
         #endregion
 
         #region Sync weather & time with clients
         /// <summary>
-        /// Update the weather for all clients.
-        /// </summary>
-        /// <param name="newWeather"></param>
-        /// <param name="blackoutNew"></param>
-        /// <param name="dynamicWeatherNew"></param>
-        [EventHandler("vMenu:UpdateServerWeather")]
-        internal void UpdateWeather(string newWeather, bool blackoutNew, bool dynamicWeatherNew, bool enableSnow)
-        {
-
-            // Automatically enable snow effects whenever one of the snow weather types is selected.
-            if (newWeather is "XMAS" or "SNOWLIGHT" or "SNOW" or "BLIZZARD")
-            {
-                enableSnow = true;
-            }
-
-            // Update the new weather related variables.
-            CurrentWeather = newWeather;
-            BlackoutEnabled = blackoutNew;
-            DynamicWeatherEnabled = dynamicWeatherNew;
-            ManualSnowEnabled = enableSnow;
-
-            // Reset the dynamic weather loop timer to another (default) 10 mintues.
-            lastWeatherChange = GetGameTimer();
-        }
-
-        /// <summary>
-        /// Set a new random clouds type and opacity for all clients.
-        /// </summary>
-        /// <param name="removeClouds"></param>
-        [EventHandler("vMenu:UpdateServerWeatherCloudsType")]
-        internal void UpdateWeatherCloudsType(bool removeClouds)
-        {
-            if (removeClouds)
-            {
-                TriggerClientEvent("vMenu:SetClouds", 0f, "removed");
-            }
-            else
-            {
-                var opacity = float.Parse(new Random().NextDouble().ToString());
-                var type = CloudTypes[new Random().Next(0, CloudTypes.Count)];
-                TriggerClientEvent("vMenu:SetClouds", opacity, type);
-            }
-        }
-
-        /// <summary>
         /// Set and sync the time to all clients.
         /// </summary>
-        /// <param name="newHours"></param>
-        /// <param name="newMinutes"></param>
-        /// <param name="freezeTimeNew"></param>
         [EventHandler("vMenu:UpdateServerTime")]
-        internal async void UpdateTime(int newHours, int newMinutes, bool freezeTimeNew)
+        internal void UpdateServerTime(string json)
         {
-            CurrentHours = CurrentHours;
-            CurrentMinutes = CurrentMinutes;
-            FreezeTime = true;
-            while (newHours != CurrentHours)
-            {
-                if ((CurrentMinutes + 1) > 59)
-                {
-                    CurrentMinutes = 0;
-                    if ((CurrentHours + 1) > 23)
-                    {
-                        CurrentHours = 0;
-                    }
-                    else
-                    {
-                        CurrentHours++;
-                    }
-                }
-                else
-                {
-                    CurrentMinutes = CurrentMinutes + 5;
-                }
-                await Delay(0);
-            }
-            CurrentHours = newHours;
-            CurrentMinutes = newMinutes;
-            FreezeTime = freezeTimeNew;
+            var value = JsonConvert.DeserializeObject<TimeWeatherCommon.ServerTimeState>(json);
+            SetServerTime(value);
+        }
 
+        /// <summary>
+        /// Update the weather for all clients.
+        /// </summary>
+        [EventHandler("vMenu:UpdateServerWeather")]
+        internal void UpdateServerWeather(string json)
+        {
+            var value = JsonConvert.DeserializeObject<TimeWeatherCommon.ServerWeatherState>(json);
+            SetServerWeather(value);
         }
         #endregion
 

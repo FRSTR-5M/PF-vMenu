@@ -55,22 +55,10 @@ namespace vMenuShared
             vmenu_disable_spawn_as_allowed_ped,
             vmenu_spawn_as_deterministic_allowed_ped,
 
-            // Weather settings
-            vmenu_enable_weather_sync,
-            vmenu_enable_dynamic_weather,
-            vmenu_dynamic_weather_timer,
-            vmenu_current_weather,
-            vmenu_blackout_enabled,
-            vmenu_weather_change_duration,
-            vmenu_enable_snow,
-
-            // Time settings
-            vmenu_enable_time_sync,
-            vmenu_freeze_time,
-            vmenu_ingame_minute_duration,
-            vmenu_current_hour,
-            vmenu_current_minute,
-            vmenu_sync_to_machine_time,
+            // Weather & time settings
+            vmenu_enable_time_weather_sync,
+            vmenu_server_time,
+            vmenu_server_weather,
 
             // Discord Rich Presence
             vmenu_discord_appid,

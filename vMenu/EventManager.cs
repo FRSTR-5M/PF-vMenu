@@ -18,18 +18,6 @@ namespace vMenuClient
 {
     public class EventManager : BaseScript
     {
-        public static bool IsTimeWeatherSyncEnabled { get; set; } = false;
-        public static bool IsSnowEnabled => GetSettingsBool(Setting.vmenu_enable_snow);
-        public static int GetServerMinutes => MathUtil.Clamp(GetSettingsInt(Setting.vmenu_current_minute), 0, 59);
-        public static int GetServerHours => MathUtil.Clamp(GetSettingsInt(Setting.vmenu_current_hour), 0, 23);
-        public static int GetServerMinuteDuration => GetSettingsInt(Setting.vmenu_ingame_minute_duration);
-        public static bool IsServerTimeFrozen => GetSettingsBool(Setting.vmenu_freeze_time);
-        public static bool IsServerTimeSyncedWithMachineTime => GetSettingsBool(Setting.vmenu_sync_to_machine_time);
-        public static string GetServerWeather => GetSettingsString(Setting.vmenu_current_weather, "CLEAR");
-        public static bool DynamicWeatherEnabled => GetSettingsBool(Setting.vmenu_enable_dynamic_weather);
-        public static bool IsBlackoutEnabled => GetSettingsBool(Setting.vmenu_blackout_enabled);
-        public static int WeatherChangeTime => MathUtil.Clamp(GetSettingsInt(Setting.vmenu_weather_change_duration), 0, 45);
-
         /// <summary>
         /// Constructor.
         /// </summary>
@@ -51,16 +39,6 @@ namespace vMenuClient
             EventHandlers.Add("vMenu:GetOutOfCar", new Action<int, int>(GetOutOfCar));
             EventHandlers.Add("vMenu:SetDriftSuspension", new Action<int, bool>(SetDriftSuspension));
             EventHandlers.Add("vMenu:PrivateMessage", new Action<string, string>(PrivateMessage));
-
-            if (!((!GetSettingsBool(Setting.vmenu_enable_weather_sync))||( false )))
-            {
-                Tick += WeatherSync;
-            }
-
-            if (!((!GetSettingsBool(Setting.vmenu_enable_time_sync))||( false )))
-            {
-                Tick += TimeSync;
-            }
 
             RegisterNuiCallbackType("disableImportExportNUI");
             RegisterNuiCallbackType("importData");
@@ -235,67 +213,6 @@ namespace vMenuClient
         {
             Log("what a ######.");
             ForceSocialClubUpdate();
-        }
-
-        /// <summary>
-        /// OnTick loop to keep the weather synced.
-        /// </summary>
-        /// <returns></returns>
-        private async Task WeatherSync()
-        {
-            if (!await MainMenu.CheckVMenuEnabled())
-                return;
-
-            if (!IsTimeWeatherSyncEnabled && MainMenu.PlayerTimeWeatherOptionsMenu != null)
-            {
-                if (!MainMenu.PlayerTimeWeatherOptionsMenu.clientSidedEnabled.Checked)
-                {
-                    ForceSnowPass(IsSnowEnabled);
-                    SetForceVehicleTrails(IsSnowEnabled);
-                    SetForcePedFootstepsTracks(IsSnowEnabled);
-
-                    SetArtificialLightsState(IsBlackoutEnabled);
-                    SetArtificialLightsStateAffectsVehicles(false);
-                    if (GetNextWeatherType() != GetHashKey(GetServerWeather))
-                    {
-                        SetWeatherTypeOvertimePersist(GetServerWeather, (float)WeatherChangeTime);
-                        await Delay((WeatherChangeTime * 1000) + 2000);
-        
-                        TriggerEvent("vMenu:WeatherChangeComplete", GetServerWeather);
-                    }
-                }
-            }
-            await Delay(1000);
-        }
-
-        /// <summary>
-        /// This function will take care of time sync. It'll be called once, and never stop.
-        /// </summary>
-        /// <returns></returns>
-        private async Task TimeSync()
-        {
-            if (!await MainMenu.CheckVMenuEnabled())
-                return;
-
-            if (!IsTimeWeatherSyncEnabled && MainMenu.PlayerTimeWeatherOptionsMenu != null)
-            {
-                if (!MainMenu.PlayerTimeWeatherOptionsMenu.clientSidedEnabled.Checked)
-                {
-                    NetworkOverrideClockTime(GetServerHours, GetServerMinutes, 0);
-                    if (IsServerTimeFrozen || IsServerTimeSyncedWithMachineTime)
-                    {
-                        await Delay(5);
-                    }
-                    else
-                    {
-                        await Delay(MathUtil.Clamp(GetServerMinuteDuration, 100, 2000));
-                    }
-                }
-            }
-            else
-            {
-                await Delay(1000);
-            }
         }
 
         /// <summary>

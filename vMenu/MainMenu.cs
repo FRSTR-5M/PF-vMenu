@@ -29,7 +29,6 @@ namespace vMenuClient
         public static Menu Menu { get; private set; }
         public static Menu PlayerSubmenu { get; private set; }
         public static Menu VehicleSubmenu { get; private set; }
-        public static Menu WorldSubmenu { get; private set; }
 
         public static PlayerOptions PlayerOptionsMenu { get; private set; }
         public static OnlinePlayers OnlinePlayersMenu { get; private set; }
@@ -42,8 +41,7 @@ namespace vMenuClient
         public static MpPedCustomization MpPedCustomizationMenu { get; private set; }
         public static PlayerTimeWeatherOptions PlayerTimeWeatherOptionsMenu { get; private set; }
         public static TeleportOptions TeleportOptionsMenu { get; private set; }
-        public static TimeOptions TimeOptionsMenu { get; private set; }
-        public static WeatherOptions WeatherOptionsMenu { get; private set; }
+        public static TimeWeatherOptions TimeWeatherOptionsMenu { get; private set; }
         public static NPCDensityMenu DensityOptions { get; private set; }
         public static WeaponOptions WeaponOptionsMenu { get; private set; }
         public static WeaponLoadouts WeaponLoadoutsMenu { get; private set; }
@@ -203,7 +201,10 @@ namespace vMenuClient
                 vMenuKey = "M";
             }
 
-            RegisterKeyMapping($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:NoClip", "vMenu NoClip Toggle Button", "keyboard", NoClipKey);
+            if (IsAllowed(Permission.NoClip))
+            {
+                RegisterKeyMapping($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:NoClip", "vMenu NoClip Toggle Button", "keyboard", NoClipKey);
+            }
 
             RegisterKeyMapping($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:toggle", "vMenu Toggle Button", "keyboard", vMenuKey);
             #endregion
@@ -533,11 +534,16 @@ namespace vMenuClient
             Exports.Add("enable", new Action(() => vMenuEnabled = true));
             Exports.Add("disable", new Action(() => vMenuEnabled = false));
 
-            Exports.Add("enable_client_sided_time_weather", new Action(() => PlayerTimeWeatherOptionsMenu.Enabled = true));
-            Exports.Add("disable_client_sided_time_weather", new Action(() => PlayerTimeWeatherOptionsMenu.Enabled = false));
-
-            Exports.Add("enable_time_weather_sync", new Action(() => EventManager.IsTimeWeatherSyncEnabled = true));
-            Exports.Add("disable_time_weather_sync", new Action(() => EventManager.IsTimeWeatherSyncEnabled = false));
+            Exports.Add("enable_time_weather_control", new Action(() => {
+                if (PlayerTimeWeatherOptionsMenu != null)
+                    PlayerTimeWeatherOptionsMenu.Enabled = true;
+                FunctionsController.IsTimeWeatherControlEnabled = true;
+            }));
+            Exports.Add("disable_time_weather_control", new Action(() => {
+                if (PlayerTimeWeatherOptionsMenu != null)
+                    PlayerTimeWeatherOptionsMenu.Enabled = false;
+                FunctionsController.IsTimeWeatherControlEnabled = false;
+            }));
 
             Exports.Add("is_any_menu_open", new Func<bool>(MenuController.IsAnyMenuOpen));
         }
@@ -690,7 +696,6 @@ namespace vMenuClient
             Menu = Lm.GetMenu(new Menu(Game.Player.Name, "Main Menu"));
             PlayerSubmenu = Lm.GetMenu(new Menu(Game.Player.Name, "Player Related Options"));
             VehicleSubmenu = Lm.GetMenu(new Menu(Game.Player.Name, "Vehicle Related Options"));
-            WorldSubmenu = Lm.GetMenu(new Menu(Game.Player.Name, "World Options"));
 
             // Add the main menu to the menu pool.
             MenuController.AddMenu(Menu);
@@ -698,7 +703,6 @@ namespace vMenuClient
 
             MenuController.AddSubmenu(Menu, PlayerSubmenu);
             MenuController.AddSubmenu(Menu, VehicleSubmenu);
-            MenuController.AddSubmenu(Menu, WorldSubmenu);
 
             // Create all (sub)menus.
             CreateSubmenus();
@@ -999,15 +1003,6 @@ namespace vMenuClient
                 Menu.RemoveMenuItem(vehicleSubmenuBtn);
             }
 
-            if (WorldSubmenu.Size > 0)
-            {
-                MenuController.BindMenuItem(Menu, WorldSubmenu, worldSubmenuBtn);
-            }
-            else
-            {
-                Menu.RemoveMenuItem(worldSubmenuBtn);
-            }
-
             if (MiscSettingsMenu != null)
             {
                 MenuController.EnableMenuToggleKeyOnController = !MiscSettingsMenu.MiscDisableControllerSupport;
@@ -1152,33 +1147,38 @@ namespace vMenuClient
                 AddMenu(PlayerSubmenu, menu2, button2);
             }
 
-            var worldSubmenuBtn = new MenuItem("World Related Options", "Open this submenu for world related subcategories.") { Label = "→→→" };
-            Menu.AddMenuItem(worldSubmenuBtn);
-
-            // Add the time options menu.
-            // check for 'not true' to make sure that it _ONLY_ gets disabled if the owner _REALLY_ wants it disabled, not if they accidentally spelled "false" wrong or whatever.
-            if (IsAllowed(Permission.TOMenu) && GetSettingsBool(Setting.vmenu_enable_time_sync))
+            // Add Teleport Menu.
+            if (IsAllowed(Permission.TPMenu))
             {
-                TimeOptionsMenu = new TimeOptions();
-                var menu = TimeOptionsMenu.GetMenu();
-                var button = new MenuItem("Time Options", "Change the time, and edit other time related options.")
+                TeleportOptionsMenu = new TeleportOptions();
+                var menu = TeleportOptionsMenu.GetMenu();
+                var button = new MenuItem("Teleport Related Options", "Open this submenu for teleport options.")
                 {
                     Label = "→→→"
                 };
-                AddMenu(WorldSubmenu, menu, button);
+                AddMenu(Menu, menu, button);
             }
 
-            // Add the weather options menu.
-            // check for 'not true' to make sure that it _ONLY_ gets disabled if the owner _REALLY_ wants it disabled, not if they accidentally spelled "false" wrong or whatever.
-            if (IsAllowed(Permission.WOMenu) && GetSettingsBool(Setting.vmenu_enable_weather_sync))
+            if (IsAllowed(Permission.CTWMenu))
             {
-                WeatherOptionsMenu = new WeatherOptions();
-                var menu = WeatherOptionsMenu.GetMenu();
-                var button = new MenuItem("Weather Options", "Change all weather related options here.")
+                PlayerTimeWeatherOptionsMenu = new PlayerTimeWeatherOptions();
+                var menu2 = PlayerTimeWeatherOptionsMenu.GetMenu();
+                var button2 = new MenuItem("Local Time & Weather", "Change the local time and weather.")
                 {
                     Label = "→→→"
                 };
-                AddMenu(WorldSubmenu, menu, button);
+                AddMenu(Menu, menu2, button2);
+            }
+
+            if (IsAllowed(Permission.TWOptions) && GetSettingsBool(Setting.vmenu_enable_time_weather_sync))
+            {
+                TimeWeatherOptionsMenu = new TimeWeatherOptions();
+                var menu = TimeWeatherOptionsMenu.GetMenu();
+                var button = new MenuItem("Server Time & Weather", "Change the server time and weather.")
+                {
+                    Label = "→→→"
+                };
+                AddMenu(Menu, menu, button);
             }
 
             if (IsAllowed(Permission.WRNPCOptions, true) && GetSettingsBool(Setting.vmenu_enable_npc_density)) 
@@ -1189,8 +1189,8 @@ namespace vMenuClient
                 {
                     Label = "→→→"
                 };
-                AddMenu(WorldSubmenu, menu, button);
-                WorldSubmenu.OnItemSelect += (sender, item, index) =>
+                AddMenu(Menu, menu, button);
+                Menu.OnItemSelect += (sender, item, index) =>
                 {
                     if (item == button)
                     {
@@ -1239,27 +1239,6 @@ namespace vMenuClient
                 };
             }
 
-            {
-                PlayerTimeWeatherOptionsMenu = new PlayerTimeWeatherOptions();
-                var menu2 = PlayerTimeWeatherOptionsMenu.GetMenu();
-                var button2 = new MenuItem("Time & Weather Options", "Change all time & weather related options here.")
-                {
-                    Label = "→→→"
-                };
-                AddMenu(Menu, menu2, button2);
-            }
-
-            // Add Teleport Menu.
-            if (IsAllowed(Permission.TPMenu))
-            {
-                TeleportOptionsMenu = new TeleportOptions();
-                var menu = TeleportOptionsMenu.GetMenu();
-                var button = new MenuItem("Teleport Related Options", "Open this submenu for teleport options.")
-                {
-                    Label = "→→→"
-                };
-                AddMenu(Menu, menu, button);
-            }
 
 
 
@@ -1369,15 +1348,6 @@ namespace vMenuClient
             else
             {
                 Menu.RemoveMenuItem(vehicleSubmenuBtn);
-            }
-
-            if (WorldSubmenu.Size > 0)
-            {
-                MenuController.BindMenuItem(Menu, WorldSubmenu, worldSubmenuBtn);
-            }
-            else
-            {
-                Menu.RemoveMenuItem(worldSubmenuBtn);
             }
 
             if (MiscSettingsMenu != null)
