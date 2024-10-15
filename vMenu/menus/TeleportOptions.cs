@@ -232,14 +232,14 @@ namespace vMenuClient
         private void CreateMenu()
         {
 
-            menu = new Menu(MenuTitle, "Teleport Related Options");
+            menu = new Menu(MenuTitle, "Teleport");
             // menu items
-            var teleportMenu = new Menu(MenuTitle, "Teleport Locations");
+            var teleportMenu = new Menu(MenuTitle, "Server Teleport Locations");
             var teleportMenuBtn = new MenuItem("Server Teleport Locations", "Teleport to pre-configured locations, added by the server owner.");
             MenuController.AddSubmenu(menu, teleportMenu);
             MenuController.BindMenuItem(menu, teleportMenu, teleportMenuBtn);
 
-            personalTpLocationsMenu = new Menu(MenuTitle, "Teleport Locations");
+            personalTpLocationsMenu = new Menu(MenuTitle, "Personal Teleport Locations");
             personalTpLocationsBtn = new MenuItem("Personal Teleport Locations", "Teleport to your personal teleport locations.") { Label = "→→→" };
             MenuController.AddSubmenu(menu, personalTpLocationsMenu);
             MenuController.BindMenuItem(menu, personalTpLocationsMenu, personalTpLocationsBtn);
@@ -252,7 +252,7 @@ namespace vMenuClient
             if (IsAllowed(Permission.TPTeleportToWp) || IsAllowed(Permission.TPTeleportLocations) || IsAllowed(Permission.TPTeleportToCoord) || IsAllowed(Permission.TPTeleportPersonalLocations) || IsAllowed(Permission.TPTeleportToPrev))
             {
                 var tptowp = new MenuItem("Teleport To Waypoint", "Teleport to the waypoint on your map.");
-                var tpToCoord = new MenuItem("Teleport To Coords", "Enter the X, Y, Z coordinates and you will be teleported to that location.");
+                var tpToCoord = new MenuItem("Teleport To Coordinates", "Enter the X, Y, Z coordinates and you will be teleported to that location.");
                 tpToPrev = new MenuItem("Teleport To Previous Location", "Teleport to the location you last teleported to.");
                 var overridePrevBtn = new MenuItem("Override Previous Location", "Overrides the previous teleport location with your current position.");
                 var savePersonalLocationBtn = new MenuItem("Save Personal Teleport Location", "Adds your current location to the personal teleport locations menu saved locally.");

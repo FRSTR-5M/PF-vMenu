@@ -35,7 +35,7 @@ namespace vMenuClient.menus
         {
             #region Create menus and submenus
             // Create the menu.
-            menu = new Menu(MenuTitle, "Manage Saved Vehicles");
+            menu = new Menu(MenuTitle, "Saved Vehicles");
 
             var saveVehicle = new MenuItem("Save Current Vehicle", "Save the vehicle you are currently sitting in.");
             menu.AddMenuItem(saveVehicle);

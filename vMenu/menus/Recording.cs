@@ -19,7 +19,7 @@ namespace vMenuClient.menus
             AddTextEntry("ERROR_UPLOAD", "Are you sure you want to upload this photo to Cfx.re forum?"); // Replace the warning message text for uploading
 
             // Create the menu.
-            menu = new Menu(MenuTitle, "Recording Options");
+            menu = new Menu(MenuTitle, "Recording");
 
             var takePic = new MenuItem("Take Photo", "Takes a photo and saves it to the Pause Menu gallery.");
             var openPmGallery = new MenuItem("Open Gallery", "Opens the Pause Menu gallery.");

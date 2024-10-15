@@ -94,7 +94,7 @@ namespace vMenuClient.menus
             }
 
             // Create the menu.
-            menu = new Menu(MenuTitle, "Misc Settings");
+            menu = new Menu(MenuTitle, "Miscellaneous Settings");
             teleportOptionsMenu = Lm.GetMenu(new Menu(MenuTitle, "Teleport Options"));
             developerToolsMenu = Lm.GetMenu(new Menu(MenuTitle, "Development Tools"));
             entitySpawnerMenu = Lm.GetMenu(new Menu(MenuTitle, "Entity Spawner"));
@@ -279,7 +279,7 @@ namespace vMenuClient.menus
                 MenuController.BindMenuItem(menu, teleportOptionsMenu, teleportOptionsMenuBtn);
 
                 var tptowp = new MenuItem("Teleport To Waypoint", "Teleport to the waypoint on your map.");
-                var tpToCoord = new MenuItem("Teleport To Coords", "Enter x, y, z coordinates and you will be teleported to that location.");
+                var tpToCoord = new MenuItem("Teleport To Coordinates", "Enter x, y, z coordinates and you will be teleported to that location.");
                 var saveLocationBtn = new MenuItem("Save Teleport Location", "Adds your current location to the teleport locations menu and saves it on the server ~r~~h~(script restart required after adding new location(s)).");
                 teleportOptionsMenu.OnItemSelect += async (sender, item, index) =>
                 {

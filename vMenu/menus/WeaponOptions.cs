@@ -82,7 +82,7 @@ namespace vMenuClient.menus
 
             #region addonweapons submenu
             var addonWeaponsBtn = new MenuItem("Addon Weapons", "Equip / remove addon weapons available on this server.");
-            var addonWeaponsMenu = new Menu(MenuTitle, "Equip/Remove Addon Weapons");
+            var addonWeaponsMenu = new Menu(MenuTitle, "Addon Weapons");
             menu.AddMenuItem(addonWeaponsBtn);
 
             #region manage creating and accessing addon weapons menu
@@ -134,7 +134,7 @@ namespace vMenuClient.menus
             {
                 // main parachute options menu setup
                 var parachuteMenu = Lm.GetMenu(new Menu(MenuTitle, "Parachute Options"));
-                var parachuteBtn = new MenuItem("Parachute Options", "All parachute related options can be changed here.") { Label = "→→→" };
+                var parachuteBtn = new MenuItem("Parachute Options", "Customize your parachute.") { Label = "→→→" };
 
                 MenuController.AddSubmenu(menu, parachuteMenu);
                 menu.AddMenuItem(parachuteBtn);

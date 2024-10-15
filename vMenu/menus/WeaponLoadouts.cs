@@ -18,7 +18,7 @@ namespace vMenuClient.menus
     {
         // Variables
         private Menu menu = null;
-        private Menu SavedLoadoutsMenu = new Menu(MenuTitle, "Saved weapon loadouts list");
+        private Menu SavedLoadoutsMenu = new Menu(MenuTitle, "Saved Loadouts");
         private Menu ManageLoadoutMenu = Lm.GetMenu(new Menu(MenuTitle, "Manage saved weapon loadout"));
         public bool WeaponLoadoutsSetLoadoutOnRespawn { get; private set; } = UserDefaults.WeaponLoadoutsSetLoadoutOnRespawn;
 
@@ -84,13 +84,13 @@ namespace vMenuClient.menus
         /// </summary>
         public void CreateMenu()
         {
-            menu = new Menu(MenuTitle, "weapon loadouts management");
+            menu = new Menu(MenuTitle, "Weapon Loadouts");
 
             MenuController.AddSubmenu(menu, SavedLoadoutsMenu);
             MenuController.AddSubmenu(SavedLoadoutsMenu, ManageLoadoutMenu);
 
             var saveLoadout = new MenuItem("Save Loadout", "Save your current weapons into a new loadout slot.");
-            var savedLoadoutsMenuBtn = new MenuItem("Manage Loadouts", "Manage saved weapon loadouts.") { Label = "→→→" };
+            var savedLoadoutsMenuBtn = new MenuItem("Saved Loadouts", "Manage saved weapon loadouts.") { Label = "→→→" };
             var enableDefaultLoadouts = new MenuCheckboxItem("Restore Default Loadout On Respawn", "If you've set a loadout as default loadout, then your loadout will be equipped automatically whenever you (re)spawn.", WeaponLoadoutsSetLoadoutOnRespawn);
 
             menu.AddMenuItem(saveLoadout);

@@ -42,7 +42,7 @@ namespace vMenuClient.menus
         {
             #region create menu and menu items
             // Create the menu.
-            menu = new Menu(MenuTitle, "Player Options");
+            menu = new Menu(MenuTitle, "Ped Options");
 
             // Create all checkboxes.
             var playerGodModeCheckbox = new MenuCheckboxItem("Godmode", "Makes you invincible.", PlayerGodMode);
@@ -70,11 +70,11 @@ namespace vMenuClient.menus
             var wetPlayerBtn = new MenuItem("Wet Player Clothes", "Make your player clothes wet.");
             var suicidePlayerBtn = new MenuItem("~r~Commit Suicide", "Kill yourself by taking the pill. Or by using a pistol if you have one.");
 
-            var vehicleAutoPilot = Lm.GetMenu(new Menu(MenuTitle, "Vehicle auto pilot options."));
+            var vehicleAutoPilot = Lm.GetMenu(new Menu(MenuTitle, "Vehicle Autopilot"));
 
             MenuController.AddSubmenu(menu, vehicleAutoPilot);
 
-            var vehicleAutoPilotBtn = new MenuItem("Vehicle Auto Pilot Menu", "Manage vehicle auto pilot options.")
+            var vehicleAutoPilotBtn = new MenuItem("Vehicle Autopilot", "Configure the vehicle autopilot.")
             {
                 Label = "→→→"
             };

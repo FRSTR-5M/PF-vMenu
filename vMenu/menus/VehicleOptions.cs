@@ -91,7 +91,7 @@ namespace vMenuClient.menus
         private void CreateMenu()
         {
             // Create the menu.
-            menu = new Menu(MenuTitle, "Vehicle Options");
+            menu = new Menu(MenuTitle, "Vehicles");
 
             #region menu items variables
             // vehicle god mode menu
@@ -125,15 +125,15 @@ namespace vMenuClient.menus
             {
                 Label = "→→→"
             };
-            var doorsMenuBtn = new MenuItem("Vehicle Doors", "Open, close, remove and restore vehicle doors here.")
+            var doorsMenuBtn = new MenuItem("Vehicle Doors", "Open, close, remove and restore vehicle doors.")
             {
                 Label = "→→→"
             };
-            var windowsMenuBtn = new MenuItem("Vehicle Windows", "Roll your windows up/down or remove/restore your vehicle windows here.")
+            var windowsMenuBtn = new MenuItem("Vehicle Windows", "Roll your windows up and down, and remove or restore your vehicle windows.")
             {
                 Label = "→→→"
             };
-            var componentsMenuBtn = new MenuItem("Vehicle Extras", "Add/remove vehicle components/extras.")
+            var componentsMenuBtn = new MenuItem("Vehicle Extras", "Add or remove vehicle components and extras.")
             {
                 Label = "→→→"
             };

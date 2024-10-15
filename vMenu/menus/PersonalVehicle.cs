@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -36,7 +36,7 @@ namespace vMenuClient.menus
         private void CreateMenu()
         {
             // Menu
-            menu = new Menu(MenuTitle, "Personal Vehicle Options");
+            menu = new Menu(MenuTitle, "Personal Vehicle");
 
             // menu items
             var setVehice = new MenuItem("Set Vehicle", "Sets your current vehicle as your personal vehicle. If you already have a personal vehicle set then this will override your selection.") { Label = "Current Vehicle: None" };

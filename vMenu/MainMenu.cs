@@ -694,8 +694,8 @@ namespace vMenuClient
             }
             // Create the main menu.
             Menu = Lm.GetMenu(new Menu(MenuTitle, "Main Menu"));
-            PlayerSubmenu = Lm.GetMenu(new Menu(MenuTitle, "Player Related Options"));
-            VehicleSubmenu = Lm.GetMenu(new Menu(MenuTitle, "Vehicle Related Options"));
+            PlayerSubmenu = Lm.GetMenu(new Menu(MenuTitle, "My Character"));
+            VehicleSubmenu = Lm.GetMenu(new Menu(MenuTitle, "Vehicles"));
 
             // Add the main menu to the menu pool.
             MenuController.AddMenu(Menu);
@@ -862,7 +862,7 @@ namespace vMenuClient
                 };
             }
 
-            var playerSubmenuBtn = new MenuItem("Player Related Options", "Open this submenu for player related subcategories.") { Label = "→→→" };
+            var playerSubmenuBtn = new MenuItem("My Character", "Customize your character.") { Label = "→→→" };
             Menu.AddMenuItem(playerSubmenuBtn);
 
             // Add the player options menu.
@@ -870,21 +870,21 @@ namespace vMenuClient
             {
                 PlayerOptionsMenu = new PlayerOptions();
                 var menu = PlayerOptionsMenu.GetMenu();
-                var button = new MenuItem("Player Options", "Common player options can be accessed here.")
+                var button = new MenuItem("Ped Options", "Change ped options.")
                 {
                     Label = "→→→"
                 };
                 AddMenu(PlayerSubmenu, menu, button);
             }
 
-            var vehicleSubmenuBtn = new MenuItem("Vehicle Related Options", "Open this submenu for vehicle related subcategories.") { Label = "→→→" };
+            var vehicleSubmenuBtn = new MenuItem("Vehicles", "Spawn, customize, and save vehicles.") { Label = "→→→" };
             Menu.AddMenuItem(vehicleSubmenuBtn);
             // Add the vehicle options Menu.
             if (IsAllowed(Permission.VOMenu))
             {
                 VehicleOptionsMenu = new VehicleOptions();
                 var menu = VehicleOptionsMenu.GetMenu();
-                var button = new MenuItem("Vehicle Options", "Here you can change common vehicle options, as well as tune & style your vehicle.")
+                var button = new MenuItem("Vehicle Options", "Change vehicle options, and tune and style your vehicle.")
                 {
                     Label = "→→→"
                 };
@@ -896,7 +896,7 @@ namespace vMenuClient
             {
                 VehicleSpawnerMenu = new VehicleSpawner();
                 var menu = VehicleSpawnerMenu.GetMenu();
-                var button = new MenuItem("Vehicle Spawner", "Spawn a vehicle by name or choose one from a specific category.")
+                var button = new MenuItem("Spawn Vehicles", "Search and spawn vehicles by name, or choose one from several categories.")
                 {
                     Label = "→→→"
                 };
@@ -908,7 +908,7 @@ namespace vMenuClient
             {
                 SavedVehiclesMenu = new SavedVehicles();
                 var menu = SavedVehiclesMenu.GetMenu();
-                var button = new MenuItem("Saved Vehicles", "Save new vehicles, or spawn or delete already saved vehicles.")
+                var button = new MenuItem("Saved Vehicles", "Save and manage customized vehicles.")
                 {
                     Label = "→→→"
                 };
@@ -927,7 +927,7 @@ namespace vMenuClient
             {
                 PersonalVehicleMenu = new PersonalVehicle();
                 var menu = PersonalVehicleMenu.GetMenu();
-                var button = new MenuItem("Personal Vehicle", "Set a vehicle as your personal vehicle, and control some things about that vehicle when you're not inside.")
+                var button = new MenuItem("Personal Vehicle", "Set and manage your personal vehicle.")
                 {
                     Label = "→→→"
                 };
@@ -939,7 +939,7 @@ namespace vMenuClient
             {
                 PlayerAppearanceMenu = new PlayerAppearance();
                 var menu = PlayerAppearanceMenu.GetMenu();
-                var button = new MenuItem("Player Appearance", "Choose a ped model, customize it and save & load your customized characters.")
+                var button = new MenuItem("Generic Ped Customization", "Spawn, customize, and save and load generic ped models.")
                 {
                     Label = "→→→"
                 };
@@ -947,7 +947,7 @@ namespace vMenuClient
 
                 MpPedCustomizationMenu = new MpPedCustomization();
                 var menu2 = MpPedCustomizationMenu.GetMenu();
-                var button2 = new MenuItem("MP Ped Customization", "Create, edit, save and load multiplayer peds. ~r~Note, you can only save peds created in this submenu. vMenu can NOT detect peds created outside of this submenu. Simply due to GTA limitations.")
+                var button2 = new MenuItem("Multiplayer Ped Customization", "Create, edit and load multiplayer peds.~n~~y~Ped models created in other submenus or resources cannot be saved here.~s~")
                 {
                     Label = "→→→"
                 };
@@ -959,7 +959,7 @@ namespace vMenuClient
             {
                 TeleportOptionsMenu = new TeleportOptions();
                 var menu = TeleportOptionsMenu.GetMenu();
-                var button = new MenuItem("Teleport Related Options", "Open this submenu for teleport options.")
+                var button = new MenuItem("Teleport", "Teleport to your waypoint or various other locations, and save custom teleport locations.")
                 {
                     Label = "→→→"
                 };
@@ -992,7 +992,7 @@ namespace vMenuClient
             {
                 DensityOptions = new NPCDensityMenu();
                 var menu = DensityOptions.GetMenu();
-                var button = new MenuItem("NPC Density Options (Experimental)", "Change all NPC Density related options here.")
+                var button = new MenuItem("NPC Density Options (Experimental)", "Change NPC density options.")
                 {
                     Label = "→→→"
                 };
@@ -1014,7 +1014,7 @@ namespace vMenuClient
             {
                 WeaponOptionsMenu = new WeaponOptions();
                 var menu = WeaponOptionsMenu.GetMenu();
-                var button = new MenuItem("Weapon Options", "Add/remove weapons, modify weapons and set ammo options.")
+                var button = new MenuItem("Weapon Options", "Add, remove and modify weapons, and change ammo options.")
                 {
                     Label = "→→→"
                 };
@@ -1026,7 +1026,7 @@ namespace vMenuClient
             {
                 WeaponLoadoutsMenu = new WeaponLoadouts();
                 var menu = WeaponLoadoutsMenu.GetMenu();
-                var button = new MenuItem("Weapon Loadouts", "Mange, and spawn saved weapon loadouts.")
+                var button = new MenuItem("Weapon Loadouts", "Mange and load saved weapon loadouts.")
                 {
                     Label = "→→→"
                 };
@@ -1052,7 +1052,7 @@ namespace vMenuClient
             {
                 RecordingMenu = new Recording();
                 var menu = RecordingMenu.GetMenu();
-                var button = new MenuItem("Recording Options", "In-game recording options.")
+                var button = new MenuItem("Recording", "In-game screenshots and recording.")
                 {
                     Label = "→→→"
                 };
@@ -1091,7 +1091,7 @@ namespace vMenuClient
             {
                 MiscSettingsMenu = new MiscSettings();
                 var menu = MiscSettingsMenu.GetMenu();
-                var button = new MenuItem("Misc Settings", "Miscellaneous vMenu options/settings can be configured here. You can also save your settings in this menu.")
+                var button = new MenuItem("Miscellaneous Settings", "Miscellaneous settings and options.")
                 {
                     Label = "→→→"
                 };
@@ -1125,7 +1125,7 @@ namespace vMenuClient
             // Add About Menu.
             AboutMenu = new About();
             var sub = AboutMenu.GetMenu();
-            var btn = new MenuItem("About vMenu", "Information about vMenu.")
+            var btn = new MenuItem("About", "Information about this server.")
             {
                 Label = "→→→"
             };

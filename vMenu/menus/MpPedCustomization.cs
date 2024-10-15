@@ -22,7 +22,7 @@ namespace vMenuClient.menus
         // Variables
         private Menu menu;
         public Menu createCharacterMenu = Lm.GetMenu(new("Create Character", "Create A New Character"));
-        public Menu savedCharactersMenu = Lm.GetMenu(new("vMenu", "Manage Saved Characters"));
+        public Menu savedCharactersMenu = Lm.GetMenu(new("vMenu", "Saved Characters"));
         public Menu inheritanceMenu = Lm.GetMenu(new("vMenu", "Character Inheritance Options"));
         public Menu appearanceMenu = Lm.GetMenu(new("vMenu", "Character Appearance Options"));
         public Menu faceShapeMenu = Lm.GetMenu(new("vMenu", "Character Face Shape Options"));
@@ -754,9 +754,9 @@ namespace vMenuClient.menus
         private void CreateMenu()
         {
             // Create the menu.
-            menu = new Menu(MenuTitle, "MP Ped Customization");
+            menu = new Menu(MenuTitle, "Multiplayer Ped Customization");
 
-            var savedCharacters = new MenuItem("Saved Characters", "Spawn, edit or delete your existing saved multiplayer characters.")
+            var savedCharacters = new MenuItem("Saved Characters", "Spawn, edit or delete your saved multiplayer peds.")
             {
                 Label = "→→→"
             };

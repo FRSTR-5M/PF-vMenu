@@ -33,7 +33,7 @@ namespace vMenuClient.menus
         private void CreateMenu()
         {
             // Create the menu.
-            menu = new Menu(MenuTitle, "Vehicle Spawner");
+            menu = new Menu(MenuTitle, "Spawn Vehicles");
 
             var spawnByName = new MenuItem("Spawn Vehicle By Model Name", "Enter the name of a vehicle to spawn.");
             var searchVehicles = new MenuItem("Search Vehicle By Name", "Search all vehicles by (model) name.");

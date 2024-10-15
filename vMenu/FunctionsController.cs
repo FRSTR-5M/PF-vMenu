@@ -1881,7 +1881,7 @@ namespace vMenuClient
                     }
                     else
                     {
-                        Notify.Error("You did not set a saved character to restore to. Do so in the ~g~MP Ped Customization~s~ > ~g~Saved Characters~s~ menu.");
+                        Notify.Error("You did not set a saved character to restore to. Do so in the ~g~Multiplayer Ped Customization~s~ > ~g~Saved Characters~s~ menu.");
                     }
                 }
                 if (!restoreDefault)

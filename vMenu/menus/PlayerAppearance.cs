@@ -22,11 +22,11 @@ namespace vMenuClient.menus
         private Menu savedPedsMenu;
         private Menu spawnPedsMenu;
         private Menu addonPedsMenu;
-        private readonly Menu mainPedsMenu = new("Main Peds", "Spawn A Ped");
-        private readonly Menu animalsPedsMenu = new("Animals", "Spawn A Ped");
-        private readonly Menu malePedsMenu = new("Male Peds", "Spawn A Ped");
-        private readonly Menu femalePedsMenu = new("Female Peds", "Spawn A Ped");
-        private readonly Menu otherPedsMenu = new("Other Peds", "Spawn A Ped");
+        private readonly Menu mainPedsMenu = new("Main Peds", "Main Peds");
+        private readonly Menu animalsPedsMenu = new("Animals", "Animals");
+        private readonly Menu malePedsMenu = new("Male Peds", "Male Peds");
+        private readonly Menu femalePedsMenu = new("Female Peds", "Female Peds");
+        private readonly Menu otherPedsMenu = new("Other Peds", "Other Peds");
 
         public static Dictionary<string, uint> AddonPeds;
 
@@ -128,9 +128,9 @@ namespace vMenuClient.menus
             }
 
             // Create the menu.
-            menu = new Menu(MenuTitle, "Player Appearance");
+            menu = new Menu(MenuTitle, "Generic Ped Customization");
             savedPedsMenu = new Menu(MenuTitle, "Saved Peds");
-            pedCustomizationMenu = Lm.GetMenu(new Menu(MenuTitle, "Customize Saved Ped"));
+            pedCustomizationMenu = Lm.GetMenu(new Menu(MenuTitle, "Customize Appearance"));
             spawnPedsMenu = Lm.GetMenu(new Menu(MenuTitle, "Spawn Ped"));
             addonPedsMenu = new Menu(MenuTitle, "Addon Peds");
 
@@ -147,10 +147,10 @@ namespace vMenuClient.menus
             MenuController.AddSubmenu(spawnPedsMenu, otherPedsMenu);
 
             // Create the menu items.
-            var pedCustomization = new MenuItem("Ped Customization", "Modify your ped's appearance.") { Label = "→→→" };
+            var pedCustomization = new MenuItem("Customize Appearance", "Customize your ped's appearance.") { Label = "→→→" };
             var saveCurrentPed = new MenuItem("Save Ped", "Save your current ped. Note for the MP Male/Female peds this won't save most of their customization, just because that's impossible. Create those characters in the MP Character creator instead.");
-            var savedPedsBtn = new MenuItem("Saved Peds", "Edit, rename, clone, spawn or delete saved peds.") { Label = "→→→" };
-            var spawnPedsBtn = new MenuItem("Spawn Peds", "Change ped model by selecting one from the list or by selecting an addon ped from the list.") { Label = "→→→" };
+            var savedPedsBtn = new MenuItem("Saved Peds", "Edit, rename, clone, spawn, or delete saved peds.") { Label = "→→→" };
+            var spawnPedsBtn = new MenuItem("Spawn Ped", "Spawn a ped model by name, or choose one from various categories.") { Label = "→→→" };
 
 
             var spawnByNameBtn = new MenuItem("Spawn By Name", "Spawn a ped by entering it's name manually.");
@@ -162,8 +162,7 @@ namespace vMenuClient.menus
             var otherPedsBtn = new MenuItem("Other Peds", "Select a ped.") { Label = "→→→" };
 
             var walkstyles = new List<string>() { "Normal", "Injured", "Tough Guy", "Femme", "Gangster", "Posh", "Sexy", "Business", "Drunk", "Hipster" };
-            var walkingStyle = new MenuListItem("Walking Style", walkstyles, 0, "Change the walking style of your current ped. " +
-                "You need to re-apply this each time you change player model or load a saved ped.");
+            var walkingStyle = new MenuListItem("Walking Style", walkstyles, 0, "Change the walking style of your ped.");
 
             var clothingGlowAnimations = new List<string>() { "On", "Off", "Fade", "Flash" };
             var clothingGlowType = new MenuListItem("Illuminated Clothing Style", clothingGlowAnimations, ClothingAnimationType, "Set the style of the animation used on your player's illuminated clothing items.");
