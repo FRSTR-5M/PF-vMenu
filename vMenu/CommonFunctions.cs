@@ -2660,22 +2660,42 @@ namespace vMenuClient
         /// <param name="title"></param>
         /// <param name="description"></param>
         /// <returns></returns>
-        public static MenuItem GetSpacerMenuItem(string title, string description = null)
+        public class SpacerMarker
         {
-            var output = "~h~";
-            var length = title.Length;
-            var totalSize = 80 - length;
+            public static SpacerMarker Get { get; } = new SpacerMarker();
 
-            for (var i = 0; i < (totalSize / 2) - (length / 2); i++)
+            public override bool Equals(object obj) => obj != null && GetType() == obj.GetType();
+            public override int GetHashCode() => 0;
+
+            public static bool operator==(SpacerMarker marker, object obj) => marker.Equals(obj);
+            public static bool operator!=(SpacerMarker marker, object obj) => !marker.Equals(obj);
+        }
+        public static MenuItem GetSpacerMenuItem(string title)
+        {
+            var item = new MenuItem($"— ~h~{title}~h~ —", "")
             {
-                output += " ";
-            }
-            output += title;
-            var item = new MenuItem(output, description ?? "")
-            {
+                ItemData = new SpacerMarker(),
                 Enabled = false
             };
             return item;
+        }
+
+        public static void AddSpacerAction(Menu menu)
+        {
+            menu.OnIndexChange += (_menu, _oldItem, newItem, oldIndex, newIndex) =>
+            {
+                if (SpacerMarker.Get == newItem.ItemData)
+                {
+                    if (oldIndex < newIndex)
+                    {
+                        menu.GoDown();
+                    }
+                    else
+                    {
+                        menu.GoUp();
+                    }
+                }
+            };
         }
         #endregion
 

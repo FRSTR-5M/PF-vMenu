@@ -153,13 +153,13 @@ namespace vMenuClient.menus
             var spawnPedsBtn = new MenuItem("Spawn Ped", "Spawn a ped model by name, or choose one from various categories.") { Label = "→→→" };
 
 
-            var spawnByNameBtn = new MenuItem("Spawn By Name", "Spawn a ped by entering it's name manually.");
-            var addonPedsBtn = new MenuItem("Addon Peds", "Spawn a ped from the addon peds list.") { Label = "→→→" };
-            var mainPedsBtn = new MenuItem("Main Peds", "Select a new ped from the main player-peds list.") { Label = "→→→" };
-            var animalPedsBtn = new MenuItem("Animals", "Become an animal. ~r~Note this may crash your own or other players' game if you die as an animal, godmode can NOT prevent this.") { Label = "→→→" };
-            var malePedsBtn = new MenuItem("Male Peds", "Select a male ped.") { Label = "→→→" };
-            var femalePedsBtn = new MenuItem("Female Peds", "Select a female ped.") { Label = "→→→" };
-            var otherPedsBtn = new MenuItem("Other Peds", "Select a ped.") { Label = "→→→" };
+            var spawnByNameBtn = new MenuItem("Spawn By Model Name", "Spawn a ped by entering its model name.");
+            var mainPedsBtn = new MenuItem("Main Peds", "Spawn a main singleplayer ped.") { Label = "→→→" };
+            var malePedsBtn = new MenuItem("Male Peds", "Spawn a male ped.") { Label = "→→→" };
+            var femalePedsBtn = new MenuItem("Female Peds", "Spawn a female ped.") { Label = "→→→" };
+            var otherPedsBtn = new MenuItem("Other Peds", "Spawn miscellaneous other peds.") { Label = "→→→" };
+            var animalPedsBtn = new MenuItem("Animals", "Become an animal.~n~~r~This may crash your or other players' games.~s~") { Label = "→→→" };
+            var addonPedsBtn = new MenuItem("Addon Peds", "Spawn an addon ped.") { Label = "→→→" };
 
             var walkstyles = new List<string>() { "Normal", "Injured", "Tough Guy", "Femme", "Gangster", "Posh", "Sexy", "Business", "Drunk", "Hipster" };
             var walkingStyle = new MenuListItem("Walking Style", walkstyles, 0, "Change the walking style of your ped.");
@@ -168,10 +168,10 @@ namespace vMenuClient.menus
             var clothingGlowType = new MenuListItem("Illuminated Clothing Style", clothingGlowAnimations, ClothingAnimationType, "Set the style of the animation used on your player's illuminated clothing items.");
 
             // Add items to the menu.
-            menu.AddMenuItem(pedCustomization);
-            menu.AddMenuItem(saveCurrentPed);
-            menu.AddMenuItem(savedPedsBtn);
             menu.AddMenuItem(spawnPedsBtn);
+            menu.AddMenuItem(pedCustomization);
+            menu.AddMenuItem(savedPedsBtn);
+            menu.AddMenuItem(saveCurrentPed);
 
             menu.AddMenuItem(walkingStyle);
             menu.AddMenuItem(clothingGlowType);
@@ -384,9 +384,6 @@ namespace vMenuClient.menus
 
             if (AddonPeds != null && AddonPeds.Count > 0 && IsAllowed(Permission.PAAddonPeds))
             {
-                spawnPedsMenu.AddMenuItem(addonPedsBtn);
-                MenuController.BindMenuItem(spawnPedsMenu, addonPedsMenu, addonPedsBtn);
-
                 var addons = AddonPeds.ToList();
 
                 addons.Sort((a, b) => a.Key.ToLower().CompareTo(b.Key.ToLower()));
@@ -421,10 +418,10 @@ namespace vMenuClient.menus
             {
                 spawnPedsMenu.AddMenuItem(spawnByNameBtn);
                 spawnPedsMenu.AddMenuItem(mainPedsBtn);
-                spawnPedsMenu.AddMenuItem(animalPedsBtn);
                 spawnPedsMenu.AddMenuItem(malePedsBtn);
                 spawnPedsMenu.AddMenuItem(femalePedsBtn);
                 spawnPedsMenu.AddMenuItem(otherPedsBtn);
+                spawnPedsMenu.AddMenuItem(animalPedsBtn);
 
                 MenuController.BindMenuItem(spawnPedsMenu, mainPedsMenu, mainPedsBtn);
                 if (IsAllowed(Permission.PAAnimalPeds))
@@ -592,6 +589,12 @@ namespace vMenuClient.menus
                         }
                     }
                 };
+            }
+
+            if (AddonPeds != null && AddonPeds.Count > 0 && IsAllowed(Permission.PAAddonPeds))
+            {
+                spawnPedsMenu.AddMenuItem(addonPedsBtn);
+                MenuController.BindMenuItem(spawnPedsMenu, addonPedsMenu, addonPedsBtn);
             }
 
 

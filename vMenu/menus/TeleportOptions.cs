@@ -422,18 +422,29 @@ namespace vMenuClient
                     };
                 }
 
+                bool hasSaveItems = false;
+                var spacer = GetSpacerMenuItem("Saving Teleport Locations");
+                menu.AddMenuItem(spacer);
+                AddSpacerAction(menu);
+
                 if (IsAllowed(Permission.TPTeleportToPrev))
                 {
+                    hasSaveItems = true;
                     menu.AddMenuItem(overridePrevBtn);
                 }
                 if (IsAllowed(Permission.TPTeleportPersonalLocations))
                 {
+                    hasSaveItems = true;
                     menu.AddMenuItem(savePersonalLocationBtn);
                 }
                 if (IsAllowed(Permission.TPTeleportSaveLocation))
                 {
+                    hasSaveItems = true;
                     menu.AddMenuItem(saveLocationBtn);
                 };
+
+                if (!hasSaveItems)
+                    menu.RemoveMenuItem(spacer);
             }
         }
 

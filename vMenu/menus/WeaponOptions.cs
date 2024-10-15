@@ -42,7 +42,7 @@ namespace vMenuClient.menus
 
             #region create main weapon options menu and add items
             // Create the menu.
-            menu = new Menu(MenuTitle, "Weapon Options");
+            menu = new Menu(MenuTitle, "Weapons");
 
             var getAllWeapons = new MenuItem("Get All Weapons", "Get all weapons.");
             var removeAllWeapons = new MenuItem("Remove All Weapons", "Removes all weapons in your inventory.");
@@ -285,8 +285,9 @@ namespace vMenuClient.menus
             #endregion
 
             #region Create Weapon Category Submenus
-            var spacer = GetSpacerMenuItem("↓ Weapon Categories ↓");
+            var spacer = GetSpacerMenuItem("Weapon Categories");
             menu.AddMenuItem(spacer);
+            AddSpacerAction(menu);
 
             var handGuns = Lm.GetMenu(new Menu(MenuTitle, "Handguns"));
             var handGunsBtn = new MenuItem("Handguns");

@@ -822,48 +822,28 @@ namespace vMenuClient
         /// </summary>
         private static void CreateSubmenus()
         {
-            // Add the online players menu.
-            if (IsAllowed(Permission.OPMenu))
-            {
-                OnlinePlayersMenu = new OnlinePlayers();
-                var menu = OnlinePlayersMenu.GetMenu();
-                var button = new MenuItem("Online Players", "All currently connected players.")
-                {
-                    Label = "→→→"
-                };
-                AddMenu(Menu, menu, button);
-                Menu.OnItemSelect += async (sender, item, index) =>
-                {
-                    if (item == button)
-                    {
-                        PlayersList.RequestPlayerList();
-
-                        await OnlinePlayersMenu.UpdatePlayerlist();
-                        menu.RefreshIndex();
-                    }
-                };
-            }
-            if (IsAllowed(Permission.OPUnban) || IsAllowed(Permission.OPViewBannedPlayers))
-            {
-                BannedPlayersMenu = new BannedPlayers();
-                var menu = BannedPlayersMenu.GetMenu();
-                var button = new MenuItem("Banned Players", "View and manage all banned players in this menu.")
-                {
-                    Label = "→→→"
-                };
-                AddMenu(Menu, menu, button);
-                Menu.OnItemSelect += (sender, item, index) =>
-                {
-                    if (item == button)
-                    {
-                        TriggerServerEvent("vMenu:RequestBanList", Game.Player.Handle);
-                        menu.RefreshIndex();
-                    }
-                };
-            }
-
             var playerSubmenuBtn = new MenuItem("My Character", "Customize your character.") { Label = "→→→" };
             Menu.AddMenuItem(playerSubmenuBtn);
+
+            // Add the player appearance menu.
+            if (IsAllowed(Permission.PAMenu))
+            {
+                MpPedCustomizationMenu = new MpPedCustomization();
+                var menu1 = MpPedCustomizationMenu.GetMenu();
+                var button1 = new MenuItem("Multiplayer Ped Customization", "Create, edit and load multiplayer peds.~n~~y~Ped models created in other submenus or resources cannot be saved here.~s~")
+                {
+                    Label = "→→→"
+                };
+                AddMenu(PlayerSubmenu, menu1, button1);
+
+                PlayerAppearanceMenu = new PlayerAppearance();
+                var menu2 = PlayerAppearanceMenu.GetMenu();
+                var button2 = new MenuItem("Generic Ped Customization", "Spawn, customize, and save and load generic ped models.")
+                {
+                    Label = "→→→"
+                };
+                AddMenu(PlayerSubmenu, menu2, button2);
+            }
 
             // Add the player options menu.
             if (IsAllowed(Permission.POMenu))
@@ -877,19 +857,58 @@ namespace vMenuClient
                 AddMenu(PlayerSubmenu, menu, button);
             }
 
-            var vehicleSubmenuBtn = new MenuItem("Vehicles", "Spawn, customize, and save vehicles.") { Label = "→→→" };
-            Menu.AddMenuItem(vehicleSubmenuBtn);
-            // Add the vehicle options Menu.
-            if (IsAllowed(Permission.VOMenu))
+            bool hasWeaponItems = false;
+            var weaponSpacer = GetSpacerMenuItem("Weapons");
+            PlayerSubmenu.AddMenuItem(weaponSpacer);
+            AddSpacerAction(PlayerSubmenu);
+
+            // Add the weapons menu.
+            if (IsAllowed(Permission.WPMenu))
             {
-                VehicleOptionsMenu = new VehicleOptions();
-                var menu = VehicleOptionsMenu.GetMenu();
-                var button = new MenuItem("Vehicle Options", "Change vehicle options, and tune and style your vehicle.")
+                hasWeaponItems = true;
+                WeaponOptionsMenu = new WeaponOptions();
+                var menu = WeaponOptionsMenu.GetMenu();
+                var button = new MenuItem("Weapons", "Add, remove and modify weapons, and change ammo options.")
                 {
                     Label = "→→→"
                 };
-                AddMenu(VehicleSubmenu, menu, button);
+                AddMenu(PlayerSubmenu, menu, button);
             }
+
+            // Add Weapon Loadouts menu.
+            if (IsAllowed(Permission.WLMenu))
+            {
+                hasWeaponItems = true;
+                WeaponLoadoutsMenu = new WeaponLoadouts();
+                var menu = WeaponLoadoutsMenu.GetMenu();
+                var button = new MenuItem("Weapon Loadouts", "Mange and load saved weapon loadouts.")
+                {
+                    Label = "→→→"
+                };
+                AddMenu(PlayerSubmenu, menu, button);
+            }
+
+            if (!hasWeaponItems)
+                PlayerSubmenu.RemoveMenuItem(weaponSpacer);
+
+            if (IsAllowed(Permission.NoClip))
+            {
+                var noclipSpacer = GetSpacerMenuItem("NoClip");
+                PlayerSubmenu.AddMenuItem(noclipSpacer);
+
+                var toggleNoclip = new MenuItem("Toggle NoClip", "Toggle NoClip on or off.");
+                PlayerSubmenu.AddMenuItem(toggleNoclip);
+                PlayerSubmenu.OnItemSelect += (sender, item, index) =>
+                {
+                    if (item == toggleNoclip)
+                    {
+                        NoClipEnabled = !NoClipEnabled;
+                    }
+                };
+            }
+
+            var vehicleSubmenuBtn = new MenuItem("Vehicles", "Spawn, customize, and save vehicles.") { Label = "→→→" };
+            Menu.AddMenuItem(vehicleSubmenuBtn);
 
             // Add the vehicle spawner menu.
             if (IsAllowed(Permission.VSMenu))
@@ -897,6 +916,18 @@ namespace vMenuClient
                 VehicleSpawnerMenu = new VehicleSpawner();
                 var menu = VehicleSpawnerMenu.GetMenu();
                 var button = new MenuItem("Spawn Vehicles", "Search and spawn vehicles by name, or choose one from several categories.")
+                {
+                    Label = "→→→"
+                };
+                AddMenu(VehicleSubmenu, menu, button);
+            }
+
+            // Add the vehicle options Menu.
+            if (IsAllowed(Permission.VOMenu))
+            {
+                VehicleOptionsMenu = new VehicleOptions();
+                var menu = VehicleOptionsMenu.GetMenu();
+                var button = new MenuItem("Customize Vehicle", "Tune and style your vehicle, and change vehicle options.")
                 {
                     Label = "→→→"
                 };
@@ -934,26 +965,6 @@ namespace vMenuClient
                 AddMenu(VehicleSubmenu, menu, button);
             }
 
-            // Add the player appearance menu.
-            if (IsAllowed(Permission.PAMenu))
-            {
-                PlayerAppearanceMenu = new PlayerAppearance();
-                var menu = PlayerAppearanceMenu.GetMenu();
-                var button = new MenuItem("Generic Ped Customization", "Spawn, customize, and save and load generic ped models.")
-                {
-                    Label = "→→→"
-                };
-                AddMenu(PlayerSubmenu, menu, button);
-
-                MpPedCustomizationMenu = new MpPedCustomization();
-                var menu2 = MpPedCustomizationMenu.GetMenu();
-                var button2 = new MenuItem("Multiplayer Ped Customization", "Create, edit and load multiplayer peds.~n~~y~Ped models created in other submenus or resources cannot be saved here.~s~")
-                {
-                    Label = "→→→"
-                };
-                AddMenu(PlayerSubmenu, menu2, button2);
-            }
-
             // Add Teleport Menu.
             if (IsAllowed(Permission.TPMenu))
             {
@@ -977,8 +988,99 @@ namespace vMenuClient
                 AddMenu(Menu, menu2, button2);
             }
 
+            {
+                RecordingMenu = new Recording();
+                var menu = RecordingMenu.GetMenu();
+                var button = new MenuItem("Recording", "In-game screenshots and recording.")
+                {
+                    Label = "→→→"
+                };
+                AddMenu(Menu, menu, button);
+            }
+
+            // Add enhanced camera menu.
+            if (IsAllowed(Permission.ECMenu))
+            {
+                EnhancedCameraMenu = new EnhancedCamera();
+                var menu = EnhancedCameraMenu.GetMenu();
+                var button = new MenuItem("Enhanced Camera", "Opens the enhanced camera menu.")
+                {
+                    Label = "→→→"
+                };
+                AddMenu(Menu, menu, button);
+            }
+
+            // Add misc settings menu.
+            {
+                MiscSettingsMenu = new MiscSettings();
+                var menu = MiscSettingsMenu.GetMenu();
+                var button = new MenuItem("Miscellaneous Settings", "Miscellaneous settings and options.")
+                {
+                    Label = "→→→"
+                };
+                AddMenu(Menu, menu, button);
+            }
+
+            // Add About Menu.
+            AboutMenu = new About();
+            var sub = AboutMenu.GetMenu();
+            var btn = new MenuItem("About", "Information about this server.")
+            {
+                Label = "→→→"
+            };
+            AddMenu(Menu, sub, btn);
+
+            bool hasAdminMenus = false;
+            var adminSpacer = GetSpacerMenuItem("Admin Menus");
+            Menu.AddMenuItem(adminSpacer);
+            AddSpacerAction(Menu);
+
+            // Add the online players menu.
+            if (IsAllowed(Permission.OPMenu))
+            {
+                hasAdminMenus = true;
+                OnlinePlayersMenu = new OnlinePlayers();
+                var menu = OnlinePlayersMenu.GetMenu();
+                var button = new MenuItem("Online Players", "All currently connected players.")
+                {
+                    Label = "→→→"
+                };
+                AddMenu(Menu, menu, button);
+                Menu.OnItemSelect += async (sender, item, index) =>
+                {
+                    if (item == button)
+                    {
+                        PlayersList.RequestPlayerList();
+
+                        await OnlinePlayersMenu.UpdatePlayerlist();
+                        menu.RefreshIndex();
+                    }
+                };
+            }
+
+            if (IsAllowed(Permission.OPUnban) || IsAllowed(Permission.OPViewBannedPlayers))
+            {
+                hasAdminMenus = true;
+                BannedPlayersMenu = new BannedPlayers();
+                var menu = BannedPlayersMenu.GetMenu();
+                var button = new MenuItem("Banned Players", "View and manage all banned players in this menu.")
+                {
+                    Label = "→→→"
+                };
+                AddMenu(Menu, menu, button);
+                Menu.OnItemSelect += (sender, item, index) =>
+                {
+                    if (item == button)
+                    {
+                        TriggerServerEvent("vMenu:RequestBanList", Game.Player.Handle);
+                        menu.RefreshIndex();
+                    }
+                };
+            }
+
             if (IsAllowed(Permission.TWOptions) && GetSettingsBool(Setting.vmenu_enable_time_weather_sync))
             {
+                hasAdminMenus = true;
                 TimeWeatherOptionsMenu = new TimeWeatherOptions();
                 var menu = TimeWeatherOptionsMenu.GetMenu();
                 var button = new MenuItem("Server Time & Weather", "Change the server time and weather.")
@@ -990,6 +1092,7 @@ namespace vMenuClient
 
             if (IsAllowed(Permission.WRNPCOptions, true) && GetSettingsBool(Setting.vmenu_enable_npc_density))
             {
+                hasAdminMenus = true;
                 DensityOptions = new NPCDensityMenu();
                 var menu = DensityOptions.GetMenu();
                 var button = new MenuItem("NPC Density Options (Experimental)", "Change NPC density options.")
@@ -1009,108 +1112,22 @@ namespace vMenuClient
                 };
             }
 
-            // Add the weapons menu.
-            if (IsAllowed(Permission.WPMenu))
-            {
-                WeaponOptionsMenu = new WeaponOptions();
-                var menu = WeaponOptionsMenu.GetMenu();
-                var button = new MenuItem("Weapon Options", "Add, remove and modify weapons, and change ammo options.")
-                {
-                    Label = "→→→"
-                };
-                AddMenu(PlayerSubmenu, menu, button);
-            }
-
-            // Add Weapon Loadouts menu.
-            if (IsAllowed(Permission.WLMenu))
-            {
-                WeaponLoadoutsMenu = new WeaponLoadouts();
-                var menu = WeaponLoadoutsMenu.GetMenu();
-                var button = new MenuItem("Weapon Loadouts", "Mange and load saved weapon loadouts.")
-                {
-                    Label = "→→→"
-                };
-                AddMenu(PlayerSubmenu, menu, button);
-            }
-
-            if (IsAllowed(Permission.NoClip))
-            {
-                var toggleNoclip = new MenuItem("Toggle NoClip", "Toggle NoClip on or off.");
-                PlayerSubmenu.AddMenuItem(toggleNoclip);
-                PlayerSubmenu.OnItemSelect += (sender, item, index) =>
-                {
-                    if (item == toggleNoclip)
-                    {
-                        NoClipEnabled = !NoClipEnabled;
-                    }
-                };
-            }
-
-
-
-
-            {
-                RecordingMenu = new Recording();
-                var menu = RecordingMenu.GetMenu();
-                var button = new MenuItem("Recording", "In-game screenshots and recording.")
-                {
-                    Label = "→→→"
-                };
-                AddMenu(Menu, menu, button);
-            }
-
-            // Add a Spacer Here
-            var spacer = GetSpacerMenuItem("~y~↓ Miscellaneous ↓");
-            Menu.AddMenuItem(spacer);
-
-            // Add enhanced camera menu.
-            if (IsAllowed(Permission.ECMenu))
-            {
-                EnhancedCameraMenu = new EnhancedCamera();
-                var menu = EnhancedCameraMenu.GetMenu();
-                var button = new MenuItem("Enhanced Camera", "Opens the enhanced camera menu.")
-                {
-                    Label = "→→→"
-                };
-                AddMenu(Menu, menu, button);
-            }
-
             // Add Plugin Settings Menu
             if (IsAllowed(Permission.PNMenu))
             {
+                hasAdminMenus = true;
                 PluginSettingsMenu = new PluginSettings();
                 var menu = PluginSettingsMenu.GetMenu();
-                var button = new MenuItem("Plugins Menu", "Plugins settings/status.")
+                var button = new MenuItem("Plugins", "Plugins settings and status.")
                 {
                     Label = "→→→"
                 };
                 AddMenu(Menu, menu, button);
             }
 
-            // Add misc settings menu.
-            {
-                MiscSettingsMenu = new MiscSettings();
-                var menu = MiscSettingsMenu.GetMenu();
-                var button = new MenuItem("Miscellaneous Settings", "Miscellaneous settings and options.")
-                {
-                    Label = "→→→"
-                };
-                AddMenu(Menu, menu, button);
-            }
-            Menu.OnIndexChange += (_menu, _oldItem, _newItem, _oldIndex, _newIndex) =>
-            {
-                if (spacer == _newItem)
-                {
-                    if (_oldIndex < _newIndex)
-                    {
-                    Menu.GoDown();
-                    }
-                    else
-                    {
-                    Menu.GoUp();
-                    }
-                }
-            };
+            if (!hasAdminMenus)
+                Menu.RemoveMenuItem(adminSpacer);
+
             Menu.OnMenuClose += (sender) =>
             {
                 if (MainMenu.MiscSettingsMenu.ResetIndex.Checked)
@@ -1122,14 +1139,6 @@ namespace vMenuClient
                     });
                 }
             };
-            // Add About Menu.
-            AboutMenu = new About();
-            var sub = AboutMenu.GetMenu();
-            var btn = new MenuItem("About", "Information about this server.")
-            {
-                Label = "→→→"
-            };
-            AddMenu(Menu, sub, btn);
 
             // Refresh everything.
             MenuController.Menus.ForEach((m) => m.RefreshIndex());

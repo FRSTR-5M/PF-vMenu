@@ -91,7 +91,7 @@ namespace vMenuClient.menus
         private void CreateMenu()
         {
             // Create the menu.
-            menu = new Menu(MenuTitle, "Vehicles");
+            menu = new Menu(MenuTitle, "Vehicle Customization");
 
             #region menu items variables
             // vehicle god mode menu
