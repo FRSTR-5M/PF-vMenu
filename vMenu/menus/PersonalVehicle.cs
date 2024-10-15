@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -264,7 +264,6 @@ namespace vMenuClient.menus
                                 name = veh.DisplayName;
                             }
                             setVehice.Label = $"Current Vehicle: {name}";
-                            MainMenu.RecreateMenus();
                         }
                         else
                         {
@@ -312,7 +311,6 @@ namespace vMenuClient.menus
                                     name = veh.DisplayName;
                                 }
                                 item.Label = $"Current Vehicle: {name}";
-                                MainMenu.RecreateMenus();
                             }
                             else
                             {
