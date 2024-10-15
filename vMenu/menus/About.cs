@@ -14,6 +14,14 @@ namespace vMenuClient.menus
             // Create the menu.
             menu = new Menu(MenuTitle, "About");
 
+            {
+                var items = MenuItemsFromJsonTuples("config/about.json");
+                if (items.Count > 0)
+                {
+                    items.ForEach(menu.AddMenuItem);
+                }
+            }
+
             var credits = new MenuItem("vMenu Credits", $"vMenu is made by ~b~Vespura~s~. Extra modifications are done by members of ~b~Project Fairness Labs~s~ and ~b~BenniCubed~s~.\n\nDownload version ~b~{MainMenu.Version}~s~ of vMenu: ~b~github.com/BenniCubed/PF-vMenu~s~");
 
             var serverInfoMessage = vMenuShared.ConfigManager.GetSettingsString(vMenuShared.ConfigManager.Setting.vmenu_server_info_message);

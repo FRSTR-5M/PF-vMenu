@@ -1021,14 +1021,33 @@ namespace vMenuClient
                 AddMenu(Menu, menu, button);
             }
 
-            // Add About Menu.
-            AboutMenu = new About();
-            var sub = AboutMenu.GetMenu();
-            var btn = new MenuItem("About", "Information about this server.")
             {
-                Label = "→→→"
-            };
-            AddMenu(Menu, sub, btn);
+                var helpItems = MenuItemsFromJsonTuples("config/help.json");
+                if (helpItems.Count > 0)
+                {
+                    var helpMenu = new Menu(Menu.MenuTitle, "Help");
+                    helpItems.ForEach(helpMenu.AddMenuItem);
+                    var btn = new MenuItem("Help", "Helpful tips to get you familiar with the server.")
+                    {
+                        Label = "→→→"
+                    };
+
+                    Menu.AddMenuItem(btn);
+                    MenuController.AddSubmenu(Menu, helpMenu);
+                    MenuController.BindMenuItem(Menu, helpMenu, btn);
+                }
+            }
+
+            {
+            // Add About Menu.
+                AboutMenu = new About();
+                var sub = AboutMenu.GetMenu();
+                var btn = new MenuItem("About", "Information about this server.")
+                {
+                    Label = "→→→"
+                };
+                AddMenu(Menu, sub, btn);
+            }
 
             bool hasAdminMenus = false;
             var adminSpacer = GetSpacerMenuItem("Admin Menus");

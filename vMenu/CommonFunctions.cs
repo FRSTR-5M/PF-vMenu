@@ -2653,6 +2653,29 @@ namespace vMenuClient
         //}
         #endregion
 
+        #region
+        public static List<MenuItem> MenuItemsFromJsonTuples(string jsonFile)
+        {
+            string json = LoadResourceFile(GetCurrentResourceName(), jsonFile);
+            if (string.IsNullOrEmpty(json))
+                return new List<MenuItem>();
+
+            try
+            {
+                return JsonConvert
+                    .DeserializeObject<List<List<string>>>(json)
+                    .Select(t => new MenuItem(t[0], t[1]))
+                    .ToList();
+            }
+            catch
+            {
+                Debug.WriteLine($"^1[vMenu] [ERROR]^7 Could not parse \"{jsonFile}\"");
+            }
+
+            return new List<MenuItem>();
+        }
+        #endregion
+
         #region Get "Header" Menu Item
         /// <summary>
         /// Get a header menu item (text-centered, disabled MenuItem)

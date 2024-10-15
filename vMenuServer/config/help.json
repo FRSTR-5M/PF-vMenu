@@ -1,0 +1,5 @@
+// Delete this file or leave the array empty to disable the help menu
+[
+    ["vMenu", "Press ~b~F7~s~ to open vMenu. From here you can modify your character, spawn cars and teleport."],
+    ["More help", "Add further helpful tips here"]
+]

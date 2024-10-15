@@ -1,0 +1,4 @@
+// Delete this file or leave the array empty to disable extra About items
+[
+    ["This Server", "This server was created by... you!"]
+]

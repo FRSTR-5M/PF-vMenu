@@ -59,6 +59,12 @@
     <None Update="config\blips.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="config\help.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="config\about.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="config\permissions.cfg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
