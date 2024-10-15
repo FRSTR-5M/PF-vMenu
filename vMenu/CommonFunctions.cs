@@ -2695,7 +2695,7 @@ namespace vMenuClient
         }
         public static MenuItem GetSpacerMenuItem(string title)
         {
-            var item = new MenuItem($"— ~h~{title}~h~ —", "")
+            var item = new MenuItem($"~c~— ~h~{title}~h~ —~s~", "")
             {
                 ItemData = new SpacerMarker(),
                 Enabled = false
