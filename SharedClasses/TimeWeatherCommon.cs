@@ -4,8 +4,6 @@ using System.Linq;
 
 using Newtonsoft.Json;
 
-using static CitizenFX.Core.Native.API;
-
 using static vMenuShared.ConfigManager;
 
 namespace vMenuShared
@@ -22,6 +20,9 @@ namespace vMenuShared
 
         private static Dictionary<T2, T1> DictSwapKv<T1, T2>(Dictionary<T1, T2> dict) =>
             dict.ToDictionary(kv => kv.Value, kv => kv.Key);
+
+        public static List<string> TimeListOptions =
+            Enumerable.Range(0,48).Select(i => $"{i / 2:D2}:{30 * (i % 2):D2}").ToList();
 
         public enum WeatherType
         {
@@ -45,6 +46,25 @@ namespace vMenuShared
         public static Dictionary<WeatherType, string> WeatherTypeToName = EnumToNameDict<WeatherType>();
         public static Dictionary<string, WeatherType> WeatherNameToType = DictSwapKv(WeatherTypeToName);
 
+        public static List<string> WeatherTypeOptionsList = new List<string>()
+        {
+            "Clear",
+            "Extra Sunny",
+            "Clouds",
+            "Overcast",
+            "Rain",
+            "Clearing",
+            "Thunder",
+            "Smog",
+            "Foggy",
+            "Halloween",
+            "Xmas",
+            "Snow",
+            "Snow Light",
+            "Blizzard",
+            "Neutral",
+        };
+
         public enum BlackoutState
         {
             Off,
@@ -55,58 +75,93 @@ namespace vMenuShared
         public static Dictionary<BlackoutState, string> BlackoutTypeToName = EnumToNameDict<BlackoutState>();
         public static Dictionary<string, BlackoutState> BlackoutNameToType = DictSwapKv(BlackoutTypeToName);
 
-        public class ServerTimeState
+        public static List<string> BlackoutStateOptionsList = new List<string>()
         {
-            public bool Override { get; set; } = false;
+            "Off",
+            "Buildings",
+            "Everything",
+        };
+
+        public class TimeState
+        {
             public int Hour { get; set; } = 0;
             public int Minute { get; set; } = 0;
             public bool Frozen { get; set; } = false;
+
+            public int DayMinutes
+            {
+                get => 60 * Hour + Minute;
+            }
+
+            public TimeState Clone()
+            {
+                return new TimeState
+                {
+                    Hour = Hour,
+                    Minute = Minute,
+                    Frozen = Frozen,
+                };
+            }
         }
 
-        public class ServerWeatherState
+        public class WeatherState
         {
-            public bool Override { get; set; } = false;
             public WeatherType WeatherType { get; set; } = WeatherType.Clear;
             public bool Snow { get; set; } = false;
             public BlackoutState Blackout { get; set; } = BlackoutState.Off;
+
+            public WeatherState Clone()
+            {
+                return new WeatherState
+                {
+                    WeatherType = WeatherType,
+                    Snow = Snow,
+                    Blackout = Blackout,
+                };
+            }
         }
 
-        public static ServerTimeState GetServerTime()
+        public static TimeState GetServerTime()
         {
             if (!GetSettingsBool(Setting.vmenu_enable_time_weather_sync))
-                return new ServerTimeState();
+                return new TimeState();
 
             var json = GetSettingsString(Setting.vmenu_server_time, "{}");
             if (string.IsNullOrEmpty(json))
-                return new ServerTimeState();
+                return new TimeState();
 
             try
             {
-                return JsonConvert.DeserializeObject<ServerTimeState>(json);
+                return JsonConvert.DeserializeObject<TimeState>(json);
             }
             catch
             {
-                return new ServerTimeState();
+                return new TimeState();
             }
         }
 
-        public static ServerWeatherState GetServerWeather()
+        public static WeatherState GetServerWeather()
         {
             if (!GetSettingsBool(Setting.vmenu_enable_time_weather_sync))
-                return new ServerWeatherState();
+                return new WeatherState();
 
             var json = GetSettingsString(Setting.vmenu_server_weather, "{}");
             if (string.IsNullOrEmpty(json))
-                return new ServerWeatherState();
+                return new WeatherState();
 
             try
             {
-                return JsonConvert.DeserializeObject<ServerWeatherState>(json);
+                return JsonConvert.DeserializeObject<WeatherState>(json);
             }
             catch
             {
-                return new ServerWeatherState();
+                return new WeatherState();
             }
+        }
+
+        public static bool GetOverrideClientTW()
+        {
+            return GetSettingsBool(Setting.vmenu_override_client_time_weather);
         }
     }
 }

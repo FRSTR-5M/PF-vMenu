@@ -83,11 +83,19 @@ namespace vMenuClient
                 Tick += PlayerHeadPropsTick;
             }
 
-            Tick += UpdateTime;
-            Tick += UpdateWeather;
+            if (GetSettingsBool(Setting.vmenu_enable_time_weather_sync))
+            {
+                Tick += UpdateTime;
+                Tick += UpdateWeather;
+            }
+
             if (MainMenu.TimeWeatherOptionsMenu != null)
             {
                 Tick += MainMenu.TimeWeatherOptionsMenu.Sync;
+            }
+            if (MainMenu.PlayerTimeWeatherOptionsMenu != null)
+            {
+                Tick += MainMenu.PlayerTimeWeatherOptionsMenu.Sync;
             }
 
             if (IsAllowed(Permission.TPMenu))
@@ -3262,154 +3270,49 @@ namespace vMenuClient
 
         // Time and Weather
         #region Time & Weather
-        public struct TimeState
+        public bool ClientTimeWeather
         {
-            public int Hour { get; set; }
-            public int Minute { get; set; }
-            public bool Frozen { get; set; }
-
-            public int DayMinutes
-            {
-                get => 60 * Hour + Minute;
-            }
+            get => MainMenu.PlayerTimeWeatherOptionsMenu != null &&
+                MainMenu.PlayerTimeWeatherOptionsMenu.Enabled &&
+                MainMenu.PlayerTimeWeatherOptionsMenu.OverrideServer &&
+                !TimeWeatherCommon.GetOverrideClientTW();
         }
 
-        public struct WeatherState
+        public static bool IsTimeWeatherControlEnabled { get; set; } = true;
+
+        public TimeWeatherCommon.TimeState GetTime()
         {
-            public bool OverrideGtaOnlineWeatherType { get; set; }
-            public TimeWeatherCommon.WeatherType WeatherType { get; set; }
-            public int WeatherTypeTransitionTime { get; set; }
-            public bool Snow { get; set; }
-            public TimeWeatherCommon.BlackoutState Blackout { get; set; }
-
-            public bool WeatherTypeNeedsUpdate(WeatherState other)
-            {
-                if (OverrideGtaOnlineWeatherType != other.OverrideGtaOnlineWeatherType)
-                    return true;
-
-                if (OverrideGtaOnlineWeatherType && other.OverrideGtaOnlineWeatherType &&
-                    (WeatherType != other.WeatherType))
-                    return true;
-
-                return false; 
-            }
-        }
-
-        public TimeState GetTime()
-        {
-            int hours = 0, minutes = 0, seconds = 0;
-            NetworkGetGlobalMultiplayerClock(ref hours, ref minutes, ref seconds);
-            var gtaOnlineTime = new TimeState
-            {
-                Hour = hours,
-                Minute = minutes,
-                Frozen = false,
-            };
-
             var serverTime = TimeWeatherCommon.GetServerTime();
-            var time = serverTime.Override
-                ? new TimeState
-                    {
-                        Hour = serverTime.Hour,
-                        Minute = serverTime.Minute,
-                        Frozen = serverTime.Frozen
-                    }
-                : gtaOnlineTime;
 
-            if (MainMenu.PlayerTimeWeatherOptionsMenu == null || !MainMenu.PlayerTimeWeatherOptionsMenu.Enabled)
-                return time;
+            if (!ClientTimeWeather)
+                return serverTime;
 
-            var clientTime = MainMenu.PlayerTimeWeatherOptionsMenu.ClientTime;
-
-            switch (clientTime.TimeSource)
-            {
-                case PlayerTimeWeatherOptions.VariableSource.Server:
-                    return time;
-                case PlayerTimeWeatherOptions.VariableSource.GtaOnline:
-                    return gtaOnlineTime;
-                case PlayerTimeWeatherOptions.VariableSource.Custom:
-                    break;
-            }
-
-            time = new TimeState
-            {
-                Hour = clientTime.CustomHour,
-                Minute = clientTime.CustomMinute,
-                Frozen = clientTime.Frozen,
-            };
-            return time;
+            return MainMenu.PlayerTimeWeatherOptionsMenu.ClientTime.Clone();
         }
 
-        public WeatherState GetWeather()
+        public TimeWeatherCommon.WeatherState GetWeather()
         {
             var serverWeather = TimeWeatherCommon.GetServerWeather();
-            var weather = new WeatherState
-            {
-                OverrideGtaOnlineWeatherType = serverWeather.Override,
-                WeatherType = serverWeather.Override
-                    ? serverWeather.WeatherType
-                    : TimeWeatherCommon.WeatherType.Clear,
-                WeatherTypeTransitionTime = 30,
-                Snow = serverWeather.Snow,
-                Blackout = serverWeather.Blackout,
-            };
 
-            if (MainMenu.PlayerTimeWeatherOptionsMenu == null || !MainMenu.PlayerTimeWeatherOptionsMenu.Enabled)
-                return weather;
+            if (!ClientTimeWeather)
+                return serverWeather;
 
-            var clientWeather = MainMenu.PlayerTimeWeatherOptionsMenu.ClientWeather;
-
-            if (!clientWeather.Override)
-                return weather;
-
-            weather = new WeatherState()
-            {
-                OverrideGtaOnlineWeatherType = false,
-                WeatherTypeTransitionTime = 5,
-                Snow = clientWeather.Snow,
-                Blackout = clientWeather.Blackout
-            };
-
-            switch (clientWeather.WeatherTypeSource)
-            {
-                case PlayerTimeWeatherOptions.VariableSource.Server:
-                {
-                    if (serverWeather.Override)
-                    {
-                        weather.OverrideGtaOnlineWeatherType = true;
-                        weather.WeatherType = serverWeather.WeatherType;
-                    }
-                    break;
-                }
-                case PlayerTimeWeatherOptions.VariableSource.GtaOnline:
-                    break;
-                case PlayerTimeWeatherOptions.VariableSource.Custom:
-                {
-                    weather.OverrideGtaOnlineWeatherType = true;
-                    weather.WeatherType = clientWeather.CustomWeatherType;
-                    break;
-                }
-            }
-
-            return weather;
+            return MainMenu.PlayerTimeWeatherOptionsMenu.ClientWeather.Clone();
         }
 
         public bool SnowOnGround
         {
             get
             {
+                if (!IsTimeWeatherControlEnabled && !GetSettingsBool(Setting.vmenu_enable_time_weather_sync))
+                    return IsPrevWeatherType("xmas");
+
                 var weather = GetWeather();
-                return
-                    weather.Snow ||
-                    (weather.OverrideGtaOnlineWeatherType &&
-                        weather.WeatherType == TimeWeatherCommon.WeatherType.Xmas) ||
-                    (!weather.OverrideGtaOnlineWeatherType && IsPrevWeatherType("xmas"));
+                return weather.Snow || weather.WeatherType == TimeWeatherCommon.WeatherType.Xmas;
             }
         }
 
-        public static bool IsTimeWeatherControlEnabled { get; set; } = true;
-
-        private async Task<bool> ChangeTimeTo(TimeState target)
+        private async Task<bool> ChangeTimeTo(TimeWeatherCommon.TimeState target)
         {
             const int DAY_MINUTES = 24 * 60;
             const int MINUTES_PER_TICK = 3;
@@ -3448,7 +3351,7 @@ namespace vMenuClient
             while (diff >= MINUTES_PER_TICK)
             {
                 var newTime = GetTime();
-                if (target.DayMinutes != newTime.DayMinutes)
+                if (target.DayMinutes != newTime.DayMinutes || !IsTimeWeatherControlEnabled)
                     return false;
 
                 currentDayMinutes += forward ? MINUTES_PER_TICK : -MINUTES_PER_TICK;
@@ -3471,7 +3374,24 @@ namespace vMenuClient
             return true;
         }
 
-        private TimeState prevTime = new TimeState();
+        private int GetWeatherChangeCurationServer() =>
+            Math.Min(Math.Max(GetSettingsInt(Setting.vmenu_weather_change_duration_server), 0), 45);
+
+        private int GetWeatherChangeCurationClient() =>
+            Math.Min(Math.Max(GetSettingsInt(Setting.vmenu_weather_change_duration_client), 0), 45);
+
+        private void ChangeWeatherTypeTo(TimeWeatherCommon.WeatherState target)
+        {
+            ClearOverrideWeather();
+            var weatherType = TimeWeatherCommon.WeatherTypeToName[target.WeatherType];
+            SetWeatherTypeOvertimePersist(
+                weatherType,
+                ClientTimeWeather
+                    ? GetWeatherChangeCurationClient()
+                    : GetWeatherChangeCurationServer());
+        }
+
+        private TimeWeatherCommon.TimeState prevTime = null;
         private bool initialTimeUpdateDelay = true;
         public async Task UpdateTime()
         {
@@ -3484,27 +3404,28 @@ namespace vMenuClient
                 initialTimeUpdateDelay = false;
             }
 
+            var time = GetTime();
+
             if (!IsTimeWeatherControlEnabled)
             {
+                prevTime = null;
                 await Delay(1000);
                 return;
             }
 
             int delay = 100;
-
-            var time = GetTime();
-            if (prevTime.DayMinutes != time.DayMinutes || time.Frozen)
+            if (prevTime == null || prevTime.DayMinutes != time.DayMinutes || time.Frozen)
             {
                 delay = time.Frozen ? 10 : delay;
                 var success = await ChangeTimeTo(time);
                 delay = success ? delay : 0;
+                prevTime = time;
             }
-            prevTime = time;
 
             await Delay(delay);
         }
 
-        private WeatherState prevWeather = new WeatherState();
+        private TimeWeatherCommon.WeatherState prevWeather = null;
         private bool initialWeatherUpdateDelay = true;
         public async Task UpdateWeather()
         {
@@ -3517,36 +3438,20 @@ namespace vMenuClient
                 initialWeatherUpdateDelay = false;
             }
 
+            var weather = GetWeather();
+
             if (!IsTimeWeatherControlEnabled)
             {
+                prevWeather = null;
                 await Delay(1000);
                 return;
             }
 
-            var weather = GetWeather();
-
-            if (weather.WeatherTypeNeedsUpdate(prevWeather))
+            if (prevWeather == null || weather.WeatherType != prevWeather.WeatherType)
             {
-                if (weather.OverrideGtaOnlineWeatherType)
-                {
-                    var weatherName = TimeWeatherCommon.WeatherTypeToName[weather.WeatherType];
-                    if (weather.WeatherTypeTransitionTime == 0)
-                    {
-                        SetWeatherTypeNowPersist(weatherName);
-                    }
-                    else
-                    {
-                        SetWeatherTypeOvertimePersist(weatherName, weather.WeatherTypeTransitionTime);
-                    }
-                }
-                else
-                {
-                    ClearOverrideWeather();
-                    ClearWeatherTypePersist();
-                }
+                ChangeWeatherTypeTo(weather);
+                prevWeather = weather;
             }
-
-            prevWeather = weather;
 
             ForceSnowPass(weather.Snow);
             SetForceVehicleTrails(weather.Snow);

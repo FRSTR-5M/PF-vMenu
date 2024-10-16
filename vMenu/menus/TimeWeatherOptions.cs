@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 using CitizenFX.Core;
@@ -21,12 +18,12 @@ namespace vMenuClient.menus
         // Variables
         private Menu menu;
 
-        private MenuCheckboxItem overrideTime;
-        private MenuListItem customTimeList;
+        private MenuCheckboxItem overrideLocalTW;
+
+        private MenuListItem timeList;
         private MenuCheckboxItem freezeTime;
 
-        private MenuCheckboxItem overrideWeather;
-        private MenuListItem customWeatherList;
+        private MenuListItem weatherTypeList;
         private MenuCheckboxItem snowEnabled;
         private MenuListItem blackoutList;
 
@@ -36,52 +33,43 @@ namespace vMenuClient.menus
         private void CreateMenu()
         {
             menu = new Menu(MenuTitle, "Server Time & Weather");
+            AddSpacerAction(menu);
 
-            overrideTime = new MenuCheckboxItem("Override Time", "Whether to override the GTA Online time.", false);
-            menu.AddMenuItem(overrideTime);
+            overrideLocalTW = new MenuCheckboxItem("~y~Override Client-Side~s~", "If enabled, server-side time and weather will override client-side settings.", false);
+            menu.AddMenuItem(overrideLocalTW);
 
-            var customtimeListOptions =
-                Enumerable.Range(0,48).Select(i => $"{i / 2:D2}:{30 * (i % 2):D2}").ToList();
-            customTimeList = new MenuListItem(
-                "Custom Time",
-                customtimeListOptions,
-                customtimeListOptions.Count / 2,
-                "Select custom time of day.");
-            menu.AddMenuItem(customTimeList);
+            var timeSpacer = GetSpacerMenuItem("Time");
+            menu.AddMenuItem(timeSpacer);
 
-            freezeTime = new MenuCheckboxItem("Freeze Time", "Whether to keep the clock frozen.", false);
+            timeList = new MenuListItem(
+                "Time",
+                TimeWeatherCommon.TimeListOptions,
+                TimeWeatherCommon.TimeListOptions.Count / 2,
+                "Select the time of day.");
+            menu.AddMenuItem(timeList);
+
+            freezeTime = new MenuCheckboxItem("Freeze Time", "Keep the clock frozen.", false);
             menu.AddMenuItem(freezeTime);
 
-            overrideWeather = new MenuCheckboxItem("Override Weather Type", "Whether to override the GTA Online weather type.", false);
-            menu.AddMenuItem(overrideWeather);
+            var weatherSpacer = GetSpacerMenuItem("Weather");
+            menu.AddMenuItem(weatherSpacer);
 
-            var customWeatherListOptions = new List<string>()
-            {
-                "Clear",
-                "Extra Sunny",
-                "Clouds",
-                "Overcast",
-                "Rain",
-                "Clearing",
-                "Thunder",
-                "Smog",
-                "Foggy",
-                "Halloween",
-                "Xmas",
+            weatherTypeList = new MenuListItem(
+                "Weather Type",
+                TimeWeatherCommon.WeatherTypeOptionsList,
+                0,
+                "Select the weather type.");
+            menu.AddMenuItem(weatherTypeList);
+
+            snowEnabled = new MenuCheckboxItem(
                 "Snow",
-                "Snow Light",
-                "Blizzard",
-                "Neutral",
-            };
-            customWeatherList = new MenuListItem("Weather Type", customWeatherListOptions, 0, "Select the weather type.");
-            menu.AddMenuItem(customWeatherList);
-
-            snowEnabled = new MenuCheckboxItem("Snow", "Enable or disable snow textures (snow is always enabled with Xmas weather).", false);
+                "Enable or disable snow textures (snow is always enabled with ~b~Xmas~s~ weather).",
+                false);
             menu.AddMenuItem(snowEnabled);
 
             blackoutList = new MenuListItem(
                 "Blackout",
-                new List<string>{"Off", "Buildings", "Everything"},
+                TimeWeatherCommon.BlackoutStateOptionsList,
                 0,
                 "Select the blackout state.");
             menu.AddMenuItem(blackoutList);
@@ -90,17 +78,16 @@ namespace vMenuClient.menus
                 var serverTime = TimeWeatherCommon.GetServerTime();
                 var serverWeather = TimeWeatherCommon.GetServerWeather();
 
-                if (item == customTimeList)
+                if (item == timeList)
                 {
-                    serverTime.Hour = customTimeList.ListIndex / 2;
-                    serverTime.Minute = 30 * (customTimeList.ListIndex % 2);
+                    serverTime.Hour = timeList.ListIndex / 2;
+                    serverTime.Minute = 30 * (timeList.ListIndex % 2);
                     UpdateServerTime(serverTime);
                 }
-                else if (item == customWeatherList)
+                else if (item == weatherTypeList)
                 {
-                    serverWeather.WeatherType =
-                        TimeWeatherCommon.WeatherNameToType[
-                            customWeatherList.GetCurrentSelection().ToLower().Replace(" ", "")];
+                    string weatherType = weatherTypeList.GetCurrentSelection().ToLower().Replace(" ", "");
+                    serverWeather.WeatherType = TimeWeatherCommon.WeatherNameToType[weatherType];
 
                     switch(serverWeather.WeatherType)
                     {
@@ -129,22 +116,14 @@ namespace vMenuClient.menus
                 var serverTime = TimeWeatherCommon.GetServerTime();
                 var serverWeather = TimeWeatherCommon.GetServerWeather();
 
-                if (item == overrideTime)
+                if (item == overrideLocalTW)
                 {
-                    serverTime.Override = check;
-                    serverTime.Hour = customTimeList.ListIndex / 2;
-                    serverTime.Minute = 30 * (customTimeList.ListIndex % 2);
-                    UpdateServerTime(serverTime);
+                    UpdateOverrideClientTW(check);
                 }
                 else if (item == freezeTime)
                 {
                     serverTime.Frozen = check;
                     UpdateServerTime(serverTime);
-                }
-                else if (item == overrideWeather)
-                {
-                    serverWeather.Override = check;
-                    UpdateServerWeather(serverWeather);
                 }
                 else if (item == snowEnabled)
                 {
@@ -167,16 +146,21 @@ namespace vMenuClient.menus
             return menu;
         }
 
-        private void UpdateServerTime(TimeWeatherCommon.ServerTimeState ts)
+        private void UpdateServerTime(TimeWeatherCommon.TimeState ts)
         {
             var json = JsonConvert.SerializeObject(ts);
             BaseScript.TriggerServerEvent("vMenu:UpdateServerTime", json);
         }
 
-        private void UpdateServerWeather(TimeWeatherCommon.ServerWeatherState ws)
+        private void UpdateServerWeather(TimeWeatherCommon.WeatherState ws)
         {
             var json = JsonConvert.SerializeObject(ws);
             BaseScript.TriggerServerEvent("vMenu:UpdateServerWeather", json);
+        }
+
+        private void UpdateOverrideClientTW(bool override_)
+        {
+            BaseScript.TriggerServerEvent("vMenu:UpdateOverrideClientTW", override_);
         }
 
         public async Task Sync()
@@ -187,22 +171,16 @@ namespace vMenuClient.menus
             var serverTime = TimeWeatherCommon.GetServerTime();
             var serverWeather = TimeWeatherCommon.GetServerWeather();
 
-            if (!overrideTime.Selected || !menu.Visible)
-                overrideTime.Checked = serverTime.Override;
-
-            if (!customTimeList.Selected || !menu.Visible)
-                customTimeList.ListIndex = 2 * serverTime.Hour + serverTime.Minute / 30;
+            if (!timeList.Selected || !menu.Visible)
+                timeList.ListIndex = 2 * serverTime.Hour + serverTime.Minute / 30;
 
             if (!freezeTime.Selected || !menu.Visible)
                 freezeTime.Checked = serverTime.Frozen;
 
-            if (!overrideWeather.Selected || !menu.Visible)
-                overrideWeather.Checked = serverWeather.Override;
-
-            if (!customWeatherList.Selected || !menu.Visible)
+            if (!weatherTypeList.Selected || !menu.Visible)
             {
-                customWeatherList.ListIndex =
-                    customWeatherList
+                weatherTypeList.ListIndex =
+                    weatherTypeList
                         .ListItems
                         .FindIndex(s =>
                             s.ToLower().Replace(" ", "") ==

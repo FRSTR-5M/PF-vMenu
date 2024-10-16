@@ -433,13 +433,13 @@ namespace vMenuServer
         #endregion
 
         #region Manage weather and time changes.
-        public void SetServerTime(TimeWeatherCommon.ServerTimeState serverTime)
+        public void SetServerTime(TimeWeatherCommon.TimeState serverTime)
         {
             var json = JsonConvert.SerializeObject(serverTime);
             SetConvarReplicated(Setting.vmenu_server_time.ToString(), json);
         }
 
-        public void SetServerWeather(TimeWeatherCommon.ServerWeatherState serverWeather)
+        public void SetServerWeather(TimeWeatherCommon.WeatherState serverWeather)
         {
             var json = JsonConvert.SerializeObject(serverWeather);
             SetConvarReplicated(Setting.vmenu_server_weather.ToString(), json);
@@ -452,7 +452,7 @@ namespace vMenuServer
         private async Task TimeLoop()
         {
             var ts = TimeWeatherCommon.GetServerTime();
-            if (ts.Override && !ts.Frozen)
+            if (!ts.Frozen)
             {
                 if (++ts.Minute == 60)
                 {
@@ -469,13 +469,19 @@ namespace vMenuServer
         #endregion
 
         #region Sync weather & time with clients
+        [EventHandler("vMenu:UpdateOverrideClientTW")]
+        internal void UpdateServerWeather(bool override_)
+        {
+            SetConvarReplicated(Setting.vmenu_override_client_time_weather.ToString(), override_.ToString().ToLower());
+        }
+
         /// <summary>
         /// Set and sync the time to all clients.
         /// </summary>
         [EventHandler("vMenu:UpdateServerTime")]
         internal void UpdateServerTime(string json)
         {
-            var value = JsonConvert.DeserializeObject<TimeWeatherCommon.ServerTimeState>(json);
+            var value = JsonConvert.DeserializeObject<TimeWeatherCommon.TimeState>(json);
             SetServerTime(value);
         }
 
@@ -485,7 +491,7 @@ namespace vMenuServer
         [EventHandler("vMenu:UpdateServerWeather")]
         internal void UpdateServerWeather(string json)
         {
-            var value = JsonConvert.DeserializeObject<TimeWeatherCommon.ServerWeatherState>(json);
+            var value = JsonConvert.DeserializeObject<TimeWeatherCommon.WeatherState>(json);
             SetServerWeather(value);
         }
         #endregion

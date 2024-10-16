@@ -58,8 +58,11 @@ namespace vMenuShared
 
             // Weather & time settings
             vmenu_enable_time_weather_sync,
+            vmenu_override_client_time_weather,
             vmenu_server_time,
             vmenu_server_weather,
+            vmenu_weather_change_duration_server,
+            vmenu_weather_change_duration_client,
 
             // Discord Rich Presence
             vmenu_discord_appid,
@@ -102,8 +105,6 @@ namespace vMenuShared
             vmenu_set_create_random_cops_on_scenarios,
             vmenu_enable_npc_density,
             vmenu_enable_replace_plates,
-
-            vmenu_enable_client_time_weather,
         }
 
         /// <summary>
