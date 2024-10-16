@@ -189,14 +189,10 @@ namespace vMenuShared
             TPTeleportSaveLocation,
             #endregion
 
-            // Server Time/Weather Options
+            // Time/Weather Options
             #region time & weather options
-            TWMenu,
-            #endregion
-
-            // Client Time/Weather Options
-            #region
-            CTWMenu,
+            TWClientMenu,
+            TWServerMenu,
             #endregion
 
             // Weapon Options

@@ -977,7 +977,7 @@ namespace vMenuClient
                 AddMenu(Menu, menu, button);
             }
 
-            if (IsAllowed(Permission.CTWMenu))
+            if (IsAllowed(Permission.TWClientMenu))
             {
                 PlayerTimeWeatherOptionsMenu = new PlayerTimeWeatherOptions();
                 var menu2 = PlayerTimeWeatherOptionsMenu.GetMenu();
@@ -1097,7 +1097,7 @@ namespace vMenuClient
                 };
             }
 
-            if (IsAllowed(Permission.TWOptions) && GetSettingsBool(Setting.vmenu_enable_time_weather_sync))
+            if (IsAllowed(Permission.TWServerMenu) && GetSettingsBool(Setting.vmenu_enable_time_weather_sync))
             {
                 hasAdminMenus = true;
                 TimeWeatherOptionsMenu = new TimeWeatherOptions();
