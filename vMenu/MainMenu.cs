@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 
 using CitizenFX.Core;
 
+using Freecam2;
+
 using MenuAPI;
 
 using Newtonsoft.Json;
@@ -891,22 +893,6 @@ namespace vMenuClient
             if (!hasWeaponItems)
                 PlayerSubmenu.RemoveMenuItem(weaponSpacer);
 
-            if (IsAllowed(Permission.NoClip))
-            {
-                var noclipSpacer = GetSpacerMenuItem("NoClip");
-                PlayerSubmenu.AddMenuItem(noclipSpacer);
-
-                var toggleNoclip = new MenuItem("Toggle NoClip", "Toggle NoClip on or off.");
-                PlayerSubmenu.AddMenuItem(toggleNoclip);
-                PlayerSubmenu.OnItemSelect += (sender, item, index) =>
-                {
-                    if (item == toggleNoclip)
-                    {
-                        NoClipEnabled = !NoClipEnabled;
-                    }
-                };
-            }
-
             var vehicleSubmenuBtn = new MenuItem("Vehicles", "Spawn, customize, and save vehicles.") { Label = "→→→" };
             Menu.AddMenuItem(vehicleSubmenuBtn);
 
@@ -1050,7 +1036,7 @@ namespace vMenuClient
             }
 
             bool hasAdminMenus = false;
-            var adminSpacer = GetSpacerMenuItem("Admin Menus");
+            var adminSpacer = GetSpacerMenuItem("Admin Options");
             Menu.AddMenuItem(adminSpacer);
             AddSpacerAction(Menu);
 
@@ -1093,6 +1079,19 @@ namespace vMenuClient
                     {
                         TriggerServerEvent("vMenu:RequestBanList", Game.Player.Handle);
                         menu.RefreshIndex();
+                    }
+                };
+            }
+
+            if (IsAllowed(Permission.NoClip))
+            {
+                var toggleNoclip = new MenuItem("Toggle NoClip", "Toggle NoClip on or off.");
+                Menu.AddMenuItem(toggleNoclip);
+                Menu.OnItemSelect += (sender, item, index) =>
+                {
+                    if (item == toggleNoclip)
+                    {
+                        NoClipEnabled = !NoClipEnabled;
                     }
                 };
             }
