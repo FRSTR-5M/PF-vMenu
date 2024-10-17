@@ -43,6 +43,7 @@ namespace vMenuClient.menus
         public bool ShowPropModelDimensions { get; private set; } = false;
         public bool ShowEntityHandles { get; private set; } = false;
         public bool ShowEntityModels { get; private set; } = false;
+        public bool ShowEntityCoordinates { get; private set; } = false;
         public bool ShowEntityNetOwners { get; private set; } = false;
         public bool MiscRespawnDefaultCharacter { get; private set; } = UserDefaults.MiscRespawnDefaultCharacter;
         public bool RestorePlayerAppearance { get; private set; } = UserDefaults.MiscRestorePlayerAppearance;
@@ -143,6 +144,7 @@ namespace vMenuClient.menus
             var pedModelDimensions = new MenuCheckboxItem("Show Ped Dimensions", "Draws the model outlines for every ped that's currently close to you.", ShowPedModelDimensions);
             var showEntityHandles = new MenuCheckboxItem("Show Entity Handles", "Draws the the entity handles for all close entities (you must enable the outline functions above for this to work).", ShowEntityHandles);
             var showEntityModels = new MenuCheckboxItem("Show Entity Models", "Draws the the entity models for all close entities (you must enable the outline functions above for this to work).", ShowEntityModels);
+            var showEntityCoords = new MenuCheckboxItem("Show Entity Coordinates", "Draws the the entity coordinates for all close entities (you must enable the outline functions above for this to work).", ShowEntityCoordinates);
             var showEntityNetOwners = new MenuCheckboxItem("Show Network Owners", "Draws the the entity net owner for all close entities (you must enable the outline functions above for this to work).", ShowEntityNetOwners);
             var dimensionsDistanceSlider = new MenuSliderItem("Show Dimensions Radius", "Show entity model/handle/dimension draw range.", 0, 20, 20, false);
 
@@ -294,6 +296,7 @@ namespace vMenuClient.menus
                 developerToolsMenu.AddMenuItem(pedModelDimensions);
                 developerToolsMenu.AddMenuItem(showEntityHandles);
                 developerToolsMenu.AddMenuItem(showEntityModels);
+                developerToolsMenu.AddMenuItem(showEntityCoords);
                 developerToolsMenu.AddMenuItem(showEntityNetOwners);
                 developerToolsMenu.AddMenuItem(dimensionsDistanceSlider);
             }
@@ -370,6 +373,10 @@ namespace vMenuClient.menus
                 else if (item == showEntityModels)
                 {
                     ShowEntityModels = _checked;
+                }
+                else if (item == showEntityCoords)
+                {
+                    ShowEntityCoordinates = _checked;
                 }
                 else if (item == showEntityNetOwners)
                 {
