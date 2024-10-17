@@ -265,9 +265,41 @@
       });
     }
 
+    function copyToClipboard(text) {
+      let textArea = document.createElement('textarea');
+      textArea.value = text;
+
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+
+      const errMsg = '^1[vMenu] [ERROR]^7 Failed to copy text';
+      try {
+        let successful = document.execCommand('copy');
+        if (successful) {
+          console.log('^5[vMenu] [INFO]^7 Text copied to clipboard');
+        }
+        else
+        {
+          console.log(errMsg);
+        }
+      }
+      catch (err) {
+        console.error(errMsg + ": ", err);
+      }
+
+      document.body.removeChild(textArea);
+    }
+
     window.addEventListener("message", (data) => {
-      document.getElementById("body").removeAttribute("hidden");
-      document.getElementById("output").innerText = JSON.stringify(data.data);
+      const type = data.data.type;
+      if (type === 'export') {
+        document.getElementById("body").removeAttribute("hidden");
+        document.getElementById("output").innerText = JSON.stringify(data.data);
+      }
+      else if (type === 'copyToClipboard') {
+        copyToClipboard(data.data.text);
+      }
     })
   </script>
 </body>

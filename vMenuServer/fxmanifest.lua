@@ -9,7 +9,7 @@ description 'A fork of vMenu, a server sided menu for FiveM with custom permissi
 version 'v1.5.0-rc.1'
 author 'PF Team/Tom Grobbe/BenniCubed'
 url 'https://github.com/BenniCubed/PF-vMenu'
-ui_page 'storage.html'
+ui_page 'main.html'
 
 -- The default language of the menu
 default_language "English"
@@ -32,7 +32,7 @@ files {
     'config/*.json',
     'config/languages/*.json',
     'config/locations/*.json',
-    'storage.html',
+    'main.html',
     'plates/*.png'
 }
 client_script {'plugin-config.lua', 'plugins/***/*.lua', 'plugins/*.lua'}

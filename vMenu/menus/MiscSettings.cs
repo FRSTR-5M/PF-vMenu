@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 using CitizenFX.Core;
 
@@ -45,6 +46,7 @@ namespace vMenuClient.menus
         public bool ShowEntityModels { get; private set; } = false;
         public bool ShowEntityCoordinates { get; private set; } = false;
         public bool ShowEntityNetOwners { get; private set; } = false;
+        public float ShowEntityRange { get; private set; } = 2;
         public bool MiscRespawnDefaultCharacter { get; private set; } = UserDefaults.MiscRespawnDefaultCharacter;
         public bool RestorePlayerAppearance { get; private set; } = UserDefaults.MiscRestorePlayerAppearance;
         public bool RestorePlayerWeapons { get; private set; } = UserDefaults.MiscRestorePlayerWeapons;
@@ -78,6 +80,32 @@ namespace vMenuClient.menus
 
         private static readonly LanguageManager Lm = new LanguageManager();
 
+        private string PrintEntityInfo(Entity e, bool printHandle, bool printHash, bool printCoords, bool printOwner)
+        {
+            int hash = e.Model.Hash;
+            var coords = e.Position;
+
+            StringBuilder sb = new StringBuilder();
+            if (printHandle)
+                sb.AppendLine($"Handle: {e.Handle}");
+
+            if (printHash)
+                sb.AppendLine($"Hash: {hash} | {(uint)hash} | 0x{hash:X}");
+
+            if (printCoords)
+                sb.AppendLine($"Coords: X={coords.X}, Y={coords.Y}, Z={coords.Z}");
+
+            if (printOwner)
+                sb.AppendLine($"Owner: {NetworkGetEntityOwner(e.Handle)}");
+
+            return sb.ToString();
+        }
+
+        private void CopyToClipboard(string text)
+        {
+            SendNuiMessage(JsonConvert.SerializeObject(new {type = "copyToClipboard", text}));
+        }
+
         /// <summary>
         /// Creates the menu.
         /// </summary>
@@ -96,7 +124,7 @@ namespace vMenuClient.menus
 
             // Create the menu.
             menu = new Menu(MenuTitle, "Miscellaneous Settings");
-            developerToolsMenu = Lm.GetMenu(new Menu(MenuTitle, "Development Tools"));
+            developerToolsMenu = Lm.GetMenu(new Menu(MenuTitle, "Developer Tools"));
             entitySpawnerMenu = Lm.GetMenu(new Menu(MenuTitle, "Entity Spawner"));
 
             // keybind settings menu
@@ -139,14 +167,16 @@ namespace vMenuClient.menus
             var deathNotifs = new MenuCheckboxItem("Death Notifications", "Receive notifications when someone dies or gets killed.", DeathNotifications);
             var nightVision = new MenuCheckboxItem("Toggle Night Vision", "Enable or disable night vision.", false);
             var thermalVision = new MenuCheckboxItem("Toggle Thermal Vision", "Enable or disable thermal vision.", false);
-            var vehModelDimensions = new MenuCheckboxItem("Show Vehicle Dimensions", "Draws the model outlines for every vehicle that's currently close to you.", ShowVehicleModelDimensions);
-            var propModelDimensions = new MenuCheckboxItem("Show Prop Dimensions", "Draws the model outlines for every prop that's currently close to you.", ShowPropModelDimensions);
-            var pedModelDimensions = new MenuCheckboxItem("Show Ped Dimensions", "Draws the model outlines for every ped that's currently close to you.", ShowPedModelDimensions);
-            var showEntityHandles = new MenuCheckboxItem("Show Entity Handles", "Draws the the entity handles for all close entities (you must enable the outline functions above for this to work).", ShowEntityHandles);
-            var showEntityModels = new MenuCheckboxItem("Show Entity Models", "Draws the the entity models for all close entities (you must enable the outline functions above for this to work).", ShowEntityModels);
-            var showEntityCoords = new MenuCheckboxItem("Show Entity Coordinates", "Draws the the entity coordinates for all close entities (you must enable the outline functions above for this to work).", ShowEntityCoordinates);
-            var showEntityNetOwners = new MenuCheckboxItem("Show Network Owners", "Draws the the entity net owner for all close entities (you must enable the outline functions above for this to work).", ShowEntityNetOwners);
-            var dimensionsDistanceSlider = new MenuSliderItem("Show Dimensions Radius", "Show entity model/handle/dimension draw range.", 0, 20, 20, false);
+
+            var vehModelDimensions = new MenuCheckboxItem("Show Vehicle Outlines", "Draws the model outlines for every vehicle that's currently close to you.", ShowVehicleModelDimensions);
+            var propModelDimensions = new MenuCheckboxItem("Show Prop Outlines", "Draws the model outlines for every prop that's currently close to you.", ShowPropModelDimensions);
+            var pedModelDimensions = new MenuCheckboxItem("Show Ped Outlines", "Draws the model outlines for every ped that's currently close to you.", ShowPedModelDimensions);
+            var showEntityHandles = new MenuCheckboxItem("Show Entity Handles", "Draws the the entity handles for all close entities (you must enable at least one of the outline functions above for this to work).", ShowEntityHandles);
+            var showEntityModels = new MenuCheckboxItem("Show Entity Models", "Draws the the entity models for all close entities (you must enable at least one of the outline functions above for this to work).", ShowEntityModels);
+            var showEntityCoords = new MenuCheckboxItem("Show Entity Coordinates", "Draws the the entity coordinates for all close entities (you must enable at least one of the outline functions above for this to work).", ShowEntityCoordinates);
+            var showEntityNetOwners = new MenuCheckboxItem("Show Network Owners", "Draws the the entity net owner for all close entities (you must enable at least one of the outline functions above for this to work).", ShowEntityNetOwners);
+            var dimensionsDistanceSlider = new MenuSliderItem("Show Outlines Radius", "Change the outline draw range.", 0, 20, 0, false);
+            var copyEntityInfo = new MenuItem("Copy Entity Info", "Copies information about the entities surrounding you to the clipboard (you must enable at least one of the outline and entity information checkboxes above for this to work).");
 
             var clearArea = new MenuItem("Clear Area", "Clears the area around your player (100 meters). Damage, dirt, peds, props, vehicles, etc. Everything gets cleaned up, fixed and reset to the default world state.");
             var lockCamX = new MenuCheckboxItem("Lock Camera Horizontal Rotation", "Locks your camera horizontal rotation. Could be useful in helicopters I guess.", false);
@@ -268,7 +298,7 @@ namespace vMenuClient.menus
 
             #region dev tools menu
 
-            var devToolsBtn = new MenuItem("Developer Tools", "Various development/debug tools.") { Label = "→→→" };
+            var devToolsBtn = new MenuItem("Developer Tools", "Various development and debug tools.") { Label = "→→→" };
 
             if (IsAllowed(Permission.MSDevTools))
             {
@@ -299,6 +329,7 @@ namespace vMenuClient.menus
                 developerToolsMenu.AddMenuItem(showEntityCoords);
                 developerToolsMenu.AddMenuItem(showEntityNetOwners);
                 developerToolsMenu.AddMenuItem(dimensionsDistanceSlider);
+                developerToolsMenu.AddMenuItem(copyEntityInfo);
             }
 
 
@@ -323,7 +354,8 @@ namespace vMenuClient.menus
                 }
                 else if (item == dimensionsDistanceSlider)
                 {
-                    FunctionsController.entityRange = newPos / 20f * 2000f; // max radius = 2000f;
+                    // max radius = 2500f;
+                    ShowEntityRange = (float)(2498.0 * Math.Pow((double)newPos / dimensionsDistanceSlider.Max, 2.2) + 2.0);
                 }
             };
 
@@ -349,6 +381,78 @@ namespace vMenuClient.menus
                 {
                     var pos = Game.PlayerPed.Position;
                     BaseScript.TriggerServerEvent("vMenu:ClearArea", pos.X, pos.Y, pos.Z);
+                }
+                else if (item == copyEntityInfo)
+                {
+                    var playerPos = Player.Local.Character.Position;
+
+                    List<Prop> props = null;
+                    if (propModelDimensions.Checked)
+                        props = World.GetAllProps().Where(e => e.IsOnScreen && e.Position.DistanceToSquared(playerPos) < ShowEntityRange).ToList();
+
+                    List<Ped> peds = null;
+                    if (pedModelDimensions.Checked)
+                        peds = World.GetAllPeds().Where(e => e.IsOnScreen && e.Position.DistanceToSquared(playerPos) < ShowEntityRange).ToList();
+
+                    List<Vehicle> vehicles = null;
+                    if (vehModelDimensions.Checked)
+                        vehicles = World.GetAllVehicles().Where(e => e.IsOnScreen && e.Position.DistanceToSquared(playerPos) < ShowEntityRange).ToList();
+
+                    if (props == null && peds == null && vehicles == null)
+                    {
+                        Notify.Error("You must select at least one of the outline checkboxes.");
+                        return;
+                    }
+
+                    bool printHandle = showEntityHandles.Checked;
+                    bool printHash = showEntityModels.Checked;
+                    bool printCoords = showEntityCoords.Checked;
+                    bool printOwner = showEntityNetOwners.Checked;
+
+                    if (!(printHandle || printHash || printCoords || printOwner))
+                    {
+                        Notify.Error("You must select at least one of the entity information checkboxes.");
+                        return;
+                    }
+
+                    StringBuilder sbProps = new StringBuilder();
+                    StringBuilder sbPeds = new StringBuilder();
+                    StringBuilder sbVehicles = new StringBuilder();
+
+                    var printEntityInfo =
+                        (StringBuilder sb, Entity e) => sb.AppendLine(PrintEntityInfo(e, printHandle, printHash, printCoords, printOwner));
+
+                    if (props?.Count > 0)
+                    {
+                        sbProps.AppendLine("====================\nPROPS\n====================");
+                        props.ForEach(e => printEntityInfo(sbProps, e));
+                    }
+
+                    if (peds?.Count > 0)
+                    {
+                        sbPeds.AppendLine("====================\nPEDS\n====================");
+                        peds.ForEach(e => printEntityInfo(sbPeds, e));
+                    }
+
+                    if (vehicles?.Count > 0)
+                    {
+                        sbVehicles.AppendLine("====================\nVEHICLES\n====================");
+                        vehicles.ForEach(e => printEntityInfo(sbVehicles, e));
+                    }
+
+                    var infos = new StringBuilder[]{sbProps, sbPeds, sbVehicles}
+                        .Select(x => x.ToString())
+                        .Where(i => !string.IsNullOrEmpty(i))
+                        .ToArray();
+                    var info = string.Join("\n", infos);
+                    if (string.IsNullOrWhiteSpace(info))
+                    {
+                        Notify.Info("There were no entities matching your selected criteria in the chosen range.");
+                        return;
+                    }
+
+                    CopyToClipboard(info);
+                    Notify.Info("Entity information copied to the clipboard.");
                 }
             };
 
@@ -404,7 +508,7 @@ namespace vMenuClient.menus
                 var entSpawnerMenuBtn = new MenuItem("Entity Spawner", "Spawn and move entities") { Label = "→→→" };
                 developerToolsMenu.AddMenuItem(entSpawnerMenuBtn);
                 MenuController.BindMenuItem(developerToolsMenu, entitySpawnerMenu, entSpawnerMenuBtn);
-                
+
 
                 entitySpawnerMenu.AddMenuItem(spawnNewEntity);
                 entitySpawnerMenu.AddMenuItem(confirmEntityPosition);

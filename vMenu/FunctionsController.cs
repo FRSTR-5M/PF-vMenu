@@ -2851,7 +2851,6 @@ namespace vMenuClient
         #endregion
 
         #region Slow misc tick
-        internal static float entityRange = 2000f;
         /// <summary>
         /// Slow functions for the model dimensions outline entities lists.
         /// </summary>
@@ -2868,7 +2867,11 @@ namespace vMenuClient
                 if (MainMenu.MiscSettingsMenu.ShowPropModelDimensions)
                 {
                     stopPropsLoop = true;
-                    props = World.GetAllProps().Where(e => e.IsOnScreen && e.Position.DistanceToSquared(pp) < entityRange).ToList();
+                    props = World
+                        .GetAllProps()
+                        .Where(e => e.IsOnScreen &&
+                            e.Position.DistanceToSquared(pp) < MainMenu.MiscSettingsMenu.ShowEntityRange)
+                        .ToList();
                     stopPropsLoop = false;
 
                     await Delay(delay);
@@ -2877,7 +2880,11 @@ namespace vMenuClient
                 if (MainMenu.MiscSettingsMenu.ShowPedModelDimensions)
                 {
                     stopPedsLoop = true;
-                    peds = World.GetAllPeds().Where(e => e.IsOnScreen && e.Position.DistanceToSquared(pp) < entityRange).ToList();
+                    peds = World
+                        .GetAllPeds()
+                        .Where(e => e.IsOnScreen &&
+                            e.Position.DistanceToSquared(pp) < MainMenu.MiscSettingsMenu.ShowEntityRange)
+                        .ToList();
                     stopPedsLoop = false;
 
                     await Delay(delay);
@@ -2886,7 +2893,11 @@ namespace vMenuClient
                 if (MainMenu.MiscSettingsMenu.ShowVehicleModelDimensions)
                 {
                     stopVehiclesLoop = true;
-                    vehicles = World.GetAllVehicles().Where(e => e.IsOnScreen && e.Position.DistanceToSquared(pp) < entityRange).ToList();
+                    vehicles = World
+                        .GetAllVehicles()
+                        .Where(e => e.IsOnScreen &&
+                            e.Position.DistanceToSquared(pp) < MainMenu.MiscSettingsMenu.ShowEntityRange)
+                        .ToList();
                     stopVehiclesLoop = false;
 
                     await Delay(delay);

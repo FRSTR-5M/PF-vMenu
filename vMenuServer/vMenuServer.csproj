@@ -68,7 +68,7 @@
     <None Update="config\permissions.cfg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="storage.html">
+    <None Update="main.html">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="*.lua">
