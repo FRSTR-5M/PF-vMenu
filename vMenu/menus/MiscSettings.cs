@@ -24,6 +24,8 @@ namespace vMenuClient.menus
         private Menu menu;
         private Menu teleportOptionsMenu;
         private Menu developerToolsMenu;
+        private Menu entityOutlinesMenu;
+        private Menu timecycleModifiersMenu;
         private Menu entitySpawnerMenu;
 
         public bool ShowSpeedoKmh { get; private set; } = UserDefaults.MiscSpeedKmh;
@@ -125,6 +127,8 @@ namespace vMenuClient.menus
             // Create the menu.
             menu = new Menu(MenuTitle, "Miscellaneous Settings");
             developerToolsMenu = Lm.GetMenu(new Menu(MenuTitle, "Developer Tools"));
+            entityOutlinesMenu = Lm.GetMenu(new Menu(MenuTitle, "Entity Info"));
+            timecycleModifiersMenu = Lm.GetMenu(new Menu(MenuTitle, "Timecycle Modifiers"));
             entitySpawnerMenu = Lm.GetMenu(new Menu(MenuTitle, "Entity Spawner"));
 
             // keybind settings menu
@@ -142,6 +146,7 @@ namespace vMenuClient.menus
             var backBtn = new MenuItem("Back");
 
             // Create the menu items.
+            var copyCoordinates = new MenuItem("Copy Coordinates", "Copy your current coordinates to the clipboard.");
             var rightAlignMenu = new MenuCheckboxItem("Right Align Menu", "If you want vMenu to appear on the left side of your screen, disable this option. This option will be saved immediately. You don't need to click save preferences.", MiscRightAlignMenu);
             var disablePms = new MenuCheckboxItem("Disable Private Messages", "Prevent others from sending you a private message via the Online Players menu. This also prevents you from sending messages to other players.", MiscDisablePrivateMessages);
             var disableControllerKey = new MenuCheckboxItem("Disable Controller Support", "This disables the controller menu toggle key. This does NOT disable the navigation buttons.", MiscDisableControllerSupport);
@@ -176,7 +181,7 @@ namespace vMenuClient.menus
             var showEntityCoords = new MenuCheckboxItem("Show Entity Coordinates", "Draws the the entity coordinates for all close entities (you must enable at least one of the outline functions above for this to work).", ShowEntityCoordinates);
             var showEntityNetOwners = new MenuCheckboxItem("Show Network Owners", "Draws the the entity net owner for all close entities (you must enable at least one of the outline functions above for this to work).", ShowEntityNetOwners);
             var dimensionsDistanceSlider = new MenuSliderItem("Show Outlines Radius", "Change the outline draw range.", 0, 20, 0, false);
-            var copyEntityInfo = new MenuItem("Copy Entity Info", "Copies information about the entities surrounding you to the clipboard (you must enable at least one of the outline and entity information checkboxes above for this to work).");
+            var copyEntityInfo = new MenuItem("Copy Entity Info", "Copies information about the entities surrounding you to the clipboard (you must enable at least one of the outline and entity information checkboxes below for this to work).");
 
             var clearArea = new MenuItem("Clear Area", "Clears the area around your player (100 meters). Damage, dirt, peds, props, vehicles, etc. Everything gets cleaned up, fixed and reset to the default world state.");
             var lockCamX = new MenuCheckboxItem("Lock Camera Horizontal Rotation", "Locks your camera horizontal rotation. Could be useful in helicopters I guess.", false);
@@ -302,7 +307,7 @@ namespace vMenuClient.menus
 
             if (IsAllowed(Permission.MSDevTools))
             {
-            menu.AddMenuItem(devToolsBtn);
+                menu.AddMenuItem(devToolsBtn);
             }
 
             MenuController.AddSubmenu(menu, developerToolsMenu);
@@ -316,64 +321,207 @@ namespace vMenuClient.menus
             if (IsAllowed(Permission.MSShowCoordinates))
             {
                 developerToolsMenu.AddMenuItem(coords);
+                developerToolsMenu.AddMenuItem(copyCoordinates);
             }
 
             // model outlines
-            if (!vMenuShared.ConfigManager.GetSettingsBool(vMenuShared.ConfigManager.Setting.vmenu_disable_entity_outlines_tool))
+            if (!GetSettingsBool(Setting.vmenu_disable_entity_outlines_tool) && IsAllowed(Permission.MSEntityInfo))
             {
-                developerToolsMenu.AddMenuItem(vehModelDimensions);
-                developerToolsMenu.AddMenuItem(propModelDimensions);
-                developerToolsMenu.AddMenuItem(pedModelDimensions);
-                developerToolsMenu.AddMenuItem(showEntityHandles);
-                developerToolsMenu.AddMenuItem(showEntityModels);
-                developerToolsMenu.AddMenuItem(showEntityCoords);
-                developerToolsMenu.AddMenuItem(showEntityNetOwners);
-                developerToolsMenu.AddMenuItem(dimensionsDistanceSlider);
-                developerToolsMenu.AddMenuItem(copyEntityInfo);
+                var menuBtn = new MenuItem("Entity Info", "Display information about entities.")
+                {
+                    Label = "→→→"
+                };
+                developerToolsMenu.AddMenuItem(menuBtn);
+                MenuController.BindMenuItem(developerToolsMenu, entityOutlinesMenu, menuBtn);
+
+                entityOutlinesMenu.AddMenuItem(copyEntityInfo);
+                entityOutlinesMenu.AddMenuItem(dimensionsDistanceSlider);
+                entityOutlinesMenu.AddMenuItem(propModelDimensions);
+                entityOutlinesMenu.AddMenuItem(vehModelDimensions);
+                entityOutlinesMenu.AddMenuItem(pedModelDimensions);
+                entityOutlinesMenu.AddMenuItem(showEntityHandles);
+                entityOutlinesMenu.AddMenuItem(showEntityModels);
+                entityOutlinesMenu.AddMenuItem(showEntityCoords);
+                entityOutlinesMenu.AddMenuItem(showEntityNetOwners);
+
+                entityOutlinesMenu.OnSliderPositionChange += (sender, item, oldPos, newPos, itemIndex) =>
+                {
+                    if (item == dimensionsDistanceSlider)
+                    {
+                        // Goes from 4 -> 2500
+                        ShowEntityRange = (float)(2496 * Math.Pow((double)newPos / dimensionsDistanceSlider.Max, 2.7) + 4);
+                    }
+                };
+
+                entityOutlinesMenu.OnItemSelect += (sender, item, index) =>
+                {
+                    if (item == copyEntityInfo)
+                    {
+                        var playerPos = Game.PlayerPed.Position;
+
+                        List<Prop> props = null;
+                        if (propModelDimensions.Checked)
+                            props = World.GetAllProps().Where(e => e.IsOnScreen && e.Position.DistanceToSquared(playerPos) < ShowEntityRange).ToList();
+
+                        List<Ped> peds = null;
+                        if (pedModelDimensions.Checked)
+                            peds = World.GetAllPeds().Where(e => e.IsOnScreen && e.Position.DistanceToSquared(playerPos) < ShowEntityRange).ToList();
+
+                        List<Vehicle> vehicles = null;
+                        if (vehModelDimensions.Checked)
+                            vehicles = World.GetAllVehicles().Where(e => e.IsOnScreen && e.Position.DistanceToSquared(playerPos) < ShowEntityRange).ToList();
+
+                        if (props == null && peds == null && vehicles == null)
+                        {
+                            Notify.Error("You must select at least one of the outline checkboxes.");
+                            return;
+                        }
+
+                        bool printHandle = showEntityHandles.Checked;
+                        bool printHash = showEntityModels.Checked;
+                        bool printCoords = showEntityCoords.Checked;
+                        bool printOwner = showEntityNetOwners.Checked;
+
+                        if (!(printHandle || printHash || printCoords || printOwner))
+                        {
+                            Notify.Error("You must select at least one of the entity information checkboxes.");
+                            return;
+                        }
+
+                        StringBuilder sbProps = new StringBuilder();
+                        StringBuilder sbPeds = new StringBuilder();
+                        StringBuilder sbVehicles = new StringBuilder();
+
+                        var printEntityInfo =
+                            (StringBuilder sb, Entity e) => sb.AppendLine(PrintEntityInfo(e, printHandle, printHash, printCoords, printOwner));
+
+                        if (props?.Count > 0)
+                        {
+                            sbProps.AppendLine("====================\nPROPS\n====================");
+                            props.ForEach(e => printEntityInfo(sbProps, e));
+                        }
+
+                        if (peds?.Count > 0)
+                        {
+                            sbPeds.AppendLine("====================\nPEDS\n====================");
+                            peds.ForEach(e => printEntityInfo(sbPeds, e));
+                        }
+
+                        if (vehicles?.Count > 0)
+                        {
+                            sbVehicles.AppendLine("====================\nVEHICLES\n====================");
+                            vehicles.ForEach(e => printEntityInfo(sbVehicles, e));
+                        }
+
+                        var infos = new StringBuilder[]{sbProps, sbPeds, sbVehicles}
+                            .Select(x => x.ToString())
+                            .Where(i => !string.IsNullOrEmpty(i))
+                            .ToArray();
+                        var info = string.Join("\n", infos);
+                        if (string.IsNullOrWhiteSpace(info))
+                        {
+                            Notify.Info("There were no entities matching your selected criteria in the chosen range.");
+                            return;
+                        }
+
+                        CopyToClipboard(info);
+                        Notify.Info("Entity information copied to the clipboard.");
+                    }
+                };
+
+                entityOutlinesMenu.OnCheckboxChange += (sender, item, index, _checked) =>
+                {
+                    if (item == vehModelDimensions)
+                    {
+                        ShowVehicleModelDimensions = _checked;
+                    }
+                    else if (item == propModelDimensions)
+                    {
+                        ShowPropModelDimensions = _checked;
+                    }
+                    else if (item == pedModelDimensions)
+                    {
+                        ShowPedModelDimensions = _checked;
+                    }
+                    else if (item == showEntityHandles)
+                    {
+                        ShowEntityHandles = _checked;
+                    }
+                    else if (item == showEntityModels)
+                    {
+                        ShowEntityModels = _checked;
+                    }
+                    else if (item == showEntityCoords)
+                    {
+                        ShowEntityCoordinates = _checked;
+                    }
+                    else if (item == showEntityNetOwners)
+                    {
+                        ShowEntityNetOwners = _checked;
+                    }
+                };
             }
 
-
-            // timecycle modifiers
-            developerToolsMenu.AddMenuItem(timeCycles);
-            developerToolsMenu.AddMenuItem(enableTimeCycle);
-            developerToolsMenu.AddMenuItem(timeCycleIntensity);
-
-            developerToolsMenu.OnSliderPositionChange += (sender, item, oldPos, newPos, itemIndex) =>
+            if (IsAllowed(Permission.MSTimecycleMofifiers))
             {
-                if (item == timeCycleIntensity)
+                var menuBtn = new MenuItem("Timecycle Modifiers", "Change timecycle mofiers.")
                 {
-                    ClearTimecycleModifier();
-                    if (TimecycleEnabled)
-                    {
-                        SetTimecycleModifier(TimeCycles.Timecycles[timeCycles.ListIndex]);
-                        var intensity = newPos / 20f;
-                        SetTimecycleModifierStrength(intensity);
-                    }
-                    UserDefaults.MiscLastTimeCycleModifierIndex = timeCycles.ListIndex;
-                    UserDefaults.MiscLastTimeCycleModifierStrength = timeCycleIntensity.Position;
-                }
-                else if (item == dimensionsDistanceSlider)
-                {
-                    // max radius = 2500f;
-                    ShowEntityRange = (float)(2498.0 * Math.Pow((double)newPos / dimensionsDistanceSlider.Max, 2.2) + 2.0);
-                }
-            };
+                    Label = "→→→"
+                };
+                developerToolsMenu.AddMenuItem(menuBtn);
+                MenuController.BindMenuItem(developerToolsMenu, timecycleModifiersMenu, menuBtn);
+                // timecycle modifiers
+                timecycleModifiersMenu.AddMenuItem(enableTimeCycle);
+                timecycleModifiersMenu.AddMenuItem(timeCycles);
+                timecycleModifiersMenu.AddMenuItem(timeCycleIntensity);
 
-            developerToolsMenu.OnListIndexChange += (sender, item, oldIndex, newIndex, itemIndex) =>
-            {
-                if (item == timeCycles)
+                timecycleModifiersMenu.OnSliderPositionChange += (sender, item, oldPos, newPos, itemIndex) =>
                 {
-                    ClearTimecycleModifier();
-                    if (TimecycleEnabled)
+                    if (item == timeCycleIntensity)
                     {
-                        SetTimecycleModifier(TimeCycles.Timecycles[timeCycles.ListIndex]);
-                        var intensity = timeCycleIntensity.Position / 20f;
-                        SetTimecycleModifierStrength(intensity);
+                        ClearTimecycleModifier();
+                        if (TimecycleEnabled)
+                        {
+                            SetTimecycleModifier(TimeCycles.Timecycles[timeCycles.ListIndex]);
+                            var intensity = newPos / 20f;
+                            SetTimecycleModifierStrength(intensity);
+                        }
+                        UserDefaults.MiscLastTimeCycleModifierIndex = timeCycles.ListIndex;
+                        UserDefaults.MiscLastTimeCycleModifierStrength = timeCycleIntensity.Position;
                     }
-                    UserDefaults.MiscLastTimeCycleModifierIndex = timeCycles.ListIndex;
-                    UserDefaults.MiscLastTimeCycleModifierStrength = timeCycleIntensity.Position;
-                }
-            };
+                };
+
+                timecycleModifiersMenu.OnListIndexChange += (sender, item, oldIndex, newIndex, itemIndex) =>
+                {
+                    if (item == timeCycles)
+                    {
+                        ClearTimecycleModifier();
+                        if (TimecycleEnabled)
+                        {
+                            SetTimecycleModifier(TimeCycles.Timecycles[timeCycles.ListIndex]);
+                            var intensity = timeCycleIntensity.Position / 20f;
+                            SetTimecycleModifierStrength(intensity);
+                        }
+                        UserDefaults.MiscLastTimeCycleModifierIndex = timeCycles.ListIndex;
+                        UserDefaults.MiscLastTimeCycleModifierStrength = timeCycleIntensity.Position;
+                    }
+                };
+
+                timecycleModifiersMenu.OnCheckboxChange += (sender, item, index, _checked) =>
+                {
+                    if (item == enableTimeCycle)
+                    {
+                        TimecycleEnabled = _checked;
+                        ClearTimecycleModifier();
+                        if (TimecycleEnabled)
+                        {
+                            SetTimecycleModifier(TimeCycles.Timecycles[timeCycles.ListIndex]);
+                            var intensity = timeCycleIntensity.Position / 20f;
+                            SetTimecycleModifierStrength(intensity);
+                        }
+                    }
+                };
+            }
 
             developerToolsMenu.OnItemSelect += (sender, item, index) =>
             {
@@ -382,122 +530,17 @@ namespace vMenuClient.menus
                     var pos = Game.PlayerPed.Position;
                     BaseScript.TriggerServerEvent("vMenu:ClearArea", pos.X, pos.Y, pos.Z);
                 }
-                else if (item == copyEntityInfo)
+                if (item == copyCoordinates)
                 {
-                    var playerPos = Player.Local.Character.Position;
-
-                    List<Prop> props = null;
-                    if (propModelDimensions.Checked)
-                        props = World.GetAllProps().Where(e => e.IsOnScreen && e.Position.DistanceToSquared(playerPos) < ShowEntityRange).ToList();
-
-                    List<Ped> peds = null;
-                    if (pedModelDimensions.Checked)
-                        peds = World.GetAllPeds().Where(e => e.IsOnScreen && e.Position.DistanceToSquared(playerPos) < ShowEntityRange).ToList();
-
-                    List<Vehicle> vehicles = null;
-                    if (vehModelDimensions.Checked)
-                        vehicles = World.GetAllVehicles().Where(e => e.IsOnScreen && e.Position.DistanceToSquared(playerPos) < ShowEntityRange).ToList();
-
-                    if (props == null && peds == null && vehicles == null)
-                    {
-                        Notify.Error("You must select at least one of the outline checkboxes.");
-                        return;
-                    }
-
-                    bool printHandle = showEntityHandles.Checked;
-                    bool printHash = showEntityModels.Checked;
-                    bool printCoords = showEntityCoords.Checked;
-                    bool printOwner = showEntityNetOwners.Checked;
-
-                    if (!(printHandle || printHash || printCoords || printOwner))
-                    {
-                        Notify.Error("You must select at least one of the entity information checkboxes.");
-                        return;
-                    }
-
-                    StringBuilder sbProps = new StringBuilder();
-                    StringBuilder sbPeds = new StringBuilder();
-                    StringBuilder sbVehicles = new StringBuilder();
-
-                    var printEntityInfo =
-                        (StringBuilder sb, Entity e) => sb.AppendLine(PrintEntityInfo(e, printHandle, printHash, printCoords, printOwner));
-
-                    if (props?.Count > 0)
-                    {
-                        sbProps.AppendLine("====================\nPROPS\n====================");
-                        props.ForEach(e => printEntityInfo(sbProps, e));
-                    }
-
-                    if (peds?.Count > 0)
-                    {
-                        sbPeds.AppendLine("====================\nPEDS\n====================");
-                        peds.ForEach(e => printEntityInfo(sbPeds, e));
-                    }
-
-                    if (vehicles?.Count > 0)
-                    {
-                        sbVehicles.AppendLine("====================\nVEHICLES\n====================");
-                        vehicles.ForEach(e => printEntityInfo(sbVehicles, e));
-                    }
-
-                    var infos = new StringBuilder[]{sbProps, sbPeds, sbVehicles}
-                        .Select(x => x.ToString())
-                        .Where(i => !string.IsNullOrEmpty(i))
-                        .ToArray();
-                    var info = string.Join("\n", infos);
-                    if (string.IsNullOrWhiteSpace(info))
-                    {
-                        Notify.Info("There were no entities matching your selected criteria in the chosen range.");
-                        return;
-                    }
-
-                    CopyToClipboard(info);
-                    Notify.Info("Entity information copied to the clipboard.");
+                    var pos = Game.PlayerPed.Position;
+                    CopyToClipboard($"X={pos.X}, Y={pos.Y}, Z={pos.Z}");
+                    Notify.Info("Coordinates copied to the clipboard.");
                 }
             };
 
             developerToolsMenu.OnCheckboxChange += (sender, item, index, _checked) =>
             {
-                if (item == vehModelDimensions)
-                {
-                    ShowVehicleModelDimensions = _checked;
-                }
-                else if (item == propModelDimensions)
-                {
-                    ShowPropModelDimensions = _checked;
-                }
-                else if (item == pedModelDimensions)
-                {
-                    ShowPedModelDimensions = _checked;
-                }
-                else if (item == showEntityHandles)
-                {
-                    ShowEntityHandles = _checked;
-                }
-                else if (item == showEntityModels)
-                {
-                    ShowEntityModels = _checked;
-                }
-                else if (item == showEntityCoords)
-                {
-                    ShowEntityCoordinates = _checked;
-                }
-                else if (item == showEntityNetOwners)
-                {
-                    ShowEntityNetOwners = _checked;
-                }
-                else if (item == enableTimeCycle)
-                {
-                    TimecycleEnabled = _checked;
-                    ClearTimecycleModifier();
-                    if (TimecycleEnabled)
-                    {
-                        SetTimecycleModifier(TimeCycles.Timecycles[timeCycles.ListIndex]);
-                        var intensity = timeCycleIntensity.Position / 20f;
-                        SetTimecycleModifierStrength(intensity);
-                    }
-                }
-                else if (item == coords)
+                if (item == coords)
                 {
                     ShowCoordinates = _checked;
                 }

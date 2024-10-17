@@ -369,8 +369,10 @@ namespace vMenuShared
             MSRestoreAppearance,
             MSRestoreWeapons,
             MSDriftMode,
-            MSEntitySpawner,
             MSDevTools,
+            MSEntityInfo,
+            MSTimecycleMofifiers,
+            MSEntitySpawner,
             #endregion
 
             // Plugin Menu
