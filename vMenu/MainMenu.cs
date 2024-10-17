@@ -37,6 +37,7 @@ namespace vMenuClient
         public static BannedPlayers BannedPlayersMenu { get; private set; }
         public static SavedVehicles SavedVehiclesMenu { get; private set; }
         public static PersonalVehicle PersonalVehicleMenu { get; private set; }
+        public static VehicleCustomization VehicleCustomizationMenu { get; private set; }
         public static VehicleOptions VehicleOptionsMenu { get; private set; }
         public static VehicleSpawner VehicleSpawnerMenu { get; private set; }
         public static PlayerAppearance PlayerAppearanceMenu { get; private set; }
@@ -911,9 +912,9 @@ namespace vMenuClient
             // Add the vehicle options Menu.
             if (IsAllowed(Permission.VOMenu))
             {
-                VehicleOptionsMenu = new VehicleOptions();
-                var menu = VehicleOptionsMenu.GetMenu();
-                var button = new MenuItem("Customize Vehicle", "Tune and style your vehicle, and change vehicle options.")
+                VehicleCustomizationMenu = new VehicleCustomization();
+                var menu = VehicleCustomizationMenu.GetMenu();
+                var button = new MenuItem("Customize Vehicle", "Tune and style your vehicle.")
                 {
                     Label = "→→→"
                 };
@@ -937,6 +938,18 @@ namespace vMenuClient
                         SavedVehiclesMenu.UpdateMenuAvailableCategories();
                     }
                 };
+            }
+
+            // Add the vehicle options Menu.
+            if (IsAllowed(Permission.VOMenu))
+            {
+                VehicleOptionsMenu = new VehicleOptions();
+                var menu = VehicleOptionsMenu.GetMenu();
+                var button = new MenuItem("Vehicle Options", "Change options of your current vehicle.")
+                {
+                    Label = "→→→"
+                };
+                AddMenu(VehicleSubmenu, menu, button);
             }
 
             // Add the Personal Vehicle menu.

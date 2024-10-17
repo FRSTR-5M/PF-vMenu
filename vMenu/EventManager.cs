@@ -159,7 +159,7 @@ namespace vMenuClient
         private void SetExtras()
         {
             // reset addons
-            VehicleOptions.VehicleExtras = new Dictionary<uint, Dictionary<int, string>>();
+            VehicleCustomization.VehicleExtras = new Dictionary<uint, Dictionary<int, string>>();
 
             string jsonData = LoadResourceFile(GetCurrentResourceName(), "config/extras.json") ?? "{}";
 
@@ -174,14 +174,14 @@ namespace vMenuClient
 
                     if (extras[model] != null && extras[model].Count > 0)
                     {
-                        if (!VehicleOptions.VehicleExtras.ContainsKey(modelHash) || VehicleOptions.VehicleExtras[modelHash] == null)
-                            VehicleOptions.VehicleExtras.Add(modelHash, extras[model]);
+                        if (!VehicleCustomization.VehicleExtras.ContainsKey(modelHash) || VehicleCustomization.VehicleExtras[modelHash] == null)
+                            VehicleCustomization.VehicleExtras.Add(modelHash, extras[model]);
                         else
                         {
                             foreach (int extra in extras[model].Keys)
                             {
-                                if (!VehicleOptions.VehicleExtras[modelHash].ContainsKey(extra))
-                                    VehicleOptions.VehicleExtras[modelHash].Add(extra, extras[model][extra]);
+                                if (!VehicleCustomization.VehicleExtras[modelHash].ContainsKey(extra))
+                                    VehicleCustomization.VehicleExtras[modelHash].Add(extra, extras[model][extra]);
                                 else
                                     Debug.WriteLine($"[vMenu] [Warning] Your extras.json file contains 2 or more entries with the same extra index! ({model}, Extra {extra}) Please remove duplicate!");
                             }

@@ -1497,7 +1497,7 @@ namespace vMenuClient
 
                 SetVehicleEnveffScale(vehicle.Handle, vehicleInfo.enveffScale);
 
-                VehicleOptions.SetHeadlightsColorForVehicle(vehicle, vehicleInfo.headlightColor);
+                VehicleCustomization.SetHeadlightsColorForVehicle(vehicle, vehicleInfo.headlightColor);
 
                 vehicle.Mods.NeonLightsColor = System.Drawing.Color.FromArgb(red: vehicleInfo.colors["neonR"], green: vehicleInfo.colors["neonG"], blue: vehicleInfo.colors["neonB"]);
                 vehicle.Mods.SetNeonLightsOn(VehicleNeonLight.Left, vehicleInfo.neonLeft);
@@ -1706,7 +1706,7 @@ namespace vMenuClient
                         windowTint = (int)veh.Mods.WindowTint,
                         xenonHeadlights = IsToggleModOn(veh.Handle, 22),
                         bulletProofTires = !veh.CanTiresBurst,
-                        headlightColor = VehicleOptions.GetHeadlightsColorForVehicle(veh),
+                        headlightColor = VehicleCustomization.GetHeadlightsColorForVehicle(veh),
                         enveffScale = GetVehicleEnveffScale(veh.Handle)
                     };
 

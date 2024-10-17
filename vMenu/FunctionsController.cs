@@ -587,11 +587,11 @@ namespace vMenuClient
                 var subMenus = new List<Menu>()
                     {
                         MainMenu.VehicleOptionsMenu.DeleteConfirmMenu,
-                        MainMenu.VehicleOptionsMenu.VehicleColorsMenu,
-                        MainMenu.VehicleOptionsMenu.VehicleComponentsMenu,
+                        MainMenu.VehicleCustomizationMenu.VehicleColorsMenu,
+                        MainMenu.VehicleCustomizationMenu.VehicleComponentsMenu,
                         MainMenu.VehicleOptionsMenu.VehicleDoorsMenu,
-                        MainMenu.VehicleOptionsMenu.VehicleLiveriesMenu,
-                        MainMenu.VehicleOptionsMenu.VehicleModMenu,
+                        MainMenu.VehicleCustomizationMenu.VehicleLiveriesMenu,
+                        MainMenu.VehicleCustomizationMenu.VehicleModMenu,
                         MainMenu.VehicleOptionsMenu.VehicleWindowsMenu,
                     };
                 foreach (var m in subMenus)
