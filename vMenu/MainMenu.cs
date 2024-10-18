@@ -1013,7 +1013,7 @@ namespace vMenuClient
             {
                 MiscSettingsMenu = new MiscSettings();
                 var menu = MiscSettingsMenu.GetMenu();
-                var button = new MenuItem("Miscellaneous Settings", "Miscellaneous settings and options.")
+                var button = new MenuItem("Miscellaneous", "Miscellaneous settings and options.")
                 {
                     Label = "→→→"
                 };

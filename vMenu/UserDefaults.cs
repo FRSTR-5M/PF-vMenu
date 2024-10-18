@@ -228,16 +228,10 @@ namespace vMenuClient
             set { SetSavedSettingsBool("miscDeathNotifications", value); }
         }
 
-        public static bool MiscSpeedKmh
+        public static int MiscSpeedDisplay
         {
-            get { return GetSettingsBool("miscSpeedoKmh"); }
-            set { SetSavedSettingsBool("miscSpeedoKmh", value); }
-        }
-
-        public static bool MiscSpeedMph
-        {
-            get { return GetSettingsBool("miscSpeedoMph"); }
-            set { SetSavedSettingsBool("miscSpeedoMph", value); }
+            get { return GetSettingsInt("miscSpeedo"); }
+            set { SetSavedSettingsInt("miscSpeedo", value); }
         }
 
         public static bool MiscShowLocation
@@ -526,11 +520,8 @@ namespace vMenuClient
                 MiscJoinQuitNotifications = MainMenu.MiscSettingsMenu.JoinQuitNotifications;
                 prefs.Add("miscJoinQuitNotifications", MiscJoinQuitNotifications);
 
-                MiscSpeedKmh = MainMenu.MiscSettingsMenu.ShowSpeedoKmh;
-                prefs.Add("miscSpeedKmh", MiscSpeedKmh);
-
-                MiscSpeedMph = MainMenu.MiscSettingsMenu.ShowSpeedoMph;
-                prefs.Add("miscSpeedMph", MiscSpeedMph);
+                MiscSpeedDisplay = (int)MainMenu.MiscSettingsMenu.SpeedDisplay;
+                prefs.Add("miscSpeedo", (int)MainMenu.MiscSettingsMenu.SpeedDisplay);
 
                 MiscShowLocation = MainMenu.MiscSettingsMenu.ShowLocation;
                 prefs.Add("miscShowLocation", MiscShowLocation);

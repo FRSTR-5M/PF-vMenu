@@ -733,12 +733,14 @@ namespace vMenuClient
                 ResetScriptGfxAlign();
             }
 
-            if (MainMenu.MiscSettingsMenu.ShowSpeedoKmh && Game.PlayerPed.IsInVehicle())
+            if (MainMenu.MiscSettingsMenu.SpeedDisplay == menus.MiscSettings.SpeedDisplayState.Kmh &&
+                Game.PlayerPed.IsInVehicle())
             {
                 ShowSpeedKmh();
             }
 
-            if (MainMenu.MiscSettingsMenu.ShowSpeedoMph && Game.PlayerPed.IsInVehicle())
+            if (MainMenu.MiscSettingsMenu.SpeedDisplay == menus.MiscSettings.SpeedDisplayState.Mph &&
+                Game.PlayerPed.IsInVehicle())
             {
                 ShowSpeedMph();
             }
@@ -842,7 +844,7 @@ namespace vMenuClient
         private void ShowSpeedKmh()
         {
             var speed = int.Parse(Math.Round(GetEntitySpeed(GetVehicle().Handle) * 3.6f).ToString());
-            DrawTextOnScreen($"{speed} KM/h", 0.995f, 0.955f, 0.7f, Alignment.Right, 4);
+            DrawTextOnScreen($"{speed} km/h", 0.995f, 0.955f, 0.7f, Alignment.Right, 4);
         }
 
         /// <summary>
@@ -852,16 +854,7 @@ namespace vMenuClient
         private void ShowSpeedMph()
         {
             var speed = Math.Round(GetEntitySpeed(GetVehicle().Handle) * 2.23694f);
-
-            if (MainMenu.MiscSettingsMenu.ShowSpeedoKmh)
-            {
-                DrawTextOnScreen($"{speed} MPH", 0.995f, 0.925f, 0.7f, Alignment.Right, 4);
-                HideHudComponentThisFrame((int)HudComponent.StreetName);
-            }
-            else
-            {
-                DrawTextOnScreen($"{speed} MPH", 0.995f, 0.955f, 0.7f, Alignment.Right, 4);
-            }
+            DrawTextOnScreen($"{speed} mph", 0.995f, 0.955f, 0.7f, Alignment.Right, 4);
         }
         #endregion
 
