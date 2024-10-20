@@ -912,6 +912,18 @@ namespace vMenuClient
             // Add the vehicle options Menu.
             if (IsAllowed(Permission.VOMenu))
             {
+                VehicleOptionsMenu = new VehicleOptions();
+                var menu = VehicleOptionsMenu.GetMenu();
+                var button = new MenuItem("Vehicle Options", "Change options of your current vehicle.")
+                {
+                    Label = "→→→"
+                };
+                AddMenu(VehicleSubmenu, menu, button);
+            }
+
+            // Add the vehicle options Menu.
+            if (IsAllowed(Permission.VOMenu))
+            {
                 VehicleCustomizationMenu = new VehicleCustomization();
                 var menu = VehicleCustomizationMenu.GetMenu();
                 var button = new MenuItem("Customize Vehicle", "Tune and style your vehicle.")
@@ -938,18 +950,6 @@ namespace vMenuClient
                         SavedVehiclesMenu.UpdateMenuAvailableCategories();
                     }
                 };
-            }
-
-            // Add the vehicle options Menu.
-            if (IsAllowed(Permission.VOMenu))
-            {
-                VehicleOptionsMenu = new VehicleOptions();
-                var menu = VehicleOptionsMenu.GetMenu();
-                var button = new MenuItem("Vehicle Options", "Change options of your current vehicle.")
-                {
-                    Label = "→→→"
-                };
-                AddMenu(VehicleSubmenu, menu, button);
             }
 
             // Add the Personal Vehicle menu.

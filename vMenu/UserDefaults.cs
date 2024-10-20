@@ -599,7 +599,7 @@ namespace vMenuClient
                 VehicleNeverDirty = MainMenu.VehicleOptionsMenu.VehicleNeverDirty;
                 prefs.Add("vehicleNeverDirty", VehicleNeverDirty);
 
-                VehicleNoBikeHelmet = MainMenu.VehicleOptionsMenu.VehicleNoBikeHelemet;
+                VehicleNoBikeHelmet = MainMenu.VehicleOptionsMenu.VehicleNoBikeHelmet;
                 prefs.Add("vehicleNoBikeHelmet", VehicleNoBikeHelmet);
 
                 VehicleNoSiren = MainMenu.VehicleOptionsMenu.VehicleNoSiren;

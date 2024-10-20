@@ -1410,7 +1410,9 @@ namespace vMenuClient
             await Delay(1); // Mandatory delay - without it radio station will not set properly
 
             // Set the radio station to default set by player in Vehicle Menu
-            vehicle.RadioStation = (RadioStation)UserDefaults.VehicleDefaultRadio;
+            SetVehRadioStation(
+                vehicle.Handle,
+                RadioData.RadioStationToGameName[(RadioStation)UserDefaults.VehicleDefaultRadio]);
 
             // Discard the model.
             SetModelAsNoLongerNeeded(vehicleHash);

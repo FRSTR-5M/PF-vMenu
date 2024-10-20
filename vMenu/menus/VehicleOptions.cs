@@ -1,9 +1,16 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 using CitizenFX.Core;
 
 using MenuAPI;
+
+using Microsoft.Win32;
+
+using vMenuClient.data;
+using vMenuClient.MenuAPIWrapper;
 
 using static CitizenFX.Core.Native.API;
 using static vMenuClient.CommonFunctions;
@@ -15,13 +22,8 @@ namespace vMenuClient.menus
     public class VehicleOptions
     {
         #region Variables
-        // Menu variable, will be defined in CreateMenu()
-        private Menu menu;
 
-        // Submenus
-        public Menu VehicleDoorsMenu { get; private set; }
-        public Menu VehicleWindowsMenu { get; private set; }
-        public Menu DeleteConfirmMenu { get; private set; }
+        private WMenu menu = null;
 
         // Public variables (getters only), return the private variables.
         public bool VehicleGodMode { get; private set; } = UserDefaults.VehicleGodMode;
@@ -35,7 +37,7 @@ namespace vMenuClient.menus
         public bool VehicleNeverDirty { get; private set; } = UserDefaults.VehicleNeverDirty;
         public bool VehicleEngineAlwaysOn { get; private set; } = UserDefaults.VehicleEngineAlwaysOn;
         public bool VehicleNoSiren { get; private set; } = UserDefaults.VehicleNoSiren;
-        public bool VehicleNoBikeHelemet { get; private set; } = UserDefaults.VehicleNoBikeHelmet;
+        public bool VehicleNoBikeHelmet { get; private set; } = UserDefaults.VehicleNoBikeHelmet;
         public bool FlashHighbeamsOnHonk { get; private set; } = UserDefaults.VehicleHighbeamsOnHonk;
         public bool DisablePlaneTurbulence { get; private set; } = UserDefaults.VehicleDisablePlaneTurbulence;
         public bool DisableHelicopterTurbulence { get; private set; } = UserDefaults.VehicleDisableHelicopterTurbulence;
@@ -47,10 +49,396 @@ namespace vMenuClient.menus
         public bool VehiclePowerMultiplier { get; private set; } = false;
         public float VehicleTorqueMultiplierAmount { get; private set; } = 2f;
         public float VehiclePowerMultiplierAmount { get; private set; } = 2f;
-        public bool isCorrectVehicleType { get; private set; }
-
-        private static readonly LanguageManager Lm = new LanguageManager();
+        public bool VehicleDeleteRemovedDoors { get; private set; } = false;
         #endregion
+
+        private Vehicle TryGetExistingVehicle(string error)
+        {
+            var vehicle = GetVehicle();
+            if (vehicle == null || !vehicle.Exists())
+            {
+                if (!string.IsNullOrEmpty(error))
+                    Notify.Error($"You must be in a vehicle to {error}");
+
+                return null;
+            }
+
+            return vehicle;
+        }
+
+        private Vehicle TryGetDriverVehicle(string error)
+        {
+            var vehicle = TryGetExistingVehicle(error);
+            if (vehicle == null)
+                return null;
+
+            if (vehicle.Driver != Game.PlayerPed)
+            {
+                if (!string.IsNullOrEmpty(error))
+                    Notify.Error($"You must be the vehicle's driver to {error}");
+
+                return null;
+            }
+
+            return vehicle;
+        }
+
+        private Vehicle TryGetIntactVehicle(string error)
+        {
+            var vehicle = TryGetExistingVehicle(error);
+            if (vehicle == null)
+            {
+                return null;
+            }
+
+            if (!vehicle.IsAlive)
+            {
+                if (!string.IsNullOrEmpty(error))
+                    Notify.Error($"You must be in an intact vehicle to {error}");
+
+                return null;
+            }
+
+            return vehicle;
+        }
+
+        private Vehicle TryGetIntactDriverVehicle(string error)
+        {
+            Vehicle vehicle;
+
+            vehicle = TryGetDriverVehicle(error);
+            if (vehicle == null)
+                return null;
+
+            vehicle = TryGetIntactVehicle(error);
+            if (vehicle == null)
+                return null;
+
+            return vehicle;
+        }
+
+        private async Task ConfigureSpeedLimiter(int mode)
+        {
+            var vehicle = TryGetIntactDriverVehicle("configure the speed limiter");
+            if (vehicle == null)
+                return;
+
+            bool metric = ShouldUseMetricMeasurements();
+
+            if (mode == 0) // Set
+            {
+                SetEntityMaxSpeed(vehicle.Handle, 500.01f);
+                SetEntityMaxSpeed(vehicle.Handle, vehicle.Speed);
+
+                if (metric)
+                {
+                    Notify.Info($"Vehicle speed is now limited to ~b~{Math.Round(3.6f * vehicle.Speed)} km/h~s~.");
+                }
+                else
+                {
+                    Notify.Info($"Vehicle speed is now limited to ~b~{Math.Round(2.237f * vehicle.Speed)} mph~s~.");
+                }
+
+            }
+            else if (mode == 1) // Reset
+            {
+                SetEntityMaxSpeed(vehicle.Handle, 500.01f); // Default max speed seemingly for all vehicles.
+                Notify.Info("Vehicle speed is now no longer limited.");
+            }
+            else if (mode == 2) // custom speed
+            {
+                var speedStr = await GetUserInput($"Enter a speed ({(metric ? "km/h" : "mph")})", metric ? "100.0" : "60.0", 5);
+                if (!string.IsNullOrEmpty(speedStr))
+                {
+                    if (float.TryParse(speedStr, out var speed))
+                    {
+                        var speedMs = speed / (metric ? 3.6f : 2.237f);
+
+                        //vehicle.MaxSpeed = outFloat;
+                        SetEntityMaxSpeed(vehicle.Handle, 500.01f);
+                        await BaseScript.Delay(0);
+                        SetEntityMaxSpeed(vehicle.Handle, speedMs);
+                        if (ShouldUseMetricMeasurements()) // kph
+                        {
+                            Notify.Info($"Vehicle speed is now limited to ~b~{Math.Round(speed)} km/h~s~.");
+                        }
+                        else
+                        {
+                            Notify.Info($"Vehicle speed is now limited to ~b~{Math.Round(speed)} mph~s~.");
+                        }
+                    }
+                    else
+                    {
+                        Notify.Error(CommonErrors.InvalidInput, placeholderValue: "speed");
+                    }
+                }
+                else
+                {
+                    Notify.Error(CommonErrors.InvalidInput, placeholderValue: "speed");
+                }
+            }
+        }
+
+        private bool IsDoorOpen (Vehicle vehicle, int index)
+        {
+            int handle = vehicle.Handle;
+
+            if (index < 8)
+                return GetVehicleDoorAngleRatio(handle, index) > 0.1f;
+
+            if (vehicle.HasBombBay)
+                return AreBombBayDoorsOpen(handle);
+
+            return false;
+        }
+
+        private void ToggleDoor(Vehicle vehicle, int index, bool open)
+        {
+            int handle = vehicle.Handle;
+
+            if (index < 8)
+            {
+                if (open)
+                {
+                    SetVehicleDoorOpen(handle, index, false, false);
+                }
+                else
+                {
+                    SetVehicleDoorShut(handle, index, false);
+                }
+            }
+            else if (vehicle.HasBombBay)
+            {
+                if (open)
+                {
+                    OpenBombBayDoors(handle);
+                }
+                else
+                {
+                    CloseBombBayDoors(handle);
+                }
+            }
+        }
+
+        private void TryToggleDoor(int index)
+        {
+            var veh = TryGetIntactDriverVehicle($"open or close {(index == -1 ? "all doors" : "a specific door")}");
+            if (veh == null)
+                return;
+
+            bool open;
+            if (index == -1)
+            {
+                open = !Enumerable
+                    .Range(0, 8)
+                    .Where(i => !IsVehicleDoorDamaged(veh.Handle, i))
+                    .Any(i => IsDoorOpen(veh, i));
+            }
+            else
+            {
+                open = !IsDoorOpen(veh, index);
+            }
+
+            if (index != -1)
+            {
+                ToggleDoor(veh, index, open);
+            }
+            else
+            {
+                for (int i = 0; i <= 8; i++)
+                {
+                    ToggleDoor(veh, i, open);
+                }
+            }
+        }
+
+        private void TryDetachDoor(int index)
+        {
+            var veh = TryGetIntactDriverVehicle($"detach {(index == -1 ? "all doors" : "a specific door")}");
+            if (veh == null)
+                return;
+
+            if (index != -1)
+            {
+                SetVehicleDoorBroken(veh.Handle, index, VehicleDeleteRemovedDoors);
+            }
+            else
+            {
+                for (int i = 0; i < 8; i++)
+                {
+                    SetVehicleDoorBroken(veh.Handle, i, VehicleDeleteRemovedDoors);
+                }
+            }
+        }
+
+        private void TryToggleWindow(int index, bool rollUp)
+        {
+            var veh = TryGetIntactDriverVehicle($"roll vehicle windows {(rollUp ? "up" : "down")}");
+            if (veh == null)
+                return;
+
+            int handle = veh.Handle;
+            if (index == -1 && !rollUp)
+            {
+                RollDownWindows(handle);
+            }
+            else if (index == -1)
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    RollUpWindow(handle, i);
+                }
+            }
+            else
+            {
+                if (rollUp)
+                {
+                    RollUpWindow(handle, index);
+                }
+                else
+                {
+                    RollDownWindow(handle, index);
+                }
+            }
+        }
+
+        private void ToggleTire(Vehicle vehicle, int index, bool inflate)
+        {
+            int handle = vehicle.Handle;
+
+            if (inflate)
+            {
+                SetVehicleTyreFixed(handle, index);
+            }
+            else
+            {
+                SetVehicleTyreBurst(handle, index, false, 1);
+            }
+        }
+
+        private void TryToggleTire(int index)
+        {
+            var veh = TryGetIntactDriverVehicle($"inflate or burst {(index == -1 ? "all tires" : "a specific tire")}");
+            if (veh == null)
+                return;
+
+            bool inflate;
+            if (index == -1)
+            {
+                inflate = Enumerable.Range(0, 8).Any(i => IsVehicleTyreBurst(veh.Handle, i, false));
+            }
+            else
+            {
+                inflate = IsVehicleTyreBurst(veh.Handle, index, false);
+            }
+
+            if (index != -1)
+            {
+                ToggleTire(veh, index, inflate);
+            }
+            else
+            {
+                for (int i = 0; i < 8; i++)
+                {
+                    ToggleTire(veh, i, inflate);
+                }
+            }
+        }
+
+        private void TryDetachWheel(int index)
+        {
+            var veh = TryGetIntactDriverVehicle($"detach {(index == -1 ? "all wheels" : "a specific wheel")}");
+            if (veh == null)
+                return;
+
+            int handle = veh.Handle;
+
+            if (index != -1)
+            {
+                BreakOffVehicleWheel(handle, index, false, false, true, false);
+            }
+            else
+            {
+                for (int i = 0; i < 8; i++)
+                {
+                    BreakOffVehicleWheel(handle, i, false, false, true, false);
+                }
+            }
+        }
+
+        private void TryToggleVehicleVisibility()
+        {
+            var vehicle = TryGetIntactDriverVehicle("change its visibility");
+
+            if (vehicle.IsVisible)
+            {
+                // Check the visibility of all peds inside before setting the vehicle as invisible.
+                var visiblePeds = new Dictionary<Ped, bool>();
+                foreach (var p in vehicle.Occupants)
+                {
+                    visiblePeds.Add(p, p.IsVisible);
+                }
+
+                vehicle.IsVisible = false;
+
+                // Restore visibility for each ped.
+                foreach (var pe in visiblePeds)
+                {
+                    pe.Key.IsVisible = pe.Value;
+                }
+            }
+            else
+            {
+                vehicle.IsVisible = true;
+            }
+        }
+
+        private void SetVehicleIndicators(Vehicle veh, bool left, bool right)
+        {
+            SetVehicleIndicatorLights(veh.Handle, 1, left);
+            SetVehicleIndicatorLights(veh.Handle, 0, right);
+        }
+
+        private void ToggleVehicleLights(int index)
+        {
+            var veh = TryGetIntactDriverVehicle("toggle the lights");
+            if (veh == null)
+                return;
+
+            var state = GetVehicleIndicatorLights(veh.Handle); // 0 = none, 1 = left, 2 = right, 3 = both
+
+            if (index == 0) // Hazard lights
+            {
+                bool on = state != 3;
+                SetVehicleIndicators(veh, on, on);
+            }
+            else if (index == 1) // left indicator
+            {
+                SetVehicleIndicators(veh, state != 1, false);
+            }
+            else if (index == 2) // right indicator
+            {
+                SetVehicleIndicators(veh, false, state != 2);
+            }
+            else if (index == 3) // Interior lights
+            {
+                SetVehicleInteriorlight(veh.Handle, !IsVehicleInteriorLightOn(veh.Handle));
+            }
+            else if (index == 4) // helicopter spotlight
+            {
+                SetVehicleSearchlight(veh.Handle, !IsVehicleSearchlightOn(veh.Handle), true);
+            }
+        }
+
+        private void ApplyVehiclePowerMultiplier()
+        {
+            var veh = TryGetIntactDriverVehicle(null);
+            if (veh == null)
+                return;
+
+            float mult = VehiclePowerMultiplier ? VehiclePowerMultiplierAmount : 1f;
+            SetVehicleEnginePowerMultiplier(veh.Handle, mult);
+        }
 
         #region CreateMenu()
         /// <summary>
@@ -59,959 +447,502 @@ namespace vMenuClient.menus
         private void CreateMenu()
         {
             // Create the menu.
-            menu = new Menu(MenuTitle, "Vehicle Options");
+            menu = new WMenu(MenuTitle, "Vehicle Options");
 
-            #region menu items variables
-            // vehicle god mode menu
-            var vehGodMenu = Lm.GetMenu(new Menu(MenuTitle, "Vehicle God Mode Options"));
-            var vehGodMenuBtn = new MenuItem("God Mode Options", "Enable or disable specific damage types.") { Label = "→→→" };
-            MenuController.AddSubmenu(menu, vehGodMenu);
-
-            // Create Checkboxes.
-            var vehicleGod = new MenuCheckboxItem("Vehicle God Mode", "Makes your vehicle not take any damage. Note, you need to go into the god menu options below to select what kind of damage you want to disable.", VehicleGodMode);
-            var vehicleNeverDirty = new MenuCheckboxItem("Keep Vehicle Clean", "This will constantly clean your car if the vehicle dirt level goes above 0. Note that this only cleans ~o~dust~s~ or ~o~dirt~s~. This does not clean mud, snow or other ~r~damage decals~s~. Repair your vehicle to remove them.", VehicleNeverDirty);
-            var vehicleBikeSeatbelt = new MenuCheckboxItem("Bike Seatbelt", "Prevents you from being knocked off your bike, bicyle, ATV or similar.", VehicleBikeSeatbelt);
-            var vehicleEngineAO = new MenuCheckboxItem("Engine Always On", "Keeps your vehicle engine on when you exit your vehicle.", VehicleEngineAlwaysOn);
-            var vehicleNoTurbulence = new MenuCheckboxItem("Disable Plane Turbulence", "Disables the turbulence for all planes. Note only works for planes. Helicopters and other flying vehicles are not supported.", DisablePlaneTurbulence);
-            var vehicleNoTurbulenceHeli = new MenuCheckboxItem("Disable Helicopter Turbulence", "Disables the turbulence for all helicopters.", DisableHelicopterTurbulence);
-            var vehicleNoSiren = new MenuCheckboxItem("Disable Siren", "Disables your vehicle's siren. Only works if your vehicle actually has a siren.", VehicleNoSiren);
-            var vehicleNoBikeHelmet = new MenuCheckboxItem("No Bike Helmet", "No longer auto-equip a helmet when getting on a bike or quad.", VehicleNoBikeHelemet);
-            var vehicleFreeze = new MenuCheckboxItem("Freeze Vehicle", "Freeze your vehicle's position.", VehicleFrozen);
-            var torqueEnabled = new MenuCheckboxItem("Enable Torque Multiplier", "Enables the torque multiplier selected from the list below.", VehicleTorqueMultiplier);
-            var powerEnabled = new MenuCheckboxItem("Enable Power Multiplier", "Enables the power multiplier selected from the list below.", VehiclePowerMultiplier);
-            var highbeamsOnHonk = new MenuCheckboxItem("Flash Highbeams On Honk", "Turn on your highbeams on your vehicle when honking your horn. Does not work during the day when you have your lights turned off.", FlashHighbeamsOnHonk);
-            var showHealth = new MenuCheckboxItem("Show Vehicle Health", "Shows the vehicle health on the screen.", VehicleShowHealth);
-            var infiniteFuel = new MenuCheckboxItem("Infinite Fuel", "Enables or disables infinite fuel for this vehicle, only works if FRFuel is installed.", VehicleInfiniteFuel);
-
-            // Create buttons.
-            var fixVehicle = new MenuItem("Repair Vehicle", "Repair any visual and physical damage present on your vehicle.");
-            var cleanVehicle = new MenuItem("Wash Vehicle", "Clean your vehicle.");
-            var toggleEngine = new MenuItem("Toggle Engine On/Off", "Turn your engine on/off.");
-            var reduceDriftSuspension = new MenuItem("Reduce Drift Suspension", "Reduce the suspension of the vehicle to make it even lower to drift. Use the option again to revert back to your original suspension. ~r~~h~This modification disables the original strAdvancedFlag of the vehicle!~s~~h~");
-            var doorsMenuBtn = new MenuItem("Vehicle Doors", "Open, close, remove and restore vehicle doors.")
+            if (IsAllowed(Permission.VORepair))
             {
-                Label = "→→→"
-            };
-            var windowsMenuBtn = new MenuItem("Vehicle Windows", "Roll your windows up and down, and remove or restore your vehicle windows.")
-            {
-                Label = "→→→"
-            };
-            //var underglowMenuBtn = new MenuItem("Vehicle Neon Kits", "Make your vehicle shine with some fancy neon underglow!")
-            //{
-            //    Label = "→→→"
-            //};
-            var vehicleInvisible = new MenuItem("Toggle Vehicle Visibility", "Makes your vehicle visible/invisible. ~r~Your vehicle will be made visible again as soon as you leave the vehicle. Otherwise you would not be able to get back in.");
-            var flipVehicle = new MenuItem("Flip Vehicle", "Sets your current vehicle on all 4 wheels.");
-            var vehicleAlarm = new MenuItem("Toggle Vehicle Alarm", "Starts/stops your vehicle's alarm.");
-            var cycleSeats = new MenuItem("Cycle Through Vehicle Seats", "Cycle through the available vehicle seats.");
-            var lights = new List<string>()
-            {
-                "Hazard Lights",
-                "Left Indicator",
-                "Right Indicator",
-                "Interior Lights",
-                //"Taxi Light", // this doesn't seem to work no matter what.
-                "Helicopter Spotlight",
-            };
-            var vehicleLights = new MenuListItem("Vehicle Lights", lights, 0, "Turn vehicle lights on/off.");
-
-            var stationNames = new List<string>();
-
-            foreach (var radioStationName in Enum.GetNames(typeof(RadioStation)))
-            {
-                stationNames.Add(radioStationName);
-            }
-
-            var radioIndex = UserDefaults.VehicleDefaultRadio;
-
-            if (radioIndex == (int)RadioStation.RadioOff)
-            {
-                var stations = (RadioStation[])Enum.GetValues(typeof(RadioStation));
-                var index = Array.IndexOf(stations, RadioStation.RadioOff);
-                radioIndex = index;
-            }
-
-            var radioStations = new MenuListItem("Default Radio Station", stationNames, radioIndex, "Select a default radio station to be set when spawning new car");
-
-            var tiresList = new List<string>() { "All Tires", "Tire #1", "Tire #2", "Tire #3", "Tire #4", "Tire #5", "Tire #6", "Tire #7", "Tire #8" };
-            var vehicleTiresList = new MenuListItem("Fix / Destroy Tires", tiresList, 0, "Fix or destroy a specific vehicle tire, or all of them at once. Note, not all indexes are valid for all vehicles, some might not do anything on certain vehicles.");
-
-            var destroyEngine = new MenuItem("Destroy Engine", "Destroys your vehicle's engine.");
-
-            var deleteBtn = new MenuItem("~r~Delete Vehicle", "Delete your vehicle, this ~r~can NOT be undone~s~!")
-            {
-                LeftIcon = MenuItem.Icon.WARNING,
-                Label = "→→→"
-            };
-            var deleteNoBtn = new MenuItem("NO, CANCEL", "NO, do NOT delete my vehicle and go back!");
-            var deleteYesBtn = new MenuItem("~r~YES, DELETE", "Yes I'm sure, delete my vehicle please, I understand that this cannot be undone.")
-            {
-                LeftIcon = MenuItem.Icon.WARNING
-            };
-
-            // Create lists.
-            var dirtlevel = new List<string> { "No Dirt", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15" };
-            var setDirtLevel = new MenuListItem("Set Dirt Level", dirtlevel, 0, "Select how much dirt should be visible on your vehicle, press ~r~enter~s~ " +
-                "to apply the selected level.");
-
-            var torqueMultiplierList = new List<string> { "x2", "x4", "x8", "x16", "x32", "x64", "x128", "x256", "x512", "x1024" };
-            var torqueMultiplier = new MenuListItem("Set Engine Torque Multiplier", torqueMultiplierList, 0, "Set the engine torque multiplier.");
-            var powerMultiplierList = new List<string> { "x2", "x4", "x8", "x16", "x32", "x64", "x128", "x256", "x512", "x1024" };
-            var powerMultiplier = new MenuListItem("Set Engine Power Multiplier", powerMultiplierList, 0, "Set the engine power multiplier.");
-            var speedLimiterOptions = new List<string>() { "Set", "Reset", "Custom Speed Limit" };
-            var speedLimiter = new MenuListItem("Speed Limiter", speedLimiterOptions, 0, "Set your vehicles max speed to your ~y~current speed~s~. Resetting your vehicles max speed will set the max speed of your current vehicle back to default. Only your current vehicle is affected by this option.");
-            #endregion
-
-            #region Submenus
-            // Submenu's
-            VehicleDoorsMenu = Lm.GetMenu(new Menu(MenuTitle, "Vehicle Doors Management"));
-            VehicleWindowsMenu = Lm.GetMenu(new Menu(MenuTitle, "Vehicle Windows Management"));
-            DeleteConfirmMenu = Lm.GetMenu(new Menu(MenuTitle, "Delete Vehicle, are you sure?"));
-            //VehicleUnderglowMenu = Lm.GetMenu(new Menu(MenuTitle, "Vehicle Neon Underglow Options"));
-
-            MenuController.AddSubmenu(menu, VehicleDoorsMenu);
-            MenuController.AddSubmenu(menu, VehicleWindowsMenu);
-            MenuController.AddSubmenu(menu, DeleteConfirmMenu);
-           
-            #endregion
-
-            #region Add items to the menu.
-            // Add everything to the menu. (based on permissions)
-            if (IsAllowed(Permission.VOGod)) // GOD MODE
-            {
-                menu.AddMenuItem(vehicleGod);
-                menu.AddMenuItem(vehGodMenuBtn);
-                MenuController.BindMenuItem(menu, vehGodMenu, vehGodMenuBtn);
-
-                var godInvincible = new MenuCheckboxItem("Invincible", "Makes the car invincible. Includes fire damage, explosion damage, collision damage and more.", VehicleGodInvincible);
-                var godEngine = new MenuCheckboxItem("Engine Damage", "Disables your engine from taking any damage.", VehicleGodEngine);
-                var godVisual = new MenuCheckboxItem("Visual Damage", "This prevents scratches and other damage decals from being applied to your vehicle. It does not prevent (body) deformation damage.", VehicleGodVisual);
-                var godStrongWheels = new MenuCheckboxItem("Strong Wheels", "Disables your wheels from being deformed and causing reduced handling. This does not make tires bulletproof.", VehicleGodStrongWheels);
-                var godRamp = new MenuCheckboxItem("Ramp Damage", "Disables vehicles such as the Ramp Buggy from taking damage when using the ramp.", VehicleGodRamp);
-                var godAutoRepair = new MenuCheckboxItem("~r~Auto Repair", "Automatically repairs your vehicle when it has ANY type of damage. It's recommended to keep this turned off to prevent glitchyness.", VehicleGodAutoRepair);
-
-                vehGodMenu.AddMenuItem(godInvincible);
-                vehGodMenu.AddMenuItem(godEngine);
-                vehGodMenu.AddMenuItem(godVisual);
-                vehGodMenu.AddMenuItem(godStrongWheels);
-                vehGodMenu.AddMenuItem(godRamp);
-                vehGodMenu.AddMenuItem(godAutoRepair);
-
-                vehGodMenu.OnCheckboxChange += (sender, item, index, _checked) =>
+                var fixVehicle = new MenuItem("Repair Vehicle", "Repair you vehicle's visual and physical damage.").ToWrapped();
+                fixVehicle.Selected += (_s, _args) =>
                 {
-                    if (item == godInvincible)
-                    {
-                        VehicleGodInvincible = _checked;
-                    }
-                    else if (item == godEngine)
-                    {
-                        VehicleGodEngine = _checked;
-                    }
-                    else if (item == godVisual)
-                    {
-                        VehicleGodVisual = _checked;
-                    }
-                    else if (item == godStrongWheels)
-                    {
-                        VehicleGodStrongWheels = _checked;
-                    }
-                    else if (item == godRamp)
-                    {
-                        VehicleGodRamp = _checked;
-                    }
-                    else if (item == godAutoRepair)
-                    {
-                        VehicleGodAutoRepair = _checked;
-                    }
+                    var veh = TryGetDriverVehicle("repair");
+                    veh?.Repair();
                 };
 
+                menu.AddItem(fixVehicle);
             }
-            if (IsAllowed(Permission.VORepair)) // REPAIR VEHICLE
+
+            #region God Mode
+            if (IsAllowed(Permission.VOGod)) // GOD MODE
             {
-                menu.AddMenuItem(fixVehicle);
+                var vehGodMenu = new WMenu(MenuTitle, "God Mode");
+
+
+                var vehicleGod = new MenuCheckboxItem("Enable", "Enable vehicle god mode.", VehicleGodMode).ToWrapped();
+                vehicleGod.CheckboxChanged += (_s, args) => VehicleGodMode = args.Checked;
+
+
+                var godInvincible = new MenuCheckboxItem("Invincible", "Makes the car invincible. Includes fire damage, explosion damage, collision damage and more.", VehicleGodInvincible).ToWrapped();
+                godInvincible.CheckboxChanged += (_s, args) => VehicleGodInvincible = args.Checked;
+
+                var godEngine = new MenuCheckboxItem("Engine Damage", "Disables your engine from taking any damage.", VehicleGodEngine).ToWrapped();
+                godEngine.CheckboxChanged += (_s, args) => VehicleGodEngine = args.Checked;
+
+                var godVisual = new MenuCheckboxItem("Visual Damage", "This prevents scratches and other damage decals from being applied to your vehicle. ~y~It does not prevent (body) deformation damage.~s~", VehicleGodVisual).ToWrapped();
+                godVisual.CheckboxChanged += (_s, args) => VehicleGodVisual = args.Checked;
+
+                var godStrongWheels = new MenuCheckboxItem("Strong Wheels", "Disables your wheels from being deformed and causing reduced handling. ~y~This does not make tires bulletproof.~s~", VehicleGodStrongWheels).ToWrapped();
+                godStrongWheels.CheckboxChanged += (_s, args) => VehicleGodStrongWheels = args.Checked;
+
+                var godRamp = new MenuCheckboxItem("Ramp Damage", "Disables vehicles such as the Ramp Buggy from taking damage when using the ramp.", VehicleGodRamp).ToWrapped();
+                godRamp.CheckboxChanged += (_s, args) => VehicleGodRamp = args.Checked;
+
+                var godAutoRepair = new MenuCheckboxItem("~y~Auto Repair~s~", "Automatically repairs your vehicle when it has ~italic~any~italic~ damage. ~y~It is recommended to keep this turned off to prevent glitches.~s~", VehicleGodAutoRepair).ToWrapped();
+                godAutoRepair.CheckboxChanged += (_s, args) => VehicleGodAutoRepair = args.Checked;
+
+                vehGodMenu
+                    .AddItem(vehicleGod)
+                    .AddSection("Disabled Damage Types", [godInvincible, godEngine, godVisual, godStrongWheels, godRamp, godAutoRepair]);
+                menu.AddSubmenu(vehGodMenu, "Enable vehicle god mode of various damage types.");
             }
-            if (IsAllowed(Permission.VOKeepClean))
+            #endregion
+
+            #region Engine
             {
-                menu.AddMenuItem(vehicleNeverDirty);
+                var engineMenu = new WMenu(MenuTitle, "Engine");
+
+                var multipliersSect = new List<WMenuItem>();
+                var engineSect = new List<WMenuItem>();
+
+                // {2,4,8,...,1024}
+                var multiplierList = Enumerable.Range(1, 11).Select(x => $"{Math.Pow(2,x)}x").ToList();
+
+                var indexToMult = (int index) => (float)Math.Pow(2, index + 1);
+
+                if (IsAllowed(Permission.VOTorqueMultiplier))
+                {
+                    var text = "Torque Multiplier";
+                    var torqueMultiplier = new MenuListItem(text, multiplierList, 0, "Set the engine torque multiplier. Click to enable or disable the multiplier.").ToWrapped();
+                    torqueMultiplier.ListSelected += (_s, args) =>
+                    {
+                        VehicleTorqueMultiplier = !VehicleTorqueMultiplier;
+                        args.Item.Text = VehicleTorqueMultiplier ? $"~g~{text}~s~" : text;
+                    };
+                    torqueMultiplier.ListChanged += (_s, args) => VehicleTorqueMultiplierAmount = indexToMult(args.ListIndexNew);
+
+                    multipliersSect.Add(torqueMultiplier);
+                }
+                if (IsAllowed(Permission.VOPowerMultiplier))
+                {
+                    var text = "Power Multiplier";
+                    var powerMultiplier = new MenuListItem(text, multiplierList, 0, "Set the engine power multiplier. Click to enable or disable the multiplier.").ToWrapped();
+                    powerMultiplier.ListSelected += (_s, args) =>
+                    {
+                        VehiclePowerMultiplier = !VehiclePowerMultiplier;
+                        args.Item.Text = VehiclePowerMultiplier ? $"~g~{text}~s~" : text;
+                        ApplyVehiclePowerMultiplier();
+                    };
+                    powerMultiplier.ListChanged += (_s, args) =>
+                    {
+                        VehiclePowerMultiplierAmount = indexToMult(args.ListIndexNew);
+                        ApplyVehiclePowerMultiplier();
+                    };
+
+                    multipliersSect.Add(powerMultiplier);
+                }
+
+
+                if (IsAllowed(Permission.VOEngine))
+                {
+                    var toggleEngine = new MenuItem("Toggle Engine", "Turn your engine on or off.").ToWrapped();
+                    toggleEngine.Selected += (_s, _args) =>
+                    {
+                        var veh = TryGetIntactDriverVehicle("toggle the engine");
+                        if (veh == null)
+                            return;
+                        SetVehicleEngineOn(veh.Handle, !veh.IsEngineRunning, false, true);
+                    };
+
+                    engineSect.Add(toggleEngine);
+                }
+
+                if (IsAllowed(Permission.VOEngineAlwaysOn))
+                {
+                    var vehicleEngineAO = new MenuCheckboxItem("Engine Always On", "Keeps your vehicle engine running when you exit your vehicle.", VehicleEngineAlwaysOn).ToWrapped();
+                    vehicleEngineAO.CheckboxChanged += (_s, args) => VehicleEngineAlwaysOn = args.Checked;
+
+                    engineSect.Add(vehicleEngineAO);
+                }
+
+                if (IsAllowed(Permission.VODestroyEngine))
+                {
+                    var destroyEngine = new MenuItem("Destroy Engine", "Destroy your vehicle's engine.").ToWrapped();
+                    destroyEngine.Selected += (_s, _args) =>
+                    {
+                        var veh = TryGetIntactDriverVehicle("destroy the engine");
+                        if (veh == null)
+                            return;
+                        SetVehicleEngineHealth(veh.Handle, -4000);
+                    };
+
+                    engineSect.Add(destroyEngine);
+                }
+
+
+                engineMenu.AddSections([
+                    new Section("Multipliers", multipliersSect),
+                    new Section("Engine", engineSect),
+                ]);
+
+                menu.AddSubmenu(engineMenu, "Modify vehicle engine performance.");
             }
-            if (IsAllowed(Permission.VOWash))
+            #endregion
+
+            #region Doors & Windows
             {
-                menu.AddMenuItem(cleanVehicle); // CLEAN VEHICLE
-                menu.AddMenuItem(setDirtLevel); // SET DIRT LEVEL
+                var wheelsAndWindowsMenu = new WMenu(MenuTitle, "Doors & Windows");
+
+                var doorsSect = new List<WMenuItem>();
+                var windowsSect = new List<WMenuItem>();
+
+                if (IsAllowed(Permission.VODoors))
+                {
+                    var doors = new List<string>{ "Front Left", "Front Right", "Rear Left", "Rear Right", "Hood", "Trunk", "Extra 1", "Extra 2", "Bomb Bay" };
+
+                    var toggleAll = new MenuItem("Toggle All Doors", "Open or close all vehicle doors.").ToWrapped();
+                    toggleAll.Selected += (_s, _args) => TryToggleDoor(-1);
+
+                    var toggleDoor = new MenuListItem("Toggle Door", doors, 0, "Open or close a specific vehicle door (if it exists).").ToWrapped();
+                    toggleDoor.ListSelected += (_s, args) => TryToggleDoor(args.ListIndex);
+
+                    var removeAll = new MenuItem("Detach All Doors", "Detach all vehicle doors.").ToWrapped();
+                    removeAll.Selected += (_s, _args) => TryDetachDoor(-1);
+
+                    var removableDoors = new List<string>{ "Front Left", "Front Right", "Rear Left", "Rear Right", "Hood", "Trunk" };
+                    var removeDoorList = new MenuListItem("Detach Door", removableDoors, 0, "Detach a specific vehicle door.").ToWrapped();
+                    removeDoorList.ListSelected += (_s, args) => TryDetachDoor(args.ListIndex);
+
+                    var deleteDoors = new MenuCheckboxItem("Delete Removed Doors", "When enabled, doors that you remove using the list above will be deleted from the world instead of falling to the ground.", VehicleDeleteRemovedDoors).ToWrapped();
+                    deleteDoors.CheckboxChanged += (_s, args) => VehicleDeleteRemovedDoors = args.Checked;
+
+                    doorsSect.AddRange([toggleAll, toggleDoor, removeAll, removeDoorList, deleteDoors]);
+                }
+
+                if (IsAllowed(Permission.VOWindows))
+                {
+                    var windows = new List<string> { "Front Left", "Front Right", "Rear Left", "Rear Right" };
+
+                    var toggleAllWindows = new MenuListItem("All Windows", new List<string>{ "Up", "Down" }, 0, "Roll all vehicle windows up or down.").ToWrapped();
+                    toggleAllWindows.ListSelected += (_s, args) => TryToggleWindow(-1, args.ListIndex == 0);
+
+                    var rollUpWindow = new MenuListItem("Roll Window Up", windows, 0, "Roll a specific vehicle window up (if it exists).").ToWrapped();
+                    rollUpWindow.ListSelected += (_s, args) => TryToggleWindow(args.ListIndex, true);
+
+                    var rollDownWindow = new MenuListItem("Roll Window Down", windows, 0, "Roll a specific vehicle window down (if it exists).").ToWrapped();
+                    rollDownWindow.ListSelected += (_s, args) => TryToggleWindow(args.ListIndex, false);
+
+                    windowsSect.AddRange([toggleAllWindows, rollUpWindow, rollDownWindow]);
+                }
+
+                wheelsAndWindowsMenu.AddSections([
+                    new Section("Doors", doorsSect),
+                    new Section("Windows", windowsSect)
+                ]);
+
+                menu.AddSubmenu(wheelsAndWindowsMenu, "Toggle your vehicle's doors and windows");
             }
-            if (IsAllowed(Permission.VOUnderglow)) // UNDERGLOW EFFECTS
-            {
-               // menu.AddMenuItem(underglowMenuBtn);
-               // MenuController.BindMenuItem(menu, VehicleUnderglowMenu, underglowMenuBtn);
-            }
-            if (IsAllowed(Permission.VOEngine)) // TOGGLE ENGINE ON/OFF
-            {
-                menu.AddMenuItem(toggleEngine);
-            }
-            if (IsAllowed(Permission.VODoors)) // DOORS MENU
-            {
-                menu.AddMenuItem(doorsMenuBtn);
-            }
-            if (IsAllowed(Permission.VOWindows)) // WINDOWS MENU
-            {
-                menu.AddMenuItem(windowsMenuBtn);
-            }
-            if (IsAllowed(Permission.VOBikeSeatbelt))
-            {
-                menu.AddMenuItem(vehicleBikeSeatbelt);
-            }
-            if (IsAllowed(Permission.VOSpeedLimiter)) // SPEED LIMITER
-            {
-                menu.AddMenuItem(speedLimiter);
-            }
-            if (IsAllowed(Permission.VOTorqueMultiplier))
-            {
-                menu.AddMenuItem(torqueEnabled); // TORQUE ENABLED
-                menu.AddMenuItem(torqueMultiplier); // TORQUE LIST
-            }
-            if (IsAllowed(Permission.VOPowerMultiplier))
-            {
-                menu.AddMenuItem(powerEnabled); // POWER ENABLED
-                menu.AddMenuItem(powerMultiplier); // POWER LIST
-            }
-            if (IsAllowed(Permission.VODisableTurbulence))
-            {
-                menu.AddMenuItem(vehicleNoTurbulence);
-            }
-            if (IsAllowed(Permission.VOFlip)) // FLIP VEHICLE
-            {
-                menu.AddMenuItem(flipVehicle);
-            }
-            if (IsAllowed(Permission.VOAlarm)) // TOGGLE VEHICLE ALARM
-            {
-                menu.AddMenuItem(vehicleAlarm);
-            }
-            if (IsAllowed(Permission.VOCycleSeats)) // CYCLE THROUGH VEHICLE SEATS
-            {
-                menu.AddMenuItem(cycleSeats);
-            }
-            if (IsAllowed(Permission.VOLights)) // VEHICLE LIGHTS LIST
-            {
-                menu.AddMenuItem(vehicleLights);
-            }
+            #endregion
+
+            #region Wheels & Tires
             if (IsAllowed(Permission.VOFixOrDestroyTires))
             {
-                menu.AddMenuItem(vehicleTiresList);
-                //menu.AddMenuItem(destroyTireList);
-            }
-            if (IsAllowed(Permission.VOFreeze)) // FREEZE VEHICLE
-            {
-                menu.AddMenuItem(vehicleFreeze);
-            }
-            if (IsAllowed(Permission.VOInvisible)) // MAKE VEHICLE INVISIBLE
-            {
-                menu.AddMenuItem(vehicleInvisible);
-            }
-            if (IsAllowed(Permission.VOEngineAlwaysOn)) // LEAVE ENGINE RUNNING
-            {
-                menu.AddMenuItem(vehicleEngineAO);
-            }
-            if (IsAllowed(Permission.VOInfiniteFuel)) // INFINITE FUEL
-            {
-                menu.AddMenuItem(infiniteFuel);
-            }
-            if (IsAllowed(Permission.VOReduceDriftSuspension)) // REDUCE DRIFT SUSPENSION
-            {
-                menu.AddMenuItem(reduceDriftSuspension);
-            }
-            // always allowed
-            menu.AddMenuItem(showHealth); // SHOW VEHICLE HEALTH
+                var tiresAndWheelsMenu = new WMenu(MenuTitle, "Wheels & Tires");
 
-            // I don't really see why would you want to disable this so I will not add useless permissions
-            menu.AddMenuItem(radioStations);
+                var wheels = Enumerable.Range(0, 8).Select(x => $"Wheel #{x}").ToList();
+                var tires = Enumerable.Range(0, 8).Select(x => $"Tire #{x}").ToList();
 
-            if (IsAllowed(Permission.VONoSiren) && !vMenuShared.ConfigManager.GetSettingsBool(vMenuShared.ConfigManager.Setting.vmenu_use_els_compatibility_mode)) // DISABLE SIREN
-            {
-                menu.AddMenuItem(vehicleNoSiren);
-            }
-            if (IsAllowed(Permission.VONoHelmet)) // DISABLE BIKE HELMET
-            {
-                menu.AddMenuItem(vehicleNoBikeHelmet);
-            }
-            if (IsAllowed(Permission.VOFlashHighbeamsOnHonk)) // FLASH HIGHBEAMS ON HONK
-            {
-                menu.AddMenuItem(highbeamsOnHonk);
-            }
+                var detachAllWheels = new MenuItem("Detach All Wheels", "Detach all vehicle wheels.").ToWrapped();
+                detachAllWheels.Selected += (_s, args) => TryDetachWheel(-1);
 
-            if (IsAllowed(Permission.VODelete)) // DELETE VEHICLE
-            {
-                menu.AddMenuItem(deleteBtn);
+                var detachWheel = new MenuListItem("Detach Wheel", wheels, 0, "Detach all vehicle wheels.").ToWrapped();
+                detachWheel.ListSelected += (_s, args) => TryDetachWheel(args.ListIndex);
+
+                var toggleAllTires = new MenuItem("Toggle All Tires", "Inflate or burst all vehicle tires.").ToWrapped();
+                toggleAllTires.Selected += (_s, args) => TryToggleTire(-1);
+
+                var toggleTire = new MenuListItem("Toggle Tire", tires, 0, "Inflate or burst a specific vehicle tire.").ToWrapped();
+                toggleTire.ListSelected += (_s, args) => TryToggleTire(args.ListIndex);
+
+
+                tiresAndWheelsMenu.AddItems([detachAllWheels, detachWheel, toggleAllTires, toggleTire]);
+
+                menu.AddSubmenu(tiresAndWheelsMenu, "Remove your vehicle's wheels, or de- and inflate its tires.");
             }
             #endregion
 
-            #region delete vehicle handle stuff
-            DeleteConfirmMenu.AddMenuItem(deleteNoBtn);
-            DeleteConfirmMenu.AddMenuItem(deleteYesBtn);
-            DeleteConfirmMenu.OnItemSelect += (sender, item, index) =>
             {
-                if (item == deleteNoBtn)
+                var radioStationOptions = new List<Tuple<RadioStation, string>>
                 {
-                    DeleteConfirmMenu.GoBack();
-                }
-                else
-                {
-                    var veh = GetVehicle();
-                    if (veh != null && veh.Exists() && GetVehicle().Driver == Game.PlayerPed)
-                    {
-                        SetVehicleHasBeenOwnedByPlayer(veh.Handle, false);
-                        SetEntityAsMissionEntity(veh.Handle, false, false);
-                        veh.Delete();
-                    }
-                    else
-                    {
-                        if (!Game.PlayerPed.IsInVehicle())
-                        {
-                            Notify.Alert(CommonErrors.NoVehicle);
-                        }
-                        else
-                        {
-                            Notify.Alert("You need to be in the driver's seat if you want to delete a vehicle.");
-                        }
+                    new Tuple<RadioStation, string>(RadioStation.LosSantosRockRadio, "Los Santos Rock Radio"),
+                    new Tuple<RadioStation, string>(RadioStation.NonStopPopFM, "Non Stop Pop FM"),
+                    new Tuple<RadioStation, string>(RadioStation.RadioLosSantos, "Radio Los Santos"),
+                    new Tuple<RadioStation, string>(RadioStation.ChannelX, "Channel X"),
+                    new Tuple<RadioStation, string>(RadioStation.WestCoastTalkRadio, "West Coast Talk Radio"),
+                    new Tuple<RadioStation, string>(RadioStation.RebelRadio, "Rebel Radio"),
+                    new Tuple<RadioStation, string>(RadioStation.SoulwaxFM, "Soulwax FM"),
+                    new Tuple<RadioStation, string>(RadioStation.EastLosFM, "East Los FM"),
+                    new Tuple<RadioStation, string>(RadioStation.WestCoastClassics, "West Coast Classics"),
+                    new Tuple<RadioStation, string>(RadioStation.TheBlueArk, "The Blue Ark"),
+                    new Tuple<RadioStation, string>(RadioStation.WorldWideFM, "World Wide FM"),
+                    new Tuple<RadioStation, string>(RadioStation.FlyloFM, "Flylo FM"),
+                    new Tuple<RadioStation, string>(RadioStation.TheLowdown, "The Lowdown 91.1"),
+                    new Tuple<RadioStation, string>(RadioStation.TheLab, "The Lab"),
+                    new Tuple<RadioStation, string>(RadioStation.RadioMirrorPark, "Radio Mirror Park"),
+                    new Tuple<RadioStation, string>(RadioStation.Space, "Space 103.2"),
+                    new Tuple<RadioStation, string>(RadioStation.VinewoodBoulevardRadio, "Vinewood Boulevard Radio"),
+                    new Tuple<RadioStation, string>(RadioStation.BlondedLosSantos, "Blonded Los Santos 97.8 FM"),
+                    new Tuple<RadioStation, string>(RadioStation.LosSantosUndergroundRadio, "Los Santos Underground Radio"),
+                    new Tuple<RadioStation, string>(RadioStation.RadioOff, "~italic~Off~italic~"),
+                    // We disable these, because they are not reliable to set and depend on where on the map you are
+                    // new Tuple<RadioStation, string>(RadioStation.BlaineCountyRadio, "Blaine County Radio"),
+                    // new Tuple<RadioStation, string>(RadioStation.SelfRadio , "~italic~Media Player~italic~"),
+                };
 
-                    }
-                    DeleteConfirmMenu.GoBack();
-                    menu.GoBack();
-                }
-            };
-            #endregion
+                var radioIndex = radioStationOptions
+                    .Select((t, i) => new Tuple<RadioStation,int>(t.Item1,i))
+                    .FirstOrDefault(t => t.Item1 == (RadioStation)UserDefaults.VehicleDefaultRadio)
+                    .Item2;
 
-            #region Bind Submenus to their buttons.
-            MenuController.BindMenuItem(menu, VehicleDoorsMenu, doorsMenuBtn);
-            MenuController.BindMenuItem(menu, VehicleWindowsMenu, windowsMenuBtn);
-            MenuController.BindMenuItem(menu, DeleteConfirmMenu, deleteBtn);
-            #endregion
-
-            #region Handle button presses
-            // Manage button presses.
-            menu.OnItemSelect += (sender, item, index) =>
-            {
-                if (item == deleteBtn) // reset the index so that "no" / "cancel" will always be selected by default.
+                var radioStations = new MenuListItem(
+                    "Radio Station",
+                    radioStationOptions.Select(t => t.Item2).ToList(),
+                    radioIndex,
+                    "Select a radio station for your current and also new vehicles.").ToWrapped();
+                radioStations.ListSelected += (_s, args) =>
                 {
-                    DeleteConfirmMenu.RefreshIndex();
-                }
-                // If the player is actually in a vehicle, continue.
-                if (GetVehicle() != null && GetVehicle().Exists())
-                {
-                    // Create a vehicle object.
-                    var vehicle = GetVehicle();
-
-                    // Check if the player is the driver of the vehicle, if so, continue.
-                    if (vehicle.GetPedOnSeat(VehicleSeat.Driver) == new Ped(Game.PlayerPed.Handle))
-                    {
-                        // Repair vehicle.
-                        if (item == fixVehicle)
-                        {
-                            vehicle.Repair();
-                        }
-                        // Clean vehicle.
-                        else if (item == cleanVehicle)
-                        {
-                            vehicle.Wash();
-                        }
-                        // Flip vehicle.
-                        else if (item == flipVehicle)
-                        {
-                            SetVehicleOnGroundProperly(vehicle.Handle);
-                        }
-                        // Toggle alarm.
-                        else if (item == vehicleAlarm)
-                        {
-                            ToggleVehicleAlarm(vehicle);
-                        }
-                        // Toggle engine
-                        else if (item == toggleEngine)
-                        {
-                            SetVehicleEngineOn(vehicle.Handle, !vehicle.IsEngineRunning, false, true);
-                        }
-                        // Make vehicle invisible.
-                        else if (item == vehicleInvisible)
-                        {
-                            if (vehicle.IsVisible)
-                            {
-                                // Check the visibility of all peds inside before setting the vehicle as invisible.
-                                var visiblePeds = new Dictionary<Ped, bool>();
-                                foreach (var p in vehicle.Occupants)
-                                {
-                                    visiblePeds.Add(p, p.IsVisible);
-                                }
-
-                                // Set the vehicle invisible or invincivble.
-                                vehicle.IsVisible = !vehicle.IsVisible;
-
-                                // Restore visibility for each ped.
-                                foreach (var pe in visiblePeds)
-                                {
-                                    pe.Key.IsVisible = pe.Value;
-                                }
-                            }
-                            else
-                            {
-                                // Set the vehicle invisible or invincivble.
-                                vehicle.IsVisible = !vehicle.IsVisible;
-                            }
-                        }
-                        // Reduce Drift Suspension
-                        else if (item == reduceDriftSuspension)
-                        {
-                            SetVehicleDriftSuspension();
-                        }
-                        // Destroy vehicle engine
-                        else if (item == destroyEngine)
-                        {
-                            SetVehicleEngineHealth(vehicle.Handle, -4000);
-                        }
-                    }
-
-                    // If the player is not the driver seat and a button other than the option below (cycle seats) was pressed, notify them.
-                    else if (item != cycleSeats)
-                    {
-                        Notify.Error("You have to be the driver of a vehicle to access this menu!", true, false);
-                    }
-
-                    // Cycle vehicle seats
-                    if (item == cycleSeats)
-                    {
-                        CycleThroughSeats();
-                    }
-                }
-            };
-            #endregion
-
-            #region Handle checkbox changes.
-            menu.OnCheckboxChange += (sender, item, index, _checked) =>
-            {
-                // Create a vehicle object.
-                var vehicle = GetVehicle();
-
-                if (item == vehicleGod) // God Mode Toggled
-                {
-                    VehicleGodMode = _checked;
-                }
-                else if (item == vehicleFreeze) // Freeze Vehicle Toggled
-                {
-                    VehicleFrozen = _checked;
-                    if (!_checked)
-                    {
-                        if (vehicle != null && vehicle.Exists())
-                        {
-                            FreezeEntityPosition(vehicle.Handle, false);
-                        }
-                    }
-                }
-                else if (item == torqueEnabled) // Enable Torque Multiplier Toggled
-                {
-                    VehicleTorqueMultiplier = _checked;
-                }
-                else if (item == powerEnabled) // Enable Power Multiplier Toggled
-                {
-                    VehiclePowerMultiplier = _checked;
-                    if (_checked)
-                    {
-                        if (vehicle != null && vehicle.Exists())
-                        {
-                            SetVehicleEnginePowerMultiplier(vehicle.Handle, VehiclePowerMultiplierAmount);
-                        }
-                    }
-                    else
-                    {
-                        if (vehicle != null && vehicle.Exists())
-                        {
-                            SetVehicleEnginePowerMultiplier(vehicle.Handle, 1f);
-                        }
-                    }
-                }
-                else if (item == vehicleEngineAO) // Leave Engine Running (vehicle always on) Toggled
-                {
-                    VehicleEngineAlwaysOn = _checked;
-                }
-                else if (item == showHealth) // show vehicle health on screen.
-                {
-                    VehicleShowHealth = _checked;
-                }
-                else if (item == vehicleNoSiren) // Disable Siren Toggled
-                {
-                    VehicleNoSiren = _checked;
-                    if (vehicle != null && vehicle.Exists())
-                    {
-                        vehicle.IsSirenSilent = _checked;
-                    }
-                }
-                else if (item == vehicleNoBikeHelmet) // No Helemet Toggled
-                {
-                    VehicleNoBikeHelemet = _checked;
-                }
-                else if (item == highbeamsOnHonk)
-                {
-                    FlashHighbeamsOnHonk = _checked;
-                }
-                else if (item == vehicleNoTurbulence)
-                {
-                    DisablePlaneTurbulence = _checked;
-                    if (vehicle != null && vehicle.Exists() && vehicle.Model.IsPlane)
-                    {
-                        if (MainMenu.VehicleOptionsMenu.DisablePlaneTurbulence)
-                        {
-                            SetPlaneTurbulenceMultiplier(vehicle.Handle, 0f);
-                        }
-                        else
-                        {
-                            SetPlaneTurbulenceMultiplier(vehicle.Handle, 1.0f);
-                        }
-                    }
-                }
-                else if (item == vehicleNoTurbulenceHeli)
-                {
-                    DisableHelicopterTurbulence = _checked;
-                    if (vehicle != null && vehicle.Exists() && vehicle.Model.IsHelicopter)
-                    {
-                        if (MainMenu.VehicleOptionsMenu.DisableHelicopterTurbulence)
-                        {
-                            SetHeliTurbulenceScalar(vehicle.Handle, 0f);
-                        }
-                        else
-                        {
-                            SetHeliTurbulenceScalar(vehicle.Handle, 1f);
-                        }
-                    }
-                }
-                else if (item == vehicleNeverDirty)
-                {
-                    VehicleNeverDirty = _checked;
-                }
-                else if (item == vehicleBikeSeatbelt)
-                {
-                    VehicleBikeSeatbelt = _checked;
-                }
-                else if (item == infiniteFuel)
-                {
-                    VehicleInfiniteFuel = _checked;
-                }
-            };
-            #endregion
-
-            #region Handle List Changes.
-            // Handle list changes.
-            menu.OnListIndexChange += (sender, item, oldIndex, newIndex, itemIndex) =>
-            {
-                if (GetVehicle() != null && GetVehicle().Exists())
-                {
-                    var veh = GetVehicle();
-                    // If the torque multiplier changed. Change the torque multiplier to the new value.
-                    if (item == torqueMultiplier)
-                    {
-                        // Get the selected value and remove the "x" in the string with nothing.
-                        var value = torqueMultiplierList[newIndex].ToString().Replace("x", "");
-                        // Convert the value to a float and set it as a public variable.
-                        VehicleTorqueMultiplierAmount = float.Parse(value);
-                    }
-                    // If the power multiplier is changed. Change the power multiplier to the new value.
-                    else if (item == powerMultiplier)
-                    {
-                        // Get the selected value. Remove the "x" from the string.
-                        var value = powerMultiplierList[newIndex].ToString().Replace("x", "");
-                        // Conver the string into a float and set it to be the value of the public variable.
-                        VehiclePowerMultiplierAmount = float.Parse(value);
-                        if (VehiclePowerMultiplier)
-                        {
-                            SetVehicleEnginePowerMultiplier(veh.Handle, VehiclePowerMultiplierAmount);
-                        }
-                    }
-                }
-            };
-            #endregion
-
-            #region Handle List Items Selected
-            menu.OnListItemSelect += async (sender, item, listIndex, itemIndex) =>
-            {
-                // Set dirt level
-                if (item == setDirtLevel)
-                {
-                    if (Game.PlayerPed.IsInVehicle())
-                    {
-                        GetVehicle().DirtLevel = float.Parse(listIndex.ToString());
-                    }
-                    else
-                    {
-                        Notify.Error(CommonErrors.NoVehicle);
-                    }
-                }
-                // Toggle vehicle lights
-                else if (item == vehicleLights)
-                {
-                    if (Game.PlayerPed.IsInVehicle())
-                    {
-                        var veh = GetVehicle();
-                        // We need to do % 4 because this seems to be some sort of flags system. For a taxi, this function returns 65, 66, etc.
-                        // So % 4 takes care of that.
-                        var state = GetVehicleIndicatorLights(veh.Handle) % 4; // 0 = none, 1 = left, 2 = right, 3 = both
-
-                        if (listIndex == 0) // Hazard lights
-                        {
-                            if (state != 3) // either all lights are off, or one of the two (left/right) is off.
-                            {
-                                SetVehicleIndicatorLights(veh.Handle, 1, true); // left on
-                                SetVehicleIndicatorLights(veh.Handle, 0, true); // right on
-                            }
-                            else // both are on.
-                            {
-                                SetVehicleIndicatorLights(veh.Handle, 1, false); // left off
-                                SetVehicleIndicatorLights(veh.Handle, 0, false); // right off
-                            }
-                        }
-                        else if (listIndex == 1) // left indicator
-                        {
-                            if (state != 1) // Left indicator is (only) off
-                            {
-                                SetVehicleIndicatorLights(veh.Handle, 1, true); // left on
-                                SetVehicleIndicatorLights(veh.Handle, 0, false); // right off
-                            }
-                            else
-                            {
-                                SetVehicleIndicatorLights(veh.Handle, 1, false); // left off
-                                SetVehicleIndicatorLights(veh.Handle, 0, false); // right off
-                            }
-                        }
-                        else if (listIndex == 2) // right indicator
-                        {
-                            if (state != 2) // Right indicator (only) is off
-                            {
-                                SetVehicleIndicatorLights(veh.Handle, 1, false); // left off
-                                SetVehicleIndicatorLights(veh.Handle, 0, true); // right on
-                            }
-                            else
-                            {
-                                SetVehicleIndicatorLights(veh.Handle, 1, false); // left off
-                                SetVehicleIndicatorLights(veh.Handle, 0, false); // right off
-                            }
-                        }
-                        else if (listIndex == 3) // Interior lights
-                        {
-                            SetVehicleInteriorlight(veh.Handle, !IsVehicleInteriorLightOn(veh.Handle));
-                            //CommonFunctions.Log("Something cool here.");
-                        }
-                        //else if (listIndex == 4) // taxi light
-                        //{
-                        //    veh.IsTaxiLightOn = !veh.IsTaxiLightOn;
-                        //    //    SetTaxiLights(veh, true);
-                        //    //    SetTaxiLights(veh, false);
-                        //    //    //CommonFunctions.Log(IsTaxiLightOn(veh).ToString());
-                        //    //    //SetTaxiLights(veh, true);
-                        //    //    //CommonFunctions.Log(IsTaxiLightOn(veh).ToString());
-                        //    //    //SetTaxiLights(veh, false);
-                        //    //    //SetTaxiLights(veh, !IsTaxiLightOn(veh));
-                        //    //    CommonFunctions.Log
-                        //}
-                        else if (listIndex == 4) // helicopter spotlight
-                        {
-                            SetVehicleSearchlight(veh.Handle, !IsVehicleSearchlightOn(veh.Handle), true);
-                        }
-                    }
-                    else
-                    {
-                        Notify.Error(CommonErrors.NoVehicle);
-                    }
-                }
-                // Speed Limiter
-                else if (item == speedLimiter)
-                {
-                    if (Game.PlayerPed.IsInVehicle())
-                    {
-                        var vehicle = GetVehicle();
-
-                        if (vehicle != null && vehicle.Exists())
-                        {
-                            if (listIndex == 0) // Set
-                            {
-                                SetEntityMaxSpeed(vehicle.Handle, 500.01f);
-                                SetEntityMaxSpeed(vehicle.Handle, vehicle.Speed);
-
-                                if (ShouldUseMetricMeasurements()) // kph
-                                {
-                                    Notify.Info($"Vehicle speed is now limited to ~b~{Math.Round(vehicle.Speed * 3.6f, 1)} KPH~s~.");
-                                }
-                                else // mph
-                                {
-                                    Notify.Info($"Vehicle speed is now limited to ~b~{Math.Round(vehicle.Speed * 2.237f, 1)} MPH~s~.");
-                                }
-
-                            }
-                            else if (listIndex == 1) // Reset
-                            {
-                                SetEntityMaxSpeed(vehicle.Handle, 500.01f); // Default max speed seemingly for all vehicles.
-                                Notify.Info("Vehicle speed is now no longer limited.");
-                            }
-                            else if (listIndex == 2) // custom speed
-                            {
-                                var inputSpeed = await GetUserInput("Enter a speed (in meters/sec)", "20.0", 5);
-                                if (!string.IsNullOrEmpty(inputSpeed))
-                                {
-                                    if (float.TryParse(inputSpeed, out var outFloat))
-                                    {
-                                        //vehicle.MaxSpeed = outFloat;
-                                        SetEntityMaxSpeed(vehicle.Handle, 500.01f);
-                                        await BaseScript.Delay(0);
-                                        SetEntityMaxSpeed(vehicle.Handle, outFloat + 0.01f);
-                                        if (ShouldUseMetricMeasurements()) // kph
-                                        {
-                                            Notify.Info($"Vehicle speed is now limited to ~b~{Math.Round(outFloat * 3.6f, 1)} KPH~s~.");
-                                        }
-                                        else // mph
-                                        {
-                                            Notify.Info($"Vehicle speed is now limited to ~b~{Math.Round(outFloat * 2.237f, 1)} MPH~s~.");
-                                        }
-                                    }
-                                    else if (int.TryParse(inputSpeed, out var outInt))
-                                    {
-                                        SetEntityMaxSpeed(vehicle.Handle, 500.01f);
-                                        await BaseScript.Delay(0);
-                                        SetEntityMaxSpeed(vehicle.Handle, outInt + 0.01f);
-                                        if (ShouldUseMetricMeasurements()) // kph
-                                        {
-                                            Notify.Info($"Vehicle speed is now limited to ~b~{Math.Round(outInt * 3.6f, 1)} KPH~s~.");
-                                        }
-                                        else // mph
-                                        {
-                                            Notify.Info($"Vehicle speed is now limited to ~b~{Math.Round(outInt * 2.237f, 1)} MPH~s~.");
-                                        }
-                                    }
-                                    else
-                                    {
-                                        Notify.Error("This is not a valid number. Please enter a valid speed in meters per second.");
-                                    }
-                                }
-                                else
-                                {
-                                    Notify.Error(CommonErrors.InvalidInput);
-                                }
-                            }
-                        }
-                    }
-                }
-                else if (item == vehicleTiresList)
-                {
-                    //bool fix = item == vehicleTiresList;
-
-                    var veh = GetVehicle();
-                    if (veh != null && veh.Exists())
-                    {
-                        if (Game.PlayerPed == veh.Driver)
-                        {
-                            if (listIndex == 0)
-                            {
-                                if (IsVehicleTyreBurst(veh.Handle, 0, false))
-                                {
-                                    for (var i = 0; i < 8; i++)
-                                    {
-                                        SetVehicleTyreFixed(veh.Handle, i);
-                                    }
-                                    Notify.Success("All vehicle tyres have been fixed.");
-                                }
-                                else
-                                {
-                                    for (var i = 0; i < 8; i++)
-                                    {
-                                        SetVehicleTyreBurst(veh.Handle, i, false, 1f);
-                                    }
-                                    Notify.Success("All vehicle tyres have been destroyed.");
-                                }
-                            }
-                            else
-                            {
-                                var index = listIndex - 1;
-                                if (IsVehicleTyreBurst(veh.Handle, index, false))
-                                {
-                                    SetVehicleTyreFixed(veh.Handle, index);
-                                    Notify.Success($"Vehicle tyre #{listIndex} has been fixed.");
-                                }
-                                else
-                                {
-                                    SetVehicleTyreBurst(veh.Handle, index, false, 1f);
-                                    Notify.Success($"Vehicle tyre #{listIndex} has been destroyed.");
-                                }
-                            }
-                        }
-                        else
-                        {
-                            Notify.Error(CommonErrors.NeedToBeTheDriver);
-                        }
-                    }
-                    else
-                    {
-                        Notify.Error(CommonErrors.NoVehicle);
-                    }
-                }
-                else if (item == radioStations)
-                {
-                    var newStation = (RadioStation)Enum.GetValues(typeof(RadioStation)).GetValue(listIndex);
-
-                    var veh = GetVehicle();
-                    if (veh != null && veh.Exists())
-                    {
-                        veh.RadioStation = newStation;
-                    }
-
+                    var newStation = radioStationOptions[args.ListIndex].Item1;
                     UserDefaults.VehicleDefaultRadio = (int)newStation;
+
+                    var veh = TryGetIntactDriverVehicle(null);
+                    if (veh == null)
+                        return;
+
+                    SetVehRadioStation(veh.Handle, RadioData.RadioStationToGameName[newStation]);
+                };
+
+                menu.AddItem(radioStations);
+            }
+
+            if (IsAllowed(Permission.VOLights))
+            {
+                var lights = new List<string>()
+                {
+                    "Hazard Lights",
+                    "Left Indicator",
+                    "Right Indicator",
+                    "Interior Lights",
+                    "Helicopter Spotlight",
+                };
+                var vehicleLights = new MenuListItem("Toggle Vehicle Lights", lights, 0, "Turn vehicle lights on or off.").ToWrapped();
+                vehicleLights.ListSelected += (_s, args) => ToggleVehicleLights(args.ListIndex);
+
+                menu.AddItem(vehicleLights);
+            }
+
+            #region Dust & Dirt
+            {
+                var dustAndDirt = new WMenu(MenuTitle, "Dust & Dirt");
+
+                if (IsAllowed(Permission.VOWash))
+                {
+                    var cleanVehicle = new MenuItem("Wash Vehicle", "Clean your vehicle.").ToWrapped();
+                    cleanVehicle.Selected += (_s, _args) => TryGetIntactDriverVehicle("wash")?.Wash();
+
+                    var dirtLevels = new List<string> { "No Dirt", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15" };
+                    var setDirtLevel = new MenuListItem("Set Dirt Level", dirtLevels, 0, "Select how much dirt should be visible on your vehicle.").ToWrapped();
+                    setDirtLevel.ListSelected += (_s, args) =>
+                    {
+                        var veh = TryGetIntactDriverVehicle("change the dirt level");
+                        if (veh == null)
+                            return;
+
+                        veh.DirtLevel = args.ListIndex;
+                    };
+
+                    dustAndDirt.AddItems([cleanVehicle, setDirtLevel]);
                 }
-            };
+
+                if (IsAllowed(Permission.VOKeepClean))
+                {
+                    var vehicleNeverDirty = new MenuCheckboxItem("Keep Vehicle Clean", "This will automatically wash your vehicle whenever it is dirty. ~y~This only cleans dust or dirt, but ~italic~not~italic~ mud, snow or damage decals.~s~ Repair your vehicle to remove them.", VehicleNeverDirty).ToWrapped();
+                    vehicleNeverDirty.CheckboxChanged += (_s, args) => VehicleNeverDirty = args.Checked;
+
+                    dustAndDirt.AddItem(vehicleNeverDirty);
+                }
+
+                menu.AddSubmenu(dustAndDirt, "Change dust and dirt on your vehicle.");
+            }
             #endregion
 
-            #region Vehicle Doors Submenu Stuff
-            var openAll = new MenuItem("Open All Doors", "Open all vehicle doors.");
-            var closeAll = new MenuItem("Close All Doors", "Close all vehicle doors.");
-            var LF = new MenuItem("Left Front Door", "Open/close the left front door.");
-            var RF = new MenuItem("Right Front Door", "Open/close the right front door.");
-            var LR = new MenuItem("Left Rear Door", "Open/close the left rear door.");
-            var RR = new MenuItem("Right Rear Door", "Open/close the right rear door.");
-            var HD = new MenuItem("Hood", "Open/close the hood.");
-            var TR = new MenuItem("Trunk", "Open/close the trunk.");
-            var E1 = new MenuItem("Extra 1", "Open/close the extra door (#1). Note this door is not present on most vehicles.");
-            var E2 = new MenuItem("Extra 2", "Open/close the extra door (#2). Note this door is not present on most vehicles.");
-            var BB = new MenuItem("Bomb Bay", "Open/close the bomb bay. Only available on some planes.");
-            var doors = new List<string>() { "Front Left", "Front Right", "Rear Left", "Rear Right", "Hood", "Trunk", "Extra 1", "Extra 2" };
-            var removeDoorList = new MenuListItem("Remove Door", doors, 0, "Remove a specific vehicle door completely.");
-            var deleteDoors = new MenuCheckboxItem("Delete Removed Doors", "When enabled, doors that you remove using the list above will be deleted from the world. If disabled, then the doors will just fall on the ground.", false);
-
-            VehicleDoorsMenu.AddMenuItem(LF);
-            VehicleDoorsMenu.AddMenuItem(RF);
-            VehicleDoorsMenu.AddMenuItem(LR);
-            VehicleDoorsMenu.AddMenuItem(RR);
-            VehicleDoorsMenu.AddMenuItem(HD);
-            VehicleDoorsMenu.AddMenuItem(TR);
-            VehicleDoorsMenu.AddMenuItem(E1);
-            VehicleDoorsMenu.AddMenuItem(E2);
-            VehicleDoorsMenu.AddMenuItem(BB);
-            VehicleDoorsMenu.AddMenuItem(openAll);
-            VehicleDoorsMenu.AddMenuItem(closeAll);
-            VehicleDoorsMenu.AddMenuItem(removeDoorList);
-            VehicleDoorsMenu.AddMenuItem(deleteDoors);
-
-            VehicleDoorsMenu.OnListItemSelect += (sender, item, index, itemIndex) =>
+            #region Misc
             {
-                var veh = GetVehicle();
-                if (veh != null && veh.Exists())
-                {
-                    if (veh.Driver == Game.PlayerPed)
-                    {
-                        if (item == removeDoorList)
-                        {
-                            SetVehicleDoorBroken(veh.Handle, index, deleteDoors.Checked);
-                        }
-                    }
-                    else
-                    {
-                        Notify.Error(CommonErrors.NeedToBeTheDriver);
-                    }
-                }
-                else
-                {
-                    Notify.Error(CommonErrors.NoVehicle);
-                }
-            };
+                var miscMenu = new WMenu(MenuTitle, "Miscellaneous");
 
-            // Handle button presses.
-            VehicleDoorsMenu.OnItemSelect += (sender, item, index) =>
-            {
-                // Get the vehicle.
-                var veh = GetVehicle();
-                // If the player is in a vehicle, it's not dead and the player is the driver, continue.
-                if (veh != null && veh.Exists() && !veh.IsDead && veh.Driver == Game.PlayerPed)
+                if (IsAllowed(Permission.VOFlip))
                 {
-                    // If button 0-5 are pressed, then open/close that specific index/door.
-                    if (index < 8)
+                    var flipVehicle = new MenuItem("Flip Vehicle", "Sets your vehicle on all wheels.").ToWrapped();
+                    flipVehicle.Selected += (_s, _args) =>
                     {
-                        // If the door is open.
-                        bool open = GetVehicleDoorAngleRatio(veh.Handle, index) > 0.1f ? true : false;
+                        var veh = TryGetIntactDriverVehicle("flip the vehicle");
+                        if (veh == null)
+                            return;
 
-                        if (open)
-                        {
-                            // Close the door.
-                            SetVehicleDoorShut(veh.Handle, index, false);
-                        }
-                        else
-                        {
-                            // Open the door.
-                            SetVehicleDoorOpen(veh.Handle, index, false, false);
-                        }
-                    }
-                    // If the index >= 8, and the button is "openAll": open all doors.
-                    else if (item == openAll)
-                    {
-                        // Loop through all doors and open them.
-                        for (var door = 0; door < 8; door++)
-                        {
-                            SetVehicleDoorOpen(veh.Handle, door, false, false);
-                        }
-                        if (veh.HasBombBay) veh.OpenBombBay();
-                    }
-                    // If the index >= 8, and the button is "closeAll": close all doors.
-                    else if (item == closeAll)
-                    {
-                        // Close all doors.
-                        SetVehicleDoorsShut(veh.Handle, false);
-                        if (veh.HasBombBay) veh.CloseBombBay();
-                    }
-                    // If bomb bay doors button is pressed and the vehicle has bomb bay doors.
-                    else if (item == BB && veh.HasBombBay)
-                    {
-                        bool bombBayOpen = AreBombBayDoorsOpen(veh.Handle);
-                        // If open, close them.
-                        if (bombBayOpen)
-                            veh.CloseBombBay();
-                        // Otherwise, open them.
-                        else
-                            veh.OpenBombBay();
-                    }
+                        SetVehicleOnGroundProperly(veh.Handle);
+                    };
+
+                    miscMenu.AddItem(flipVehicle);
                 }
-                else
+
+                if (IsAllowed(Permission.VOFlashHighbeamsOnHonk))
                 {
-                    Notify.Alert(CommonErrors.NoVehicle, placeholderValue: "to open/close a vehicle door");
-                }
-            };
+                    var highbeamsOnHonk = new MenuCheckboxItem("Flash Highbeams On Honk", "Flash your highbeams when honking. ~y~Does not work during the day when you have your lights turned off.~s~", FlashHighbeamsOnHonk).ToWrapped();
+                    highbeamsOnHonk.CheckboxChanged += (_s, args) => FlashHighbeamsOnHonk = args.Checked;
 
+                    miscMenu.AddItem(highbeamsOnHonk);
+                }
+
+                if (IsAllowed(Permission.VOCycleSeats))
+                {
+                    var cycleSeats = new MenuItem("Cycle Through Vehicle Seats", "Cycle through the available vehicle seats.").ToWrapped();
+                    cycleSeats.Selected += (_s, _args) =>
+                    {
+                        var veh = TryGetIntactVehicle("switch seats");
+                        if (veh == null)
+                            return;
+
+                        CycleThroughSeats();
+                    };
+
+                    miscMenu.AddItem(cycleSeats);
+                }
+
+                if (IsAllowed(Permission.VOBikeSeatbelt))
+                {
+                    var vehicleBikeSeatbelt = new MenuCheckboxItem("Bike Seatbelt", "Prevents you from being knocked off your bike, bicycle, ATV or similar.", VehicleBikeSeatbelt).ToWrapped();
+                    vehicleBikeSeatbelt.CheckboxChanged += (_s, args) => VehicleBikeSeatbelt = args.Checked;
+
+                    miscMenu.AddItem(vehicleBikeSeatbelt);
+                }
+                if (IsAllowed(Permission.VONoHelmet))
+                {
+                    var vehicleNoBikeHelmet = new MenuCheckboxItem("No Bike Helmet", "Prevent auto-equipping a helmet when getting on a bike or quad.", VehicleNoBikeHelmet).ToWrapped();
+                    vehicleNoBikeHelmet.CheckboxChanged += (_s, args) => VehicleNoBikeHelmet = args.Checked;
+
+                    miscMenu.AddItem(vehicleNoBikeHelmet);
+                }
+
+                if (IsAllowed(Permission.VODisableTurbulence))
+                {
+                    var noTurbulencePlane = new MenuCheckboxItem("Disable Plane Turbulence", "Disables the turbulence for all planes.", DisablePlaneTurbulence).ToWrapped();
+                    noTurbulencePlane.CheckboxChanged += (_s, args) => DisablePlaneTurbulence = args.Checked;
+
+                    var noTurbulenceHeli = new MenuCheckboxItem("Disable Helicopter Turbulence", "Disables the turbulence for all helicopters.", DisableHelicopterTurbulence).ToWrapped();
+                    noTurbulenceHeli.CheckboxChanged += (_s, args) => DisableHelicopterTurbulence = args.Checked;
+
+                    miscMenu.AddItems([noTurbulencePlane, noTurbulenceHeli]);
+                }
+
+
+                if (IsAllowed(Permission.VOSpeedLimiter))
+                {
+                    var speedLimiterOptions = new List<string>() { "Set", "Reset", "Custom" };
+                    var speedLimiter = new MenuListItem("Speed Limiter", speedLimiterOptions, 0, "Configure the speed limiter for your current vehicle.").ToWrapped();
+                    speedLimiter.ListSelected += async (_o, args) => await ConfigureSpeedLimiter(args.ListIndex);
+
+                    miscMenu.AddItem(speedLimiter);
+                }
+
+                if (IsAllowed(Permission.VOAlarm))
+                {
+                    var vehicleAlarm = new MenuItem("Toggle Vehicle Alarm", "Starts or stops your vehicle's alarm. ~y~Some vehicles might not have an alarm.~s~").ToWrapped();
+                    vehicleAlarm.Selected += (_s, _args) =>
+                    {
+                        var veh = TryGetIntactDriverVehicle("toggle the alarm");
+                        if (veh == null)
+                            return;
+
+                        ToggleVehicleAlarm(veh);
+                    };
+
+                    miscMenu.AddItem(vehicleAlarm);
+                }
+                if (IsAllowed(Permission.VONoSiren) && !vMenuShared.ConfigManager.GetSettingsBool(vMenuShared.ConfigManager.Setting.vmenu_use_els_compatibility_mode))
+                {
+                    var vehicleNoSiren = new MenuCheckboxItem("Disable Siren", "Disables your vehicle's siren. ~y~Only works if your vehicle actually has a siren.~s~", VehicleNoSiren).ToWrapped();
+                    vehicleNoSiren.CheckboxChanged += (_s, args) => VehicleNoSiren = args.Checked;
+
+                    miscMenu.AddItem(vehicleNoSiren);
+                }
+
+
+                {
+                    var showHealth = new MenuCheckboxItem("Show Vehicle Health", "Displays the vehicle's health on the screen.", VehicleShowHealth).ToWrapped();
+                    showHealth.CheckboxChanged += (_s, args) => VehicleShowHealth = args.Checked;
+
+                    miscMenu.AddItem(showHealth);
+                }
+
+                if (IsAllowed(Permission.VOReduceDriftSuspension))
+                {
+                    var reduceDriftSuspension = new MenuItem("Toggle Drift Suspension", "Reduce the suspension of the vehicle to make it even lower to drift. Use the option again to revert back to your original suspension. ~y~This modification overrides the original advanced handling flags of the vehicle!~s~").ToWrapped();
+                    reduceDriftSuspension.Selected += (_s, _args) => SetVehicleDriftSuspension();
+
+                    miscMenu.AddItem(reduceDriftSuspension);
+                }
+
+                if (IsAllowed(Permission.VOInfiniteFuel))
+                {
+                    var infiniteFuel = new MenuCheckboxItem("Infinite Fuel", "Enables or disables infinite fuel for this vehicle. ~y~Only works if ~o~FRFuel~y~ is installed.~s~", VehicleInfiniteFuel).ToWrapped();
+                    infiniteFuel.CheckboxChanged += (_s, args) => VehicleInfiniteFuel = args.Checked;
+
+                    miscMenu.AddItem(infiniteFuel);
+                }
+
+
+                if (IsAllowed(Permission.VOFreeze))
+                {
+                    var vehicleFreeze = new MenuCheckboxItem("Freeze Vehicle", "Freeze your vehicle's position.", VehicleFrozen).ToWrapped();
+                    vehicleFreeze.CheckboxChanged += (_s, args) =>
+                    {
+                        VehicleFrozen = args.Checked;
+
+                        var veh = TryGetDriverVehicle(null);
+                        if (veh != null)
+                        {
+                            FreezeEntityPosition(veh.Handle, args.Checked);
+                        }
+                    };
+
+                    miscMenu.AddItem(vehicleFreeze);
+                }
+
+                if (IsAllowed(Permission.VOInvisible))
+                {
+                    var vehicleInvisible = new MenuItem("Vehicle Visible", "Toggle the visibility of your vehicle. ~y~Your vehicle will be made visible again as soon as you leave the vehicle.~s~").ToWrapped();
+                    vehicleInvisible.Selected += (_s, _args) => TryToggleVehicleVisibility();
+
+                    miscMenu.AddItem(vehicleInvisible);
+                }
+
+                menu.AddSubmenu(miscMenu, "Miscellaneous vehicle settings.");
+            }
             #endregion
 
-            #region Vehicle Windows Submenu Stuff
-            var fwu = new MenuItem("~y~↑~s~ Roll Front Windows Up", "Roll both front windows up.");
-            var fwd = new MenuItem("~o~↓~s~ Roll Front Windows Down", "Roll both front windows down.");
-            var rwu = new MenuItem("~y~↑~s~ Roll Rear Windows Up", "Roll both rear windows up.");
-            var rwd = new MenuItem("~o~↓~s~ Roll Rear Windows Down", "Roll both rear windows down.");
-            VehicleWindowsMenu.AddMenuItem(fwu);
-            VehicleWindowsMenu.AddMenuItem(fwd);
-            VehicleWindowsMenu.AddMenuItem(rwu);
-            VehicleWindowsMenu.AddMenuItem(rwd);
-            VehicleWindowsMenu.OnItemSelect += (sender, item, index) =>
+            if (IsAllowed(Permission.VODelete))
             {
-                Vehicle veh = GetVehicle();
-                if (veh != null && veh.Exists() && !veh.IsDead)
+                var delete = WMenuItem.CreateConfirmationButton("~r~Delete~s~", "Deletes your vehicle. ~y~This cannot be undone~s~.");
+                delete.Confirmed += (_s, _args) =>
                 {
-                    if (item == fwu)
-                    {
-                        RollUpWindow(veh.Handle, 0);
-                        RollUpWindow(veh.Handle, 1);
-                    }
-                    else if (item == fwd)
-                    {
-                        RollDownWindow(veh.Handle, 0);
-                        RollDownWindow(veh.Handle, 1);
-                    }
-                    else if (item == rwu)
-                    {
-                        RollUpWindow(veh.Handle, 2);
-                        RollUpWindow(veh.Handle, 3);
-                    }
-                    else if (item == rwd)
-                    {
-                        RollDownWindow(veh.Handle, 2);
-                        RollDownWindow(veh.Handle, 3);
-                    }
-                }
-            };
-            #endregion
+                    var veh = TryGetDriverVehicle("delete the vehicle");
+                    if (veh == null)
+                        return;
+
+                    SetVehicleHasBeenOwnedByPlayer(veh.Handle, false);
+                    SetEntityAsMissionEntity(veh.Handle, false, false);
+                    veh.Delete();
+                };
+
+                menu.AddItem(delete);
+            }
         }
         #endregion
 
@@ -1027,7 +958,7 @@ namespace vMenuClient.menus
                 CreateMenu();
             }
             // Return the menu.
-            return menu;
+            return menu.Menu;
         }
     }
 }

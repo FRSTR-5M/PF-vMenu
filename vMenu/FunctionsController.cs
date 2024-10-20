@@ -536,17 +536,17 @@ namespace vMenuClient
                     // Manage "no helmet"
                     var ped = Game.PlayerPed;
                     // If the no helmet feature is turned on, disalbe "ped can wear helmet"
-                    if (MainMenu.VehicleOptionsMenu.VehicleNoBikeHelemet && IsAllowed(Permission.VONoHelmet))
+                    if (MainMenu.VehicleOptionsMenu.VehicleNoBikeHelmet && IsAllowed(Permission.VONoHelmet))
                     {
                         ped.CanWearHelmet = false;
                     }
                     // otherwise, allow helmets.
-                    else if (!MainMenu.VehicleOptionsMenu.VehicleNoBikeHelemet || !IsAllowed(Permission.VONoHelmet))
+                    else if (!MainMenu.VehicleOptionsMenu.VehicleNoBikeHelmet || !IsAllowed(Permission.VONoHelmet))
                     {
                         ped.CanWearHelmet = true;
                     }
                     // If the player is still wearing a helmet, even if the option is set to: no helmet, then remove the helmet.
-                    if (ped.IsWearingHelmet && MainMenu.VehicleOptionsMenu.VehicleNoBikeHelemet && IsAllowed(Permission.VONoHelmet))
+                    if (ped.IsWearingHelmet && MainMenu.VehicleOptionsMenu.VehicleNoBikeHelmet && IsAllowed(Permission.VONoHelmet))
                     {
                         ped.RemoveHelmet(true);
                     }
@@ -581,25 +581,6 @@ namespace vMenuClient
                     if (!lastVehicle.IsVisible)
                     {
                         lastVehicle.IsVisible = true;
-                    }
-                }
-
-                var subMenus = new List<Menu>()
-                    {
-                        MainMenu.VehicleOptionsMenu.DeleteConfirmMenu,
-                        MainMenu.VehicleCustomizationMenu.VehicleColorsMenu,
-                        MainMenu.VehicleCustomizationMenu.VehicleComponentsMenu,
-                        MainMenu.VehicleOptionsMenu.VehicleDoorsMenu,
-                        MainMenu.VehicleCustomizationMenu.VehicleLiveriesMenu,
-                        MainMenu.VehicleCustomizationMenu.VehicleModMenu,
-                        MainMenu.VehicleOptionsMenu.VehicleWindowsMenu,
-                    };
-                foreach (var m in subMenus)
-                {
-                    if (m.Visible)
-                    {
-                        m.GoBack();
-                        Notify.Error(CommonErrors.NoVehicle, placeholderValue: "to access this menu");
                     }
                 }
             }
