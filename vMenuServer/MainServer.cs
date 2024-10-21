@@ -649,7 +649,7 @@ namespace vMenuServer
         {
             var location = JsonConvert.DeserializeObject<TeleportLocation>(locationJson);
             var jsonFile = LoadResourceFile(GetCurrentResourceName(), "config/locations/" + jsonname);
-            var locs = JsonConvert.DeserializeObject<vMenuShared.ConfigManager.Locationsteleport>(jsonFile);
+            var locs = JsonConvert.DeserializeObject<TeleportLocationsJson>(jsonFile);
             if (locs.teleports.Any(loc => loc.name == location.name))
             {
                 Log("A teleport location with this name already exists, location was not saved.", LogLevel.error);

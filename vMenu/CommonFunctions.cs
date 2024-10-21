@@ -3621,15 +3621,15 @@ namespace vMenuClient
         /// <summary>
         /// Saves the player's location as a new teleport location in the teleport options menu.
         /// </summary>
-        public static async void SavePlayerLocationToLocationsFile()
-        {                   
+        public static async Task SavePlayerLocationToLocationsFile()
+        {
             var result = await GetUserInput(windowTitle: "Enter json file you wish to add location too", defaultText: "", maxInputLength: 100);
             if (!string.IsNullOrEmpty(result))
             {
                 var jsonFile = LoadResourceFile(GetCurrentResourceName(), "config/locations/" + result);
                 if (!string.IsNullOrEmpty(jsonFile))
                 {
-                    var locs = JsonConvert.DeserializeObject<vMenuShared.ConfigManager.Locationsteleport>(jsonFile);
+                    var locs = JsonConvert.DeserializeObject<vMenuShared.ConfigManager.TeleportLocationsJson>(jsonFile);
                     var pos = Game.PlayerPed.Position;
                     var heading = Game.PlayerPed.Heading;
                     var locationName = await GetUserInput("Enter location save name", 30);

@@ -237,7 +237,7 @@ namespace vMenuShared
         /// <summary>
         /// Struct used for deserializing json only.
         /// </summary>
-        public struct Locationsteleport
+        public struct TeleportLocationsJson
         {
             public List<TeleportLocation> teleports;
         }
@@ -249,7 +249,7 @@ namespace vMenuShared
         /// <summary>
         /// Teleport location struct.
         /// </summary>
-        public struct TeleportLocation
+        public struct TeleportLocation : IEquatable<TeleportLocation>
         {
             public string name;
             public Vector3 coordinates;
@@ -261,16 +261,21 @@ namespace vMenuShared
                 this.coordinates = coordinates;
                 this.heading = heading;
             }
+
+            public bool Equals(TeleportLocation other)
+            {
+                return name == other.name && coordinates == other.coordinates && heading == other.heading;
+            }
         }
-        public struct LocationsSubMenu
+        public struct TpCategoriesJson
         {
-            public List<TeleportLocationSubMenu> teleports;
+            public List<TpCategory> teleports;
         }
-        public struct TeleportLocationSubMenu
+        public struct TpCategory
         {
             public string JsonName;
             public string name;
-            public TeleportLocationSubMenu(string JsonName, string name)
+            public TpCategory(string JsonName, string name)
             {
                 this.JsonName = JsonName;
                 this.name = name;
