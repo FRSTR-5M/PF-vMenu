@@ -9,6 +9,8 @@ using MenuAPI;
 
 using Newtonsoft.Json;
 
+using vMenuClient.MenuAPIWrapper;
+
 using static CitizenFX.Core.Native.API;
 using static vMenuClient.CommonFunctions;
 using static vMenuShared.PermissionsManager;
@@ -21,96 +23,142 @@ namespace vMenuClient.menus
         public Dictionary<int, int> PlayerCoordWaypoints = new();
 
         // Menu variable, will be defined in CreateMenu()
-        private Menu menu;
+        private WMenu menu;
 
-        readonly Menu playerMenu = Lm.GetMenu(new("Online Players", "Player:"));
-        IPlayer currentPlayer = new NativePlayer(Game.Player);
+        private WMenu playerMenu;
+        private IPlayer currentPlayer = null;
 
-        private static readonly LanguageManager Lm = new LanguageManager();
+        private async Task TryTeleport(bool inVehicle)
+        {
+            if (!currentPlayer.IsLocal)
+            {
+                await TeleportToPlayer(currentPlayer, inVehicle);
+            }
+            else
+            {
+                Notify.Error("You cannot teleport to yourself!");
+            }
+        }
+
+        private async Task ToggleGPS()
+        {
+            var selectedPedRouteAlreadyActive = false;
+            if (PlayersWaypointList.Count > 0)
+            {
+                if (PlayersWaypointList.Contains(currentPlayer.ServerId))
+                {
+                    selectedPedRouteAlreadyActive = true;
+                }
+                foreach (var serverId in PlayersWaypointList)
+                {
+                    // remove any coord blip
+                    if (PlayerCoordWaypoints.TryGetValue(serverId, out var wp))
+                    {
+                        SetBlipRoute(wp, false);
+                        RemoveBlip(ref wp);
+
+                        PlayerCoordWaypoints.Remove(serverId);
+                    }
+
+                    // remove any entity blip
+                    var playerId = GetPlayerFromServerId(serverId);
+
+                    if (playerId < 0)
+                    {
+                        continue;
+                    }
+
+                    var playerPed = GetPlayerPed(playerId);
+                    if (DoesEntityExist(playerPed) && DoesBlipExist(GetBlipFromEntity(playerPed)))
+                    {
+                        var oldBlip = GetBlipFromEntity(playerPed);
+                        SetBlipRoute(oldBlip, false);
+                        RemoveBlip(ref oldBlip);
+                        Notify.Custom($"~g~GPS route to ~s~<C>{GetSafePlayerName(currentPlayer.Name)}</C>~g~ is now disabled.");
+                    }
+                }
+                PlayersWaypointList.Clear();
+            }
+
+            if (!selectedPedRouteAlreadyActive)
+            {
+                if (currentPlayer.ServerId != Game.Player.ServerId)
+                {
+                    int blip;
+
+                    if (currentPlayer.IsActive && currentPlayer.Character != null)
+                    {
+                        var ped = GetPlayerPed(currentPlayer.Handle);
+                        blip = GetBlipFromEntity(ped);
+                        if (!DoesBlipExist(blip))
+                        {
+                            blip = AddBlipForEntity(ped);
+                        }
+                    }
+                    else
+                    {
+                        if (!PlayerCoordWaypoints.TryGetValue(currentPlayer.ServerId, out blip))
+                        {
+                            var coords = await MainMenu.RequestPlayerCoordinates(currentPlayer.ServerId);
+                            blip = AddBlipForCoord(coords.X, coords.Y, coords.Z);
+                            PlayerCoordWaypoints[currentPlayer.ServerId] = blip;
+                        }
+                    }
+
+                    SetBlipColour(blip, 58);
+                    SetBlipRouteColour(blip, 58);
+                    SetBlipRoute(blip, true);
+
+                    PlayersWaypointList.Add(currentPlayer.ServerId);
+                    Notify.Custom($"~g~GPS route to ~s~<C>{GetSafePlayerName(currentPlayer.Name)}</C>~g~ is now active, press the ~s~Toggle GPS Route~g~ button again to disable the route.");
+                }
+                else
+                {
+                    Notify.Error("You can not set a waypoint to yourself.");
+                }
+            }
+        }
+
+        private void PrintIdentifiers()
+        {
+            Func<string, string> CallbackFunction = (data) =>
+            {
+                Debug.WriteLine(data);
+                var ids = string.Join("~n~", JsonConvert.DeserializeObject<string[]>(data));
+                Notify.Custom($"~b~{GetSafePlayerName(currentPlayer.Name)}~s~'s Identifiers:~n~{ids}", false);
+                return data;
+            };
+            BaseScript.TriggerServerEvent("vMenu:GetPlayerIdentifiers", currentPlayer.ServerId, CallbackFunction);
+        }
+
+        private void TryBanPlayer(IPlayer player, bool forever)
+        {
+            if (player.Handle != Game.Player.Handle)
+            {
+                BanPlayer(player, forever);
+            }
+            else
+            {
+                Notify.Error("You cannot ban yourself!");
+            }
+        }
 
         /// <summary>
         /// Creates the menu.
         /// </summary>
-        private void CreateMenu()
+        private void SetupPlayerMenu()
         {
-            // Create the menu.
-            menu = new Menu(MenuTitle, "Online Players")
+            playerMenu = new WMenu(MenuTitle, "CHANGEME");
+            playerMenu.Closed += (_s, _args) =>
             {
-                CounterPreText = "Players: "
+                playerMenu.Menu.MenuSubtitle = "CHANGEME";
+                playerMenu.Menu.RefreshIndex();
+                currentPlayer = null;
             };
 
-            MenuController.AddSubmenu(menu, playerMenu);
-
-            var sendMessage = new MenuItem("Send Private Message", "Sends a private message to this player. ~r~Note: staff may be able to see all PM's.");
-            var teleport = new MenuItem("Teleport To Player", "Teleport to this player.");
-            var teleportVeh = new MenuItem("Teleport Into Player Vehicle", "Teleport into the vehicle of the player.");
-            var summon = new MenuItem("Summon Player", "Teleport the player to you.");
-            var toggleGPS = new MenuItem("Toggle GPS", "Enables or disables the GPS route on your radar to this player.");
-            var spectate = new MenuItem("Spectate Player", "Spectate this player. Click this button again to stop spectating.");
-            var printIdentifiers = new MenuItem("Print Identifiers", "This will print the player's identifiers to the client console (F8). And also save it to the CitizenFX.log file.");
-            var kill = new MenuItem("~r~Kill Player", "Kill this player, note they will receive a notification saying that you killed them. It will also be logged in the Staff Actions log.");
-            var kick = new MenuItem("~r~Kick Player", "Kick the player from the server.");
-            var ban = new MenuItem("~r~Ban Player Permanently", "Ban this player permanently from the server. Are you sure you want to do this? You can specify the ban reason after clicking this button.");
-            var tempban = new MenuItem("~r~Ban Player Temporarily", "Give this player a tempban of up to 30 days (max). You can specify duration and ban reason after clicking this button.");
-
-            // always allowed
-            playerMenu.AddMenuItem(sendMessage);
-            // permissions specific
-            if (IsAllowed(Permission.OPTeleport))
             {
-                playerMenu.AddMenuItem(teleport);
-                playerMenu.AddMenuItem(teleportVeh);
-            }
-            if (IsAllowed(Permission.OPSummon))
-            {
-                playerMenu.AddMenuItem(summon);
-            }
-            if (IsAllowed(Permission.OPSpectate))
-            {
-                playerMenu.AddMenuItem(spectate);
-            }
-            if (IsAllowed(Permission.OPWaypoint))
-            {
-                playerMenu.AddMenuItem(toggleGPS);
-            }
-            if (IsAllowed(Permission.OPIdentifiers))
-            {
-                playerMenu.AddMenuItem(printIdentifiers);
-            }
-            if (IsAllowed(Permission.OPKill))
-            {
-                playerMenu.AddMenuItem(kill);
-            }
-            if (IsAllowed(Permission.OPKick))
-            {
-                playerMenu.AddMenuItem(kick);
-            }
-            if (IsAllowed(Permission.OPTempBan))
-            {
-                playerMenu.AddMenuItem(tempban);
-            }
-            if (IsAllowed(Permission.OPPermBan))
-            {
-                playerMenu.AddMenuItem(ban);
-                ban.LeftIcon = MenuItem.Icon.WARNING;
-            }
-
-            playerMenu.OnMenuClose += (sender) =>
-            {
-                playerMenu.RefreshIndex();
-                ban.Label = "";
-            };
-
-            playerMenu.OnIndexChange += (sender, oldItem, newItem, oldIndex, newIndex) =>
-            {
-                ban.Label = "";
-            };
-
-            // handle button presses for the specific player's menu.
-            playerMenu.OnItemSelect += async (sender, item, index) =>
-            {
-                // send message
-                if (item == sendMessage)
+                var sendMessage = new MenuItem("Send Private Message", "Sends a private message to this player. ~y~Staff is able to see all PMs.~s~").ToWrapped();
+                sendMessage.Selected += async (_s, _args) =>
                 {
                     if (MainMenu.MiscSettingsMenu != null && !MainMenu.MiscSettingsMenu.MiscDisablePrivateMessages)
                     {
@@ -129,22 +177,26 @@ namespace vMenuClient.menus
                     {
                         Notify.Error("You can't send a private message if you have private messages disabled yourself. Enable them in the Misc Settings menu and try again.");
                     }
+                };
 
-                }
-                // teleport (in vehicle) button
-                else if (item == teleport || item == teleportVeh)
-                {
-                    if (!currentPlayer.IsLocal)
-                    {
-                        _ = TeleportToPlayer(currentPlayer, item == teleportVeh); // teleport to the player. optionally in the player's vehicle if that button was pressed.
-                    }
-                    else
-                    {
-                        Notify.Error("You can not teleport to yourself!");
-                    }
-                }
-                // summon button
-                else if (item == summon)
+                playerMenu.AddItem(sendMessage);
+            }
+
+            if (IsAllowed(Permission.OPTeleport))
+            {
+                var teleport = new MenuItem("Teleport To Player", "Teleport to this player.").ToWrapped();
+                teleport.Selected += async (_s, _args) => await TryTeleport(false);
+
+                var teleportVeh = new MenuItem("Teleport Into Player Vehicle", "Teleport into the vehicle of the player.").ToWrapped();
+                teleportVeh.Selected += async (_s, _args) => await TryTeleport(true);
+
+
+                playerMenu.AddItems([teleport, teleportVeh]);
+            }
+            if (IsAllowed(Permission.OPSummon))
+            {
+                var summon = new MenuItem("Summon Player", "Teleport the player to you.").ToWrapped();
+                summon.Selected += (_s, _args) =>
                 {
                     if (Game.Player.Handle != currentPlayer.Handle)
                     {
@@ -154,113 +206,47 @@ namespace vMenuClient.menus
                     {
                         Notify.Error("You can't summon yourself.");
                     }
-                }
-                // spectating
-                else if (item == spectate)
-                {
-                    SpectatePlayer(currentPlayer);
-                }
-                // kill button
-                else if (item == kill)
-                {
-                    KillPlayer(currentPlayer);
-                }
-                // manage the gps route being clicked.
-                else if (item == toggleGPS)
-                {
-                    var selectedPedRouteAlreadyActive = false;
-                    if (PlayersWaypointList.Count > 0)
-                    {
-                        if (PlayersWaypointList.Contains(currentPlayer.ServerId))
-                        {
-                            selectedPedRouteAlreadyActive = true;
-                        }
-                        foreach (var serverId in PlayersWaypointList)
-                        {
-                            // remove any coord blip
-                            if (PlayerCoordWaypoints.TryGetValue(serverId, out var wp))
-                            {
-                                SetBlipRoute(wp, false);
-                                RemoveBlip(ref wp);
+                };
 
-                                PlayerCoordWaypoints.Remove(serverId);
-                            }
+                playerMenu.AddItem(summon);
+            }
+            if (IsAllowed(Permission.OPSpectate))
+            {
+                var spectate = new MenuItem("Spectate Player", "Spectate this player. Click this button again to stop spectating.").ToWrapped();
+                spectate.Selected += (_s, _args) => SpectatePlayer(currentPlayer);
 
-                            // remove any entity blip
-                            var playerId = GetPlayerFromServerId(serverId);
+                playerMenu.AddItem(spectate);
+            }
+            if (IsAllowed(Permission.OPWaypoint))
+            {
+                var toggleGPS = new MenuItem("Toggle GPS", "Enables or disables the GPS route on your radar to this player.").ToWrapped();
+                toggleGPS.Selected += async (_s, _args) => await ToggleGPS();
 
-                            if (playerId < 0)
-                            {
-                                continue;
-                            }
+                playerMenu.AddItem(toggleGPS);
+            }
+            if (IsAllowed(Permission.OPIdentifiers))
+            {
+                var printIdentifiers = new MenuItem("Print Identifiers", "This will print the player's identifiers to the client console (F8). And also save it to the CitizenFX.log file.").ToWrapped();
+                printIdentifiers.Selected += (_s, _args) => PrintIdentifiers();
 
-                            var playerPed = GetPlayerPed(playerId);
-                            if (DoesEntityExist(playerPed) && DoesBlipExist(GetBlipFromEntity(playerPed)))
-                            {
-                                var oldBlip = GetBlipFromEntity(playerPed);
-                                SetBlipRoute(oldBlip, false);
-                                RemoveBlip(ref oldBlip);
-                                Notify.Custom($"~g~GPS route to ~s~<C>{GetSafePlayerName(currentPlayer.Name)}</C>~g~ is now disabled.");
-                            }
-                        }
-                        PlayersWaypointList.Clear();
-                    }
 
-                    if (!selectedPedRouteAlreadyActive)
-                    {
-                        if (currentPlayer.ServerId != Game.Player.ServerId)
-                        {
-                            int blip;
+                playerMenu.AddItem(printIdentifiers);
+            }
 
-                            if (currentPlayer.IsActive && currentPlayer.Character != null)
-                            {
-                                var ped = GetPlayerPed(currentPlayer.Handle);
-                                blip = GetBlipFromEntity(ped);
-                                if (!DoesBlipExist(blip))
-                                {
-                                    blip = AddBlipForEntity(ped);
-                                }
-                            }
-                            else
-                            {
-                                if (!PlayerCoordWaypoints.TryGetValue(currentPlayer.ServerId, out blip))
-                                {
-                                    var coords = await MainMenu.RequestPlayerCoordinates(currentPlayer.ServerId);
-                                    blip = AddBlipForCoord(coords.X, coords.Y, coords.Z);
-                                    PlayerCoordWaypoints[currentPlayer.ServerId] = blip;
-                                }
-                            }
 
-                            SetBlipColour(blip, 58);
-                            SetBlipRouteColour(blip, 58);
-                            SetBlipRoute(blip, true);
+            var dangerZone = new List<WMenuItem>();
 
-                            PlayersWaypointList.Add(currentPlayer.ServerId);
-                            Notify.Custom($"~g~GPS route to ~s~<C>{GetSafePlayerName(currentPlayer.Name)}</C>~g~ is now active, press the ~s~Toggle GPS Route~g~ button again to disable the route.");
-                        }
-                        else
-                        {
-                            Notify.Error("You can not set a waypoint to yourself.");
-                        }
-                    }
-                }
-                else if (item == printIdentifiers)
-                {
-                    Func<string, string> CallbackFunction = (data) =>
-                    {
-                        Debug.WriteLine(data);
-                        var ids = "~s~";
-                        foreach (var s in JsonConvert.DeserializeObject<string[]>(data))
-                        {
-                            ids += "~n~" + s;
-                        }
-                        Notify.Custom($"~y~<C>{GetSafePlayerName(currentPlayer.Name)}</C>~g~'s Identifiers: {ids}", false);
-                        return data;
-                    };
-                    BaseScript.TriggerServerEvent("vMenu:GetPlayerIdentifiers", currentPlayer.ServerId, CallbackFunction);
-                }
-                // kick button
-                else if (item == kick)
+            if (IsAllowed(Permission.OPKill))
+            {
+                var kill = WMenuItem.CreateConfirmationButton("~r~Kill Player~s", "Kill this player, note they will receive a notification saying that you killed them. It will also be logged in the Staff Actions log.", 3);
+                kill.Confirmed += (_s, _args) => KillPlayer(currentPlayer);
+
+                dangerZone.Add(kill);
+            }
+            if (IsAllowed(Permission.OPKick))
+            {
+                var kick = WMenuItem.CreateConfirmationButton("~r~Kick Player~s", "Kick the player from the server.", 5);
+                kick.Confirmed += (_s, _args) =>
                 {
                     if (currentPlayer.Handle != Game.Player.Handle)
                     {
@@ -270,46 +256,33 @@ namespace vMenuClient.menus
                     {
                         Notify.Error("You cannot kick yourself!");
                     }
-                }
-                // temp ban
-                else if (item == tempban)
-                {
-                    BanPlayer(currentPlayer, false);
-                }
-                // perm ban
-                else if (item == ban)
-                {
-                    if (ban.Label == "Are you sure?")
-                    {
-                        ban.Label = "";
-                        _ = UpdatePlayerlist();
-                        playerMenu.GoBack();
-                        BanPlayer(currentPlayer, true);
-                    }
-                    else
-                    {
-                        ban.Label = "Are you sure?";
-                    }
-                }
-            };
-
-            // handle button presses in the player list.
-            menu.OnItemSelect += (sender, item, index) =>
-                {
-                    var baseId = int.Parse(item.Label.Replace(" →→→", "").Replace("Server #", ""));
-                    var player = MainMenu.PlayersList.FirstOrDefault(p => p.ServerId == baseId);
-
-                    if (player != null)
-                    {
-                        currentPlayer = player;
-                        playerMenu.MenuSubtitle = $"~s~Player: ~y~{GetSafePlayerName(currentPlayer.Name)}";
-                        playerMenu.CounterPreText = $"[Server ID: ~y~{currentPlayer.ServerId}~s~] ";
-                    }
-                    else
-                    {
-                        playerMenu.GoBack();
-                    }
                 };
+
+                dangerZone.Add(kick);
+            }
+            if (IsAllowed(Permission.OPTempBan))
+            {
+                var tempban = WMenuItem.CreateConfirmationButton("~r~Ban Player Temporarily ~s", "Give this player a tempban of up to 30 days (max). You can specify duration and ban reason after clicking this button.", 5);
+                tempban.Confirmed += (_s, _args) => TryBanPlayer(currentPlayer, false);
+
+                dangerZone.Add(tempban);
+            }
+            if (IsAllowed(Permission.OPPermBan))
+            {
+                var ban = WMenuItem.CreateConfirmationButton("~r~Ban Player Permanently~s", "Ban this player permanently from the server. Are you sure you want to do this? You can specify the ban reason after clicking this button.", 5);
+                ban.Confirmed += (_s, _args) => TryBanPlayer(currentPlayer, true);
+
+                dangerZone.Add(ban);
+            }
+
+            playerMenu.AddSection("Danger Zone", dangerZone);
+        }
+
+        private void CreateMenu()
+        {
+            // Create the menu.
+            menu = new WMenu(MenuTitle, "Online Players");
+            SetupPlayerMenu();
         }
 
         /// <summary>
@@ -319,29 +292,32 @@ namespace vMenuClient.menus
         {
             void UpdateStuff()
             {
-                menu.ClearMenuItems();
+                menu.ClearItems();
 
                 foreach (var p in MainMenu.PlayersList.OrderBy(a => a.Name))
                 {
-                    var pItem = new MenuItem($"{GetSafePlayerName(p.Name)}", $"Click to view the options for this player. Server ID: {p.ServerId}. Local ID: {p.Handle}.")
+                    var name = GetSafePlayerName(p.Name);
+                    var playerButton = new MenuItem(name, $"Click to view options for ~b~{name}~s~.~n~Server ID: ~b~{p.ServerId}~s~~n~Local ID: ~b~{p.Handle}~s~").ToWrapped();
+                    playerButton.Selected += (_s, _args) =>
                     {
-                        Label = $"Server #{p.ServerId} →→→"
+                        playerMenu.Menu.MenuSubtitle = name;
+                        currentPlayer = p;
                     };
-                    menu.AddMenuItem(pItem);
-                    MenuController.BindMenuItem(menu, playerMenu, pItem);
+
+                    menu.BindSubmenu(playerMenu, playerButton, true).AddItem(playerButton);
                 }
 
-                menu.RefreshIndex();
-                //menu.UpdateScaleform();
-                playerMenu.RefreshIndex();
-                //playerMenu.UpdateScaleform();
+                menu.Menu.RefreshIndex();
+                playerMenu.Menu.RefreshIndex();
             }
 
             // First, update *before* waiting - so we get all local players.
             UpdateStuff();
             await MainMenu.PlayersList.WaitRequested();
 
-            // Update after waiting too so we have all remote players.
+            // Update *after* waiting too so we have all remote players.
+            // We have to do this, because we cannot await this function in GetMenu(), so we might access this menu
+            // before WaitRequested() has finished.
             UpdateStuff();
         }
 
@@ -355,13 +331,11 @@ namespace vMenuClient.menus
             if (menu == null)
             {
                 CreateMenu();
-                return menu;
             }
-            else
-            {
-                _ = UpdatePlayerlist();
-                return menu;
-            }
+
+            _ = UpdatePlayerlist();
+
+            return menu.Menu;
         }
     }
 }
