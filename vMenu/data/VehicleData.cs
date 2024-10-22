@@ -383,7 +383,7 @@ namespace vMenuClient.data
                     }
                     else
                     {
-                        set.Add(addon);
+                        set.Add(addon.ToLower());
                     }
                 }
             }
@@ -514,38 +514,6 @@ namespace vMenuClient.data
             }
         }
 
-        private static SortedDictionary<string, List<VehicleInfo>> vehiclesByManufacturer = null;
-        public static SortedDictionary<string, List<VehicleInfo>> VehiclesByManufacturer
-        {
-            get
-            {
-                if (vehiclesByManufacturer != null)
-                    return vehiclesByManufacturer;
-
-                vehiclesByManufacturer = new SortedDictionary<string, List<VehicleInfo>>(
-                    AllVehicles.Values
-                        .ToLookup(vehicle => vehicle.Manufacturer)
-                        .ToDictionary(g => g.Key, g => g.ToList()));
-                return vehiclesByManufacturer;
-            }
-        }
-
-        private static Dictionary<int, List<VehicleInfo>> vehiclesByClass = null;
-        public static Dictionary<int, List<VehicleInfo>> VehiclesByClass
-        {
-            get
-            {
-                if (vehiclesByClass != null)
-                    return vehiclesByClass;
-
-                vehiclesByClass = new Dictionary<int, List<VehicleInfo>>(
-                    AllVehicles.Values
-                        .ToLookup(vehicle => vehicle.Class)
-                        .ToDictionary(g => g.Key, g => g.ToList()));
-                return vehiclesByClass;
-            }
-        }
-
         public class CustomVehicleClass
         {
             public CustomVehicleClass(string name, List<VehicleInfo> vehicles)
@@ -622,6 +590,10 @@ namespace vMenuClient.data
                 .SelectMany(x => x)
                 .ToDictionary(x => x.Key, x => x.Value);
 
+        private static Dictionary<int, List<VehicleInfo>> vehiclesByClass = AllVehicles.Values
+            .ToLookup(vi => vi.Class)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
         private static CustomVehicleClass CustomVehicleClassFromJson(CustomVehicleClassJson customVehicleClassJson)
         {
             if (!string.IsNullOrEmpty(customVehicleClassJson.Builtin))
@@ -631,7 +603,7 @@ namespace vMenuClient.data
                 if (permissiveClassNameToId.TryGetValue(builtinClassName.ToLower(), out builtinClassId))
                 {
                     var name = ClassIdToName[builtinClassId];
-                    var vehicles = VehiclesByClass[builtinClassId];
+                    var vehicles = vehiclesByClass[builtinClassId];
 
                     return new CustomVehicleClass(name, vehicles);
                 }
