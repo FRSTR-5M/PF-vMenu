@@ -51,6 +51,7 @@ namespace vMenuClient
                     enabled = false;
 
                     overrideServer.Enabled = false;
+                    overrideServer.Checked = false;
                 }
             }
         }

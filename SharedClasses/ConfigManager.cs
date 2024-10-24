@@ -61,6 +61,7 @@ namespace vMenuShared
             vmenu_override_client_time_weather,
             vmenu_server_time,
             vmenu_server_weather,
+            vmenu_server_weather_state,
             vmenu_weather_change_duration_server,
             vmenu_weather_change_duration_client,
 

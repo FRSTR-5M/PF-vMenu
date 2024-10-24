@@ -85,6 +85,7 @@ namespace vMenuClient
 
             if (GetSettingsBool(Setting.vmenu_enable_time_weather_sync))
             {
+                SetWeatherOwnedByNetwork(false);
                 Tick += UpdateTime;
                 Tick += UpdateWeather;
             }
@@ -3286,7 +3287,24 @@ namespace vMenuClient
                 !TimeWeatherCommon.GetOverrideClientTW();
         }
 
-        public static bool IsTimeWeatherControlEnabled { get; set; } = true;
+        private static bool isTimeWeatherControlEnabled = true;
+        public static bool IsTimeWeatherControlEnabled
+        {
+            get => isTimeWeatherControlEnabled;
+            set
+            {
+                if (value && !isTimeWeatherControlEnabled)
+                {
+                    SetWeatherOwnedByNetwork(false);
+                }
+                else if (!value && isTimeWeatherControlEnabled)
+                {
+                    SetWeatherOwnedByNetwork(true);
+                    SetMillisecondsPerGameMinute(2000);
+                }
+                isTimeWeatherControlEnabled = value;
+            }
+        }
 
         public TimeWeatherCommon.TimeState GetTime()
         {
@@ -3320,14 +3338,22 @@ namespace vMenuClient
             }
         }
 
+        private static bool TimeUpdateNeededDayMinutes(
+            TimeWeatherCommon.TimeState oldTs,
+            TimeWeatherCommon.TimeState newTs)
+        {
+            float maxMinutesDelta = Math.Max(Math.Min(1 * newTs.Speed, 10), 2);
+            return Math.Abs(newTs.DayMinutes - oldTs.DayMinutes) > maxMinutesDelta;
+        }
+
         private async Task<bool> ChangeTimeTo(TimeWeatherCommon.TimeState target)
         {
             const int DAY_MINUTES = 24 * 60;
-            const int MINUTES_PER_TICK = 3;
+            const int MINUTES_PER_TICK = 2;
 
-            int currentDayMinutes = GetClockHours() * 60 + GetClockMinutes();
+            float currentDayMinutes = GetClockHours() * 60 + GetClockMinutes();
 
-            int diff;
+            float diff;
             bool forward;
             if (target.DayMinutes >= currentDayMinutes)
             {
@@ -3358,8 +3384,8 @@ namespace vMenuClient
 
             while (diff >= MINUTES_PER_TICK)
             {
-                var newTime = GetTime();
-                if (target.DayMinutes != newTime.DayMinutes || !IsTimeWeatherControlEnabled)
+                var newTarget = GetTime();
+                if (TimeUpdateNeededDayMinutes(target, newTarget) || !IsTimeWeatherControlEnabled)
                     return false;
 
                 currentDayMinutes += forward ? MINUTES_PER_TICK : -MINUTES_PER_TICK;
@@ -3374,11 +3400,11 @@ namespace vMenuClient
                     currentDayMinutes -= DAY_MINUTES;
                 }
 
-                NetworkOverrideClockTime(currentDayMinutes / 60, currentDayMinutes % 60, 0);
+                NetworkOverrideClockTime((int)currentDayMinutes / 60, (int)currentDayMinutes % 60, 0);
                 await Delay(0);
             }
 
-            NetworkOverrideClockTime(target.Hour, target.Minute, 0);
+            NetworkOverrideClockTime(target.Hour, (int)target.Minute, 0);
             return true;
         }
 
@@ -3422,13 +3448,14 @@ namespace vMenuClient
             }
 
             int delay = 100;
-            if (prevTime == null || prevTime.DayMinutes != time.DayMinutes || time.Frozen)
+            if (prevTime == null || TimeUpdateNeededDayMinutes(prevTime, time) || time.Frozen)
             {
                 delay = time.Frozen ? 10 : delay;
                 var success = await ChangeTimeTo(time);
                 delay = success ? delay : 0;
                 prevTime = time;
             }
+            SetMillisecondsPerGameMinute((int)(2000 / time.Speed));
 
             await Delay(delay);
         }

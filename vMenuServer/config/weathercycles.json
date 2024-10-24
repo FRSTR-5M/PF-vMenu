@@ -1,0 +1,229 @@
+[
+    {
+        "name": "Default",
+        "states": [
+            {
+                "weather": "clouds",
+                "time": 0
+            },
+            {
+                "weather": "smog",
+                "snow": false,
+                "blackout": false,
+                "time": 4
+            },
+            {
+                "weather": "overcast",
+                "time": 7
+            },
+            {
+                "weather": "clear",
+                "time": 11
+            },
+            {
+                "weather": "smog",
+                "time": 14
+            },
+            {
+                "weather": "clear",
+                "time": 16
+            },
+            {
+                "weather": "smog",
+                "time": 4
+            },
+            {
+                "weather": "clear",
+                "time": 7
+            },
+            {
+                "weather": "foggy",
+                "time": 17
+            },
+            {
+                "weather": "clouds",
+                "time": 21
+            },
+            {
+                "weather": "smog",
+                "time": 4
+            },
+            {
+                "weather": "overcast",
+                "time": 7
+            },
+            {
+                "weather": "foggy",
+                "time": 14
+            },
+            {
+                "weather": "overcast",
+                "time": 18
+            },
+            {
+                "weather": "clouds",
+                "time": 0
+            },
+            {
+                "weather": "foggy",
+                "time": 6
+            },
+            {
+                "weather": "overcast",
+                "time": 10
+            },
+            {
+                "weather": "clear",
+                "time": 20
+            },
+            {
+                "weather": "clouds",
+                "time": 8
+            },
+            {
+                "weather": "clearing",
+                "time": 9
+            },
+            {
+                "weather": "clouds",
+                "time": 12
+            },
+            {
+                "weather": "smog",
+                "time": 5
+            },
+            {
+                "weather": "clouds",
+                "time": 8
+            },
+            {
+                "weather": "rain",
+                "time": 11
+            },
+            {
+                "weather": "clearing",
+                "time": 14
+            },
+            {
+                "weather": "overcast",
+                "time": 17
+            },
+            {
+                "weather": "smog",
+                "time": 4
+            },
+            {
+                "weather": "overcast",
+                "time": 7
+            },
+            {
+                "weather": "foggy",
+                "time": 11
+            },
+            {
+                "weather": "clear",
+                "time": 15
+            },
+            {
+                "weather": "clear",
+                "time": 8
+            },
+            {
+                "weather": "foggy",
+                "time": 4
+            },
+            {
+                "weather": "clouds",
+                "time": 9
+            },
+            {
+                "weather": "smog",
+                "time": 4
+            },
+            {
+                "weather": "clear",
+                "time": 6
+            },
+            {
+                "weather": "smog",
+                "time": 4
+            },
+            {
+                "weather": "clear",
+                "time": 6
+            },
+            {
+                "weather": "rain",
+                "time": 7
+            },
+            {
+                "weather": "clearing",
+                "time": 10
+            },
+            {
+                "weather": "clouds",
+                "time": 12
+            },
+            {
+                "weather": "smog",
+                "time": 4
+            },
+            {
+                "weather": "clouds",
+                "time": 6
+            },
+            {
+                "weather": "overcast",
+                "time": 8
+            },
+            {
+                "weather": "clouds",
+                "time": 13
+            },
+            {
+                "weather": "smog",
+                "time": 4
+            },
+            {
+                "weather": "clouds",
+                "time": 7
+            },
+            {
+                "weather": "overcast",
+                "time": 12
+            },
+            {
+                "weather": "clouds",
+                "time": 18
+            },
+            {
+                "weather": "overcast",
+                "time": 6
+            },
+            {
+                "weather": "clouds",
+                "time": 18
+            },
+            {
+                "weather": "clear",
+                "time": 1
+            },
+            {
+                "weather": "clouds",
+                "time": 7
+            },
+            {
+                "weather": "rain",
+                "time": 9
+            },
+            {
+                "weather": "clearing",
+                "time": 16
+            },
+            {
+                "weather": "clouds",
+                "time": 17
+            }
+        ]
+    }
+]

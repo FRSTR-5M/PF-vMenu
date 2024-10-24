@@ -2154,45 +2154,6 @@ namespace vMenuClient
         }
         #endregion
 
-        #region Weather Sync
-        /// <summary>
-        /// Update the server with the new weather type, blackout status and dynamic weather changes enabled status.
-        /// </summary>
-        /// <param name="newWeather">The new weather type.</param>
-        /// <param name="blackout">Manual blackout mode enabled/disabled.</param>
-        /// <param name="dynamicChanges">Dynamic weather changes enabled/disabled.</param>
-        public static void UpdateServerWeather(string newWeather, bool blackout, bool dynamicChanges, bool isSnowEnabled) => TriggerServerEvent("vMenu:UpdateServerWeather", newWeather, blackout, dynamicChanges, isSnowEnabled);
-
-        /// <summary>
-        /// Modify the clouds for everyone. If removeClouds is true, then remove all clouds. If it's false, then randomize the clouds.
-        /// </summary>
-        /// <param name="removeClouds">Removes the clouds from the sky if true, otherwise randomizes the clouds type for all players.</param>
-        public static void ModifyClouds(bool removeClouds) => TriggerServerEvent("vMenu:UpdateServerWeatherCloudsType", removeClouds);
-        #endregion
-
-        #region Time Sync
-        /// <summary>
-        /// Update the server with the new time. If an invalid time is provided, then the time will be set to midnight (00:00);
-        /// </summary>
-        /// <param name="hours">Hours (0-23)</param>
-        /// <param name="minutes">Minutes (0-59)</param>
-        /// <param name="freezeTime">Should the time be frozen?</param>
-        public static void UpdateServerTime(int hours, int minutes, bool freezeTime)
-        {
-            var realHours = hours;
-            var realMinutes = minutes;
-            if (hours is > 23 or < 0)
-            {
-                realHours = 0;
-            }
-            if (minutes is > 59 or < 0)
-            {
-                realMinutes = 0;
-            }
-            TriggerServerEvent("vMenu:UpdateServerTime", realHours, realMinutes, freezeTime);
-        }
-        #endregion
-
         #region StringToStringArray
         /// <summary>
         /// Converts the inputString into a string[] (array).
