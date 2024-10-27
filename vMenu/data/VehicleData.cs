@@ -355,8 +355,6 @@ namespace vMenuClient.data
                 .Range(0, 23)
                 .ToDictionary(c => c, c => GetLabelText($"VEH_CLASS_{c}"));
 
-        public static Dictionary<string, int> ClassNameToId { get; } =
-            ClassIdToName.ToDictionary(kv => kv.Value, kv => kv.Key);
 
         private static HashSet<string> addonVehicles = null;
 
@@ -404,7 +402,7 @@ namespace vMenuClient.data
         }
 
         public static HashSet<string> AddonVehicles
-        { 
+        {
             get
             {
                 if (addonVehicles != null)
@@ -474,7 +472,7 @@ namespace vMenuClient.data
             }
 
             public VehicleInfo(string shortname)
-            { 
+            {
                 Shortname = shortname;
                 Hash = (uint)GetHashKey(shortname);
 
@@ -553,42 +551,93 @@ namespace vMenuClient.data
         }
 
         private static readonly Dictionary<string, int> permissiveClassNameToId =
-            ClassNameToId
-                .Select(kv => {
-                    var className = kv.Key.ToLower();
-                    var classId = kv.Value;
+            new Dictionary<string, int>
+            {
+                ["compacts"] = 0,
+                ["compact"] = 0,
 
-                    return new Dictionary<string, int>()
-                    {
-                        [className] = classId,
-                        [className.Replace("-", "")] = classId,
-                        [className.Replace("-", " ")] = classId,
-                        [className.Replace(" ", "")] = classId,
-                        [className.Replace(" ", "-")] = classId,
-                    };
-                })
-                .SelectMany(x => x)
-                .Select(kv => {
-                    var className = kv.Key;
+                ["sedans"] = 1,
+                ["sedan"] = 1,
 
-                    string altClassName;
-                    if (className.EndsWith("s"))
-                    {
-                        altClassName = className.Substring(0, className.Length - 1);
-                    }
-                    else
-                    {
-                        altClassName = className + "s";
-                    }
+                ["suvs"] = 2,
+                ["suv"] = 2,
 
-                    return new Dictionary<string, int>()
-                    {
-                        [className] = kv.Value,
-                        [altClassName] = kv.Value
-                    };
-                })
-                .SelectMany(x => x)
-                .ToDictionary(x => x.Key, x => x.Value);
+                ["coupes"] = 3,
+                ["coupe"] = 3,
+
+                ["muscle"] = 4,
+                ["muscles"] = 4,
+
+                ["sports classics"] = 5,
+                ["sports-classics"] = 5,
+                ["sportsclassics"] = 5,
+                ["sports classic"] = 5,
+                ["sports-classic"] = 5,
+                ["sportsclassic"] = 5,
+
+                ["sports"] = 6,
+                ["sport"] = 6,
+
+                ["super"] = 7,
+                ["supers"] = 7,
+
+                ["motorcycles"] = 8,
+                ["motorcycle"] = 8,
+
+                ["off-road"] = 9,
+                ["off road"] = 9,
+                ["offroad"] = 9,
+                ["off-roads"] = 9,
+                ["off roads"] = 9,
+                ["offroads"] = 9,
+
+                ["industrial"] = 10,
+                ["industrials"] = 10,
+
+                ["utility"] = 11,
+                ["utilitys"] = 11,
+                ["utilities"] = 11,
+
+                ["vans"] = 12,
+                ["van"] = 12,
+
+                ["cycles"] = 13,
+                ["cycle"] = 13,
+
+                ["boats"] = 14,
+                ["boat"] = 14,
+
+                ["helicopters"] = 15,
+                ["helicopter"] = 15,
+
+                ["planes"] = 16,
+                ["plane"] = 16,
+
+                ["service"] = 17,
+                ["services"] = 17,
+
+                ["emergency"] = 18,
+                ["emergencys"] = 18,
+                ["emergencies"] = 18,
+
+                ["military"] = 19,
+                ["militarys"] = 19,
+                ["militaries"] = 19,
+
+                ["commercial"] = 20,
+                ["commercials"] = 20,
+
+                ["trains"] = 21,
+                ["train"] = 21,
+
+                ["open wheel"] = 22,
+                ["open-wheel"] = 22,
+                ["openwheel"] = 22,
+
+                ["open wheels"] = 22,
+                ["open-wheels"] = 22,
+                ["openwheels"] = 22,
+            };
 
         private static Dictionary<int, List<VehicleInfo>> vehiclesByClass = AllVehicles.Values
             .ToLookup(vi => vi.Class)
