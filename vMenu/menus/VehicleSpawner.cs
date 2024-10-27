@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using CitizenFX.Core;
+using static CitizenFX.Core.Native.API;
 
 using MenuAPI;
 
@@ -408,6 +409,35 @@ namespace vMenuClient.menus
                 };
 
                 menu.AddItem(searchVehicles);
+            }
+
+            {
+                var random = new Random();
+                var randomVehiclesList = displayVehicles.Where(veh => 
+                {
+                    var hash = (uint)GetHashKey(veh);
+                    return
+                        IsThisModelABicycle(hash) ||
+                        IsThisModelABike(hash) ||
+                        IsThisModelACar(hash) ||
+                        IsThisModelAnAmphibiousCar(hash) ||
+                        IsThisModelAnAmphibiousQuadbike((int)hash) ||
+                        IsThisModelAQuadbike(hash);
+                }).ToList();
+
+                var spawnRandom = new MenuItem("Spawn Random Vehicle", "Spawn a random land-based vehicle.").ToWrapped();
+                spawnRandom.Selected += async (_s, _args) =>
+                {
+                    if (randomVehiclesList.Count == 0)
+                    {
+                        Notify.Error("You are not able to spawn any random vehicles, sorry");
+                        return;
+                    }
+                    var veh = randomVehiclesList[random.Next(0, randomVehiclesList.Count)];
+                    await SpawnVehicle(veh, SpawnInVehicle, ReplaceVehicle, SpawnNpcLike);
+                };
+
+                menu.AddItem(spawnRandom);
             }
 
             {
