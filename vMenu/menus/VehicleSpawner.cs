@@ -391,15 +391,6 @@ namespace vMenuClient.menus
             menu = new WMenu(MenuTitle, "Spawn Vehicles");
 
 
-            // Add the items to the menu.
-            if (IsAllowed(Permission.VSSpawnByName))
-            {
-                var spawnByName = new MenuItem("Spawn Vehicle By Model Name", "Enter the name of a vehicle to spawn.").ToWrapped();
-                spawnByName.Selected += async (_s, _args) => await SpawnVehicle("custom", SpawnInVehicle, ReplaceVehicle, SpawnNpcLike);
-
-                menu.AddItem(spawnByName);
-            }
-
             {
                 var searchVehicles = new MenuItem("Search Vehicle By Name", "Search all vehicles by (model) name.").ToWrapped();
                 searchVehicles.Selected += async (_s, _args) =>
