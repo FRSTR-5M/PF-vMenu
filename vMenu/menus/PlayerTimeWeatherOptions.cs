@@ -78,7 +78,7 @@ namespace vMenuClient
 
             weatherTypeList = new MenuListItem(
                 "Weather Type",
-                TimeWeatherCommon.WeatherTypeOptionsList,
+                TimeWeatherCommon.WeatherTypeOptions,
                 0,
                 "Select the weather type.");
             menu.AddMenuItem(weatherTypeList);
@@ -104,13 +104,14 @@ namespace vMenuClient
                 }
                 else if (item == weatherTypeList)
                 {
-                    string weatherType = weatherTypeList.GetCurrentSelection().ToLower().Replace(" ", "");
-                    ClientWeather.WeatherType = TimeWeatherCommon.WeatherNameToType[weatherType];
+                    ClientWeather.WeatherType =
+                        TimeWeatherCommon.WeatherTypeOptionsIndexToType(weatherTypeList.ListIndex);
 
                     switch(ClientWeather.WeatherType)
                     {
-                        case TimeWeatherCommon.WeatherType.Blizzard:
+                        case TimeWeatherCommon.WeatherType.SnowHalloween:
                         case TimeWeatherCommon.WeatherType.Snow:
+                        case TimeWeatherCommon.WeatherType.Blizzard:
                         case TimeWeatherCommon.WeatherType.SnowLight:
                         case TimeWeatherCommon.WeatherType.Xmas:
                             snowEnabled.Checked = true;

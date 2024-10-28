@@ -153,15 +153,14 @@ namespace vMenuClient.menus
 
             weatherTypeList = new MenuListItem(
                 "Weather Type",
-                TimeWeatherCommon.WeatherTypeOptionsList,
+                TimeWeatherCommon.WeatherTypeOptions,
                 0,
                 "Select the weather type.").ToWrapped();
             weatherTypeList.ListSelected += (_s, args) =>
             {
                 var serverWeatherSelection = TimeWeatherCommon.GetServerWeatherSelection();
-                serverWeatherSelection.Static.WeatherType = TimeWeatherCommon.WeatherNameToType[
-                    TimeWeatherCommon.WeatherTypeOptionsList[args.ListIndex].ToLower().Replace(" ", "")
-                ];
+                serverWeatherSelection.Static.WeatherType =
+                    TimeWeatherCommon.WeatherTypeOptionsIndexToType(args.ListIndex);
                 switch(serverWeatherSelection.Static.WeatherType)
                 {
                     case TimeWeatherCommon.WeatherType.Blizzard:
@@ -283,10 +282,8 @@ namespace vMenuClient.menus
 
             if (!weatherTypeList.MenuItem.Selected || menuInvisible)
             {
-                weatherTypeList.AsListItem().ListIndex = TimeWeatherCommon.WeatherTypeOptionsList
-                    .FindIndex(s =>
-                        s.ToLower().Replace(" ", "") ==
-                            TimeWeatherCommon.WeatherTypeToName[staticWeather.WeatherType]);
+                weatherTypeList.AsListItem().ListIndex =
+                    TimeWeatherCommon.WeatherTypeToOptionsIndex(staticWeather.WeatherType);
             }
             if (!snowEnabled.MenuItem.Selected || menuInvisible)
                 snowEnabled.AsCheckboxItem().Checked = staticWeather.Snow;

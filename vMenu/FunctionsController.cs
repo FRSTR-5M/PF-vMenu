@@ -3417,9 +3417,8 @@ namespace vMenuClient
         private void ChangeWeatherTypeTo(TimeWeatherCommon.WeatherState target)
         {
             ClearOverrideWeather();
-            var weatherType = TimeWeatherCommon.WeatherTypeToName[target.WeatherType];
             SetWeatherTypeOvertimePersist(
-                weatherType,
+                TimeWeatherCommon.WeatherTypeToStrId(target.WeatherType),
                 ClientTimeWeather
                     ? GetWeatherChangeCurationClient()
                     : GetWeatherChangeCurationServer());

@@ -44,45 +44,64 @@ namespace vMenuShared
 
         public enum WeatherType
         {
-            Clear,
             ExtraSunny,
+            Clear,
             Clouds,
-            Overcast,
-            Rain,
-            Clearing,
-            Thunder,
             Smog,
             Foggy,
-            Xmas,
-            Snow,
-            SnowLight,
-            Blizzard,
-            Halloween,
+            Overcast,
+            Rain,
+            Thunder,
+            Clearing,
             Neutral,
+            Snow,
+            Blizzard,
+            SnowLight,
+            Xmas,
+            Halloween,
+            RainHalloween,
+            SnowHalloween,
         }
 
-        public static Dictionary<WeatherType, string> WeatherTypeToName = EnumToNameDict<WeatherType>();
-        public static Dictionary<string, WeatherType> WeatherNameToType = DictSwapKv(WeatherTypeToName);
-
-        public static List<string> WeatherTypeOptionsList = new List<string>()
+        public static List<Tuple<string, WeatherType>> WeatherTypeNames = new List<Tuple<string, WeatherType>>
         {
-            "Clear",
-            "Extra Sunny",
-            "Clouds",
-            "Overcast",
-            "Rain",
-            "Clearing",
-            "Thunder",
-            "Smog",
-            "Foggy",
-            "Halloween",
-            "Xmas",
-            "Snow",
-            "Snow Light",
-            "Blizzard",
-            "Neutral",
+            new Tuple<string, WeatherType>("Clear", WeatherType.Clear),
+            new Tuple<string, WeatherType>("Extra Sunny", WeatherType.ExtraSunny),
+            new Tuple<string, WeatherType>("Clouds", WeatherType.Clouds),
+            new Tuple<string, WeatherType>("Overcast", WeatherType.Overcast),
+            new Tuple<string, WeatherType>("Rain", WeatherType.Rain),
+            new Tuple<string, WeatherType>("Clearing", WeatherType.Clearing),
+            new Tuple<string, WeatherType>("Thunder", WeatherType.Thunder),
+            new Tuple<string, WeatherType>("Smog", WeatherType.Smog),
+            new Tuple<string, WeatherType>("Foggy", WeatherType.Foggy),
+            new Tuple<string, WeatherType>("Halloween", WeatherType.Halloween),
+            new Tuple<string, WeatherType>("Halloween Rain", WeatherType.RainHalloween),
+            new Tuple<string, WeatherType>("Halloween Snow", WeatherType.SnowHalloween),
+            new Tuple<string, WeatherType>("Xmas", WeatherType.Xmas),
+            new Tuple<string, WeatherType>("Snow", WeatherType.Snow),
+            new Tuple<string, WeatherType>("Snow Light", WeatherType.SnowLight),
+            new Tuple<string, WeatherType>("Blizzard", WeatherType.Blizzard),
+            new Tuple<string, WeatherType>("Neutral", WeatherType.Neutral),
         };
 
+        public static List<string> WeatherTypeOptions = WeatherTypeNames.Select(t => t.Item1).ToList();
+        public static WeatherType WeatherTypeOptionsIndexToType(int index) => WeatherTypeNames[index].Item2;
+        public static int WeatherTypeToOptionsIndex(WeatherType type) =>
+            WeatherTypeNames.FindIndex(t => t.Item2 == type);
+
+        public static string WeatherTypeToStrId(WeatherType type)
+        {
+            switch(type)
+            {
+                case WeatherType.RainHalloween: return "rain_halloween";
+                case WeatherType.SnowHalloween: return "snow_halloween";
+                default: return type.ToString().ToLower();
+            }
+        }
+
+        public static Dictionary<string, WeatherType> WeatherStrIdToType =
+            Enum.GetValues(typeof(WeatherType)).Cast<WeatherType>()
+                .ToDictionary(WeatherTypeToStrId, t => t);
 
         public enum BlackoutState
         {
@@ -90,9 +109,6 @@ namespace vMenuShared
             Buildings,
             Everything
         }
-
-        public static Dictionary<BlackoutState, string> BlackoutTypeToName = EnumToNameDict<BlackoutState>();
-        public static Dictionary<string, BlackoutState> BlackoutNameToType = DictSwapKv(BlackoutTypeToName);
 
         public static List<string> BlackoutStateOptionsList = new List<string>()
         {
@@ -250,12 +266,13 @@ namespace vMenuShared
             public WeatherState ToWeatherState(int index)
             {
                 var name = Weather.ToLower().Replace(" ", "");
-                if (!WeatherNameToType.ContainsKey(name))
+                WeatherType weatherType;
+                if (!WeatherStrIdToType.TryGetValue(name, out weatherType))
                     throw new WeatherCycleException($"state {index} invalid weather \"{name}\"");
 
                 return new WeatherState
                 {
-                    WeatherType = WeatherNameToType[name],
+                    WeatherType = weatherType,
                     Snow = Snow,
                     Blackout = Blackout ? BlackoutState.Buildings : BlackoutState.Off,
                 };
