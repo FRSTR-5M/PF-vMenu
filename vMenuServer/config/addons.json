@@ -17,6 +17,10 @@
     "addonpedmodel2"
   ],
 
+  // Peds that should be blocked from spawning go here
+  "pedblacklist": [
+    ],
+
   // Addon Weapons go here
   "weapons": [
     "addonweaponname1",

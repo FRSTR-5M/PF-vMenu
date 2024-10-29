@@ -7,9 +7,10 @@ using CitizenFX.Core;
 
 using MenuAPI;
 
+using Newtonsoft.Json;
+
 using static CitizenFX.Core.Native.API;
 using static vMenuClient.CommonFunctions;
-using static vMenuShared.ConfigManager;
 using static vMenuShared.PermissionsManager;
 
 namespace vMenuClient.menus
@@ -97,14 +98,12 @@ namespace vMenuClient.menus
                 allowedPedModels.Add((uint)GetHashKey(ped));
             }
 
-            var disallowedPlayerModelsStr = GetSettingsString(Setting.vmenu_disallowed_player_models);
-            if (!string.IsNullOrEmpty(disallowedPlayerModelsStr))
+            string jsonData = LoadResourceFile(GetCurrentResourceName(), "config/addons.json") ?? "{}";
+            var addonsData = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(jsonData); 
+            addonsData.TryGetValue("pedblacklist", out var pedblacklist);
+            if (pedblacklist != null)
             {
-                disallowedPlayerModelsStr = disallowedPlayerModelsStr.Replace(" ", "");
-                disallowedPlayerModelsStr = disallowedPlayerModelsStr.Replace("\t", "");
-                disallowedPlayerModelsStr = disallowedPlayerModelsStr.Replace("\n", "");
-
-                foreach (var model in disallowedPlayerModelsStr.Split([',']))
+                foreach (var model in pedblacklist)
                 {
                     if (string.IsNullOrEmpty(model))
                     {
@@ -122,7 +121,7 @@ namespace vMenuClient.menus
                     }
                     else
                     {
-                        Debug.WriteLine($"^3[vMenu] [Warning]^7 vmenu_disallowed_player_models contains invalid model \"{model}\"");
+                        Debug.WriteLine($"^3[vMenu] [Warning]^7 config/addons.json > pedblacklist contains invalid model \"{model}\"");
                     }
                 }
             }
