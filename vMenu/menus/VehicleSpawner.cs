@@ -23,7 +23,7 @@ namespace vMenuClient.menus
         private WMenu menu;
 
 
-        private WMenu allVehiclesMenu;
+        public WMenu AllVehiclesMenu;
 
 
         public bool SpawnInVehicle { get; private set; } = UserDefaults.VehicleSpawnerSpawnInside;
@@ -202,7 +202,7 @@ namespace vMenuClient.menus
 
         private WMenuItem CreateSpawnVehicleButton(VehicleData.VehicleInfo vi)
         {
-            var textColor = !vi.HasProperName ? "~y~" : vi.IsAddon ? "~b~" : "~s~";
+            var textColor = !vi.HasProperName ? "~y~" : vi.IsAddon ? "~q~" : "";
             var text = $"{textColor}{vi.Name}~s~";
 
             var manufacturerDescr = vi.Manufacturer != "NULL" ? $"~b~{vi.Manufacturer}~s~ " : "";
@@ -228,20 +228,27 @@ namespace vMenuClient.menus
 
             if (vehicles.Count > 10)
             {
-                int noMenuItems = vehicles.Count + 1;
-
-                var filterBtn = new MenuItem("~g~Search Vehicles~s~", "Search vehicles or reset a search.").ToWrapped();
-                filterBtn.Selected += async (_s, _args) => await SearchVehiclesMenu(vehiclesMenu.Menu);
-
-                vehiclesMenu.AddItem(filterBtn);
-
                 int increment = 1;
                 void SetIncrement(int newIncrement)
                 {
+                    if (newIncrement > 1 && vehiclesMenu.Menu.GetMenuItems().Count <= newIncrement)
+                    {
+                        Notify.Info("You cannot change the increment right now, because there are not enough vehicles.");
+                        return;
+                    }
                     increment = newIncrement;
                     vehiclesMenu.Menu.InstructionalButtons.Remove(Control.NextCamera);
                     vehiclesMenu.Menu.InstructionalButtons.Add(Control.NextCamera, $"Increment: {increment}");
                 }
+
+                var filterBtn = new MenuItem("~b~~h~Search Vehicles / Reset Search~h~~s~", "Search vehicles or reset a search.").ToWrapped();
+                filterBtn.Selected += async (_s, _args) =>
+                {
+                    await SearchVehiclesMenu(vehiclesMenu.Menu);
+                    SetIncrement(1);
+                };
+
+                vehiclesMenu.AddItem(filterBtn);
 
                 SetIncrement(1);
 
@@ -255,7 +262,11 @@ namespace vMenuClient.menus
                 vehiclesMenu.Menu.ButtonPressHandlers.Add(new Menu.ButtonPressHandler(
                     Control.SelectWeapon,
                     Menu.ControlPressCheckType.JUST_RELEASED,
-                    async (m, _c) => await SearchVehiclesMenu(m),
+                    async (m, _c) =>
+                    {
+                        await SearchVehiclesMenu(m);
+                        SetIncrement(1);
+                    },
                     true));
 
                 vehiclesMenu.Closed += (_s, _args) => SetIncrement(1);
@@ -263,43 +274,42 @@ namespace vMenuClient.menus
                 bool incrementing = false;
                 vehiclesMenu.IndexChanged += (_s, args) =>
                 {
+                    var noMenuItems = vehiclesMenu.Menu.GetMenuItems().Count;
+
                     if (increment == 1 || incrementing)
                         return;
 
-                    if (Math.Abs(args.IndexNew - args.IndexOld) > 1)
-                    {
-                        SetIncrement(1);
-                        return;
-                    }
-
-                    if ((args.IndexOld < args.IndexNew && args.IndexOld + increment >= noMenuItems) ||
-                        (args.IndexNew < args.IndexOld) && args.IndexOld - increment < 0)
-                    {
-                        SetIncrement(1);
-                        return;
-                    }
-
                     incrementing = true;
-                    int indexNew = args.IndexNew;
-                    for (int i = 0; i < increment - 1; i++)
+
+                    bool down = 
+                        (args.IndexOld < args.IndexNew && !(args.IndexOld == 0 && args.IndexNew == noMenuItems - 1)) ||
+                        (args.IndexNew == 0 && args.IndexOld == noMenuItems - 1);
+
+                    int indexNew = args.IndexOld;
+                    for (int i = -1; i < increment - 1; i++)
                     {
-                        if (args.IndexOld < args.IndexNew)
+                        indexNew += down ? 1 : -1;
+
+                        if (indexNew < 0 || indexNew >= noMenuItems)
+                        {
+                            SetIncrement(1);
+                            break;
+                        }
+
+                        if (i == -1)
+                            continue;
+
+                        if (down)
                         {
                             vehiclesMenu.Menu.GoDown();
-                            indexNew++;
                         }
                         else
                         {
                             vehiclesMenu.Menu.GoUp();
-                            indexNew--;
                         }
                     }
-                    incrementing = false;
 
-                    if (indexNew + increment >= noMenuItems || indexNew - increment < 0)
-                    {
-                        SetIncrement(1);
-                    }
+                    incrementing = false;
                 };
             }
 
@@ -379,6 +389,32 @@ namespace vMenuClient.menus
             }
         }
 
+        private Random random = new Random();
+
+        private List<string> randomVehiclesList;
+        public async Task SpawnRandomVehicle()
+        {
+            if (randomVehiclesList.Count == 0)
+            {
+                Notify.Error("You are not able to spawn any random vehicles, sorry");
+                return;
+            }
+            var veh = randomVehiclesList[random.Next(0, randomVehiclesList.Count)];
+            await SpawnVehicle(veh, SpawnInVehicle, ReplaceVehicle, SpawnNpcLike);
+        }
+
+        private List<string> randomSportyVehiclesList;
+        public async Task SpawnRandomSportyVehicle()
+        {
+            if (randomSportyVehiclesList.Count == 0)
+            {
+                Notify.Error("You are not able to spawn any random sporty vehicles, sorry");
+                return;
+            }
+            var veh = randomSportyVehiclesList[random.Next(0, randomSportyVehiclesList.Count)];
+            await SpawnVehicle(veh, SpawnInVehicle, ReplaceVehicle, SpawnNpcLike);
+        }
+
 
         private void CreateMenu()
         {
@@ -388,32 +424,7 @@ namespace vMenuClient.menus
                 .ToList();
             displayVehicles = new HashSet<string>(allowedVehicles.Where(ShowVehicle).Select(vi => vi.Shortname));
 
-            // Create the menu.
-            menu = new WMenu(MenuTitle, "Spawn Vehicles");
-
-
-            {
-                var searchVehicles = new MenuItem("Search Vehicle By Name", "Search all vehicles by (model) name.").ToWrapped();
-                searchVehicles.Selected += async (_s, _args) =>
-                {
-                    var input = await GetUserInput("Search vehicle");
-                    if (string.IsNullOrEmpty(input))
-                        return;
-
-                    var success = await SearchVehiclesMenu(allVehiclesMenu.Menu, input);
-                    if (success)
-                    {
-                        MenuController.CloseAllMenus();
-                        allVehiclesMenu.Menu.OpenMenu();
-                    }
-                };
-
-                menu.AddItem(searchVehicles);
-            }
-
-            {
-                var random = new Random();
-                var randomVehiclesList = displayVehicles.Where(veh => 
+            randomVehiclesList = displayVehicles.Where(veh =>
                 {
                     var hash = (uint)GetHashKey(veh);
                     return
@@ -425,81 +436,64 @@ namespace vMenuClient.menus
                         IsThisModelAQuadbike(hash);
                 }).ToList();
 
-                var spawnRandom = new MenuItem("Spawn Random Vehicle", "Spawn a random land-based vehicle.").ToWrapped();
-                spawnRandom.Selected += async (_s, _args) =>
+            randomSportyVehiclesList = randomVehiclesList.Where(veh =>
+            {
+                var vehClass = VehicleData.AllVehicles[veh].Class;
+                // 4-7 = Muscle, Sports Classics, Sports, Super
+                return vehClass >= 4 && vehClass <= 7;
+            }).ToList();
+
+            // Create the menu.
+            menu = new WMenu(MenuTitle, "Spawn Vehicles");
+
+            if (IsAllowed(Permission.VSSpawnByName))
+            {
+                var spawnVehicleByName = new MenuItem("Spawn Vehicle By Model Name", "Spawn a vehicle by its exact model name.").ToWrapped();
+                spawnVehicleByName.Selected += async (_s, _args) => await SpawnVehicle("custom");
+
+                menu.AddItem(spawnVehicleByName);
+            }
+
+            {
+                var searchVehicles = new MenuItem("Search Vehicle By Name", "Search all vehicles by (model) name.").ToWrapped();
+                searchVehicles.Selected += async (_s, _args) =>
                 {
-                    if (randomVehiclesList.Count == 0)
-                    {
-                        Notify.Error("You are not able to spawn any random vehicles, sorry");
+                    var input = await GetUserInput("Search vehicle");
+                    if (string.IsNullOrEmpty(input))
                         return;
+
+                    var success = await SearchVehiclesMenu(AllVehiclesMenu.Menu, input);
+                    if (success)
+                    {
+                        MenuController.CloseAllMenus();
+                        AllVehiclesMenu.Menu.OpenMenu();
                     }
-                    var veh = randomVehiclesList[random.Next(0, randomVehiclesList.Count)];
-                    await SpawnVehicle(veh, SpawnInVehicle, ReplaceVehicle, SpawnNpcLike);
                 };
+
+                menu.AddItem(searchVehicles);
+            }
+
+
+            {
+                AllVehiclesMenu = CreateVehicleMenu("All Vehicles", allowedVehicles);
+                menu.AddSubmenu(AllVehiclesMenu);
+            }
+
+
+            {
+                var spawnRandom = new MenuItem("Spawn Random Vehicle", "Spawn a random land-based vehicle.").ToWrapped();
+                spawnRandom.Selected += async (_s, _args) => await SpawnRandomVehicle();
 
                 menu.AddItem(spawnRandom);
             }
 
             {
-                allVehiclesMenu = CreateVehicleMenu("All Vehicles", allowedVehicles);
-                menu.AddSubmenu(allVehiclesMenu);
+                var spawnRandomSporty = new MenuItem("Spawn Random Sporty Vehicle", "Spawn a random, but sporty land-based vehicle.").ToWrapped();
+                spawnRandomSporty.Selected += async (_s, _args) => await SpawnRandomSportyVehicle();
+
+                menu.AddItem(spawnRandomSporty);
             }
 
-            {
-                var vehiclesByManufacturer = allowedVehicles
-                    .ToLookup(vehicle => vehicle.Manufacturer)
-                    .OrderBy(g => g.Key, Comparer<string>.Create(StringCompareNullLast))
-                    .Select(g => new Tuple<string, List<VehicleData.VehicleInfo>>(g.Key, g.ToList()))
-                    .ToList();
-
-                var vehiclesByManufacturerMenu = CreateVehicleGroupsMenu(
-                    "Manufacturers",
-                    s => s == "NULL" ? "without a known manufacturer" : $"from ~b~{s}~s~",
-                    vehiclesByManufacturer);
-
-                menu.AddSubmenu(vehiclesByManufacturerMenu);
-            }
-
-            bool hasCustomClasses = false;
-            bool onlyCustomClasses = GetSettingsBool(Setting.vmenu_only_custom_classes);
-
-            if (VehicleData.CustomVehiclesClasses.Count > 0)
-            {
-                hasCustomClasses = true;
-
-                var textPrefix = !onlyCustomClasses ? "Custom " : "";
-                var descriptionInfinx = !onlyCustomClasses ? "custom " : "";
-
-                var vehiclesByCustomClass = VehicleData.CustomVehiclesClasses
-                    .Select(c => new Tuple<string, List<VehicleData.VehicleInfo>>(c.Name, c.Vehicles))
-                    .ToList();
-
-                var vehiclesByCustomClassMenu = CreateVehicleGroupsMenu(
-                    $"{textPrefix}Classes",
-                    s => $"from the {descriptionInfinx}~b~{s}~s~ class",
-                    vehiclesByCustomClass);
-
-                menu.AddSubmenu(vehiclesByCustomClassMenu, $"Vehicles grouped by {descriptionInfinx}class.");
-            }
-
-            if (!onlyCustomClasses || !hasCustomClasses)
-            {
-                var textPrefix = hasCustomClasses ? "Default " : "";
-                var descriptionInfinx = hasCustomClasses ? "default " : "";
-
-                var vehiclesByDefaultClass = allowedVehicles
-                    .ToLookup(vehicle => vehicle.Class)
-                    .OrderBy(g => g.Key, Comparer<int>.Create(CompareVehicleClass))
-                    .Select(g => new Tuple<string, List<VehicleData.VehicleInfo>>(VehicleData.ClassIdToName[g.Key], g.ToList()))
-                    .ToList();
-
-                var vehiclesByDefaultClassMenu = CreateVehicleGroupsMenu(
-                    $"{textPrefix}Classes",
-                    s => $"from the {descriptionInfinx}~b~{s}~s~ class",
-                    vehiclesByDefaultClass);
-
-                menu.AddSubmenu(vehiclesByDefaultClassMenu, $"Vehicles grouped by {descriptionInfinx}class.");
-            }
 
             {
                 var spawnOptionsMenu = new Menu(MenuTitle, "Spawn Options");
@@ -507,7 +501,7 @@ namespace vMenuClient.menus
 
                 var spawnInVeh = new MenuCheckboxItem("Spawn Inside Vehicle", "This will teleport you into the vehicle when you spawn it.", SpawnInVehicle);
                 var replacePrev = new MenuCheckboxItem("Replace Previous Vehicle", "This will automatically delete your previously spawned vehicle when you spawn a new vehicle.", ReplaceVehicle);
-                var spawnNpcLike = new MenuCheckboxItem("Spawn NPC-Like Vehicle", "This will make the spawned vehicle behave more like an NPC vehicle. It will explode on heavy impact and despawn when too far away.", SpawnNpcLike);      
+                var spawnNpcLike = new MenuCheckboxItem("Spawn NPC-Like Vehicle", "This will make the spawned vehicle behave more like an NPC vehicle. It will explode on heavy impact and despawn when too far away.", SpawnNpcLike);
 
                 spawnOptionsMenu.AddMenuItem(spawnInVeh);
                 if (IsAllowed(Permission.VSDisableReplacePrevious))
@@ -541,7 +535,67 @@ namespace vMenuClient.menus
             }
 
 
-            var restrictedSect = new List<WMenuItem>();
+            var vehicleCategories = new List<WMenuItem>();
+
+            {
+                var vehiclesByManufacturer = allowedVehicles
+                    .ToLookup(vehicle => vehicle.Manufacturer)
+                    .OrderBy(g => g.Key, Comparer<string>.Create(StringCompareNullLast))
+                    .Select(g => new Tuple<string, List<VehicleData.VehicleInfo>>(g.Key, g.ToList()))
+                    .ToList();
+
+                var vehiclesByManufacturerMenu = CreateVehicleGroupsMenu(
+                    "Manufacturers",
+                    s => s == "NULL" ? "without a known manufacturer" : $"from ~b~{s}~s~",
+                    vehiclesByManufacturer);
+
+                menu.BindSubmenu(vehiclesByManufacturerMenu, out WMenuItem button);
+                vehicleCategories.Add(button);
+            }
+
+            bool hasCustomClasses = false;
+            bool onlyCustomClasses = GetSettingsBool(Setting.vmenu_only_custom_classes);
+
+            if (VehicleData.CustomVehiclesClasses.Count > 0)
+            {
+                hasCustomClasses = true;
+
+                var textPrefix = !onlyCustomClasses ? "Custom " : "";
+                var descriptionInfinx = !onlyCustomClasses ? "custom " : "";
+
+                var vehiclesByCustomClass = VehicleData.CustomVehiclesClasses
+                    .Select(c => new Tuple<string, List<VehicleData.VehicleInfo>>(c.Name, c.Vehicles))
+                    .ToList();
+
+                var vehiclesByCustomClassMenu = CreateVehicleGroupsMenu(
+                    $"{textPrefix}Classes",
+                    s => $"from the {descriptionInfinx}~b~{s}~s~ class",
+                    vehiclesByCustomClass);
+
+                menu.BindSubmenu(vehiclesByCustomClassMenu, out WMenuItem button, $"Vehicles grouped by {descriptionInfinx}class.");
+                vehicleCategories.Add(button);
+            }
+
+            if (!onlyCustomClasses || !hasCustomClasses)
+            {
+                var textPrefix = hasCustomClasses ? "Default " : "";
+                var descriptionInfinx = hasCustomClasses ? "default " : "";
+
+                var vehiclesByDefaultClass = allowedVehicles
+                    .ToLookup(vehicle => vehicle.Class)
+                    .OrderBy(g => g.Key, Comparer<int>.Create(CompareVehicleClass))
+                    .Select(g => new Tuple<string, List<VehicleData.VehicleInfo>>(VehicleData.ClassIdToName[g.Key], g.ToList()))
+                    .ToList();
+
+                var vehiclesByDefaultClassMenu = CreateVehicleGroupsMenu(
+                    $"{textPrefix}Classes",
+                    s => $"from the {descriptionInfinx}~b~{s}~s~ class",
+                    vehiclesByDefaultClass);
+
+                menu.BindSubmenu(vehiclesByDefaultClassMenu, out WMenuItem button, $"Vehicles grouped by {descriptionInfinx}class.");
+                vehicleCategories.Add(button);
+            }
+
 
             if (VehicleData.VehicleDisablelist.Count > 0 && IsAllowed(Permission.VODisableFromDefaultList))
             {
@@ -559,7 +613,7 @@ namespace vMenuClient.menus
                         .ToWrapped();
                     menu.BindSubmenu(disabledVehiclesMenu, button);
 
-                    restrictedSect.Add(button);
+                    vehicleCategories.Add(button);
                 }
             }
 
@@ -579,11 +633,11 @@ namespace vMenuClient.menus
                         .ToWrapped();
                     menu.BindSubmenu(disabledVehiclesMenu, button);
 
-                    restrictedSect.Add(button);
+                    vehicleCategories.Add(button);
                 }
             }
 
-            menu.AddSection("Restricted Vehicles", restrictedSect);
+            menu.AddSection("Categories", vehicleCategories);
         }
 
         /// <summary>

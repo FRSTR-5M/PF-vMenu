@@ -63,6 +63,12 @@ namespace vMenuClient
             }
         }
 
+        public async Task TeleportToWaypoint()
+        {
+            var coords = await TeleportToWp();
+            SetPrevTpLocation(coords, null, false);
+        }
+
         /// <summary>
         /// Set the previous teleport location
         /// </summary>
@@ -331,12 +337,7 @@ namespace vMenuClient
             if (IsAllowed(Permission.TPTeleportToWp))
             {
                 var tpToWp = new MenuItem("Teleport To Waypoint", "Teleport to the waypoint on your map.").ToWrapped();
-                tpToWp.Selected += async (_s, _args) =>
-                {
-                    var coords = await TeleportToWp();
-                    SetPrevTpLocation(coords, null, false);
-                };
-
+                tpToWp.Selected += async (_s, _args) => await TeleportToWaypoint();
                 tpItems.Add(tpToWp);
             }
 
@@ -361,7 +362,7 @@ namespace vMenuClient
                 };
 
                 WMenuItem button;
-                menu.BindSubmenu(personalTpLocationsMenu, out button, "Teleport to your personal teleport locations.");
+                menu.BindSubmenu(personalTpLocationsMenu, out button, "Teleport to your personal teleport locations.", true);
 
                 tpItems.Add(button);
 

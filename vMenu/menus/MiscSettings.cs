@@ -172,7 +172,7 @@ namespace vMenuClient.menus
             {
                 languageList.Add(LanguageManager.Languages.Keys.ToArray()[i]);
             }
-            var saveSettings = new MenuItem("~g~~h~Save Personal Settings~h~~s~", "Save your current settings. ~y~All saving is done on the client side; if you delete FiveM you will lose your settings.~s~ Settings are shared across all servers using vMenu.")
+            var saveSettings = new MenuItem("~b~~h~Save Personal Settings~h~~s~", "Save your current settings. ~y~All saving is done on the client side; if you delete FiveM you will lose your settings.~s~ Settings are shared across all servers using vMenu.")
             {
                 RightIcon = MenuItem.Icon.TICK
             };

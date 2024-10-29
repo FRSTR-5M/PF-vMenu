@@ -215,6 +215,73 @@ namespace vMenuClient
         }
         #endregion
 
+        #region TryGetVehicle
+        public static Vehicle TryGetExistingVehicle(string error)
+        {
+            var vehicle = GetVehicle();
+            if (vehicle == null || !vehicle.Exists())
+            {
+                if (!string.IsNullOrEmpty(error))
+                    Notify.Error($"You must be in a vehicle to {error}");
+
+                return null;
+            }
+
+            return vehicle;
+        }
+
+        public static Vehicle TryGetDriverVehicle(string error)
+        {
+            var vehicle = TryGetExistingVehicle(error);
+            if (vehicle == null)
+                return null;
+
+            if (vehicle.Driver != Game.PlayerPed)
+            {
+                if (!string.IsNullOrEmpty(error))
+                    Notify.Error($"You must be the vehicle's driver to {error}");
+
+                return null;
+            }
+
+            return vehicle;
+        }
+
+        public static Vehicle TryGetIntactVehicle(string error)
+        {
+            var vehicle = TryGetExistingVehicle(error);
+            if (vehicle == null)
+            {
+                return null;
+            }
+
+            if (!vehicle.IsAlive)
+            {
+                if (!string.IsNullOrEmpty(error))
+                    Notify.Error($"You must be in an intact vehicle to {error}");
+
+                return null;
+            }
+
+            return vehicle;
+        }
+
+        public static Vehicle TryGetIntactDriverVehicle(string error)
+        {
+            Vehicle vehicle;
+
+            vehicle = TryGetDriverVehicle(error);
+            if (vehicle == null)
+                return null;
+
+            vehicle = TryGetIntactVehicle(error);
+            if (vehicle == null)
+                return null;
+
+            return vehicle;
+        }
+        #endregion
+
         #region GetVehicleModel (uint)(hash) from Entity/Vehicle (int)
         /// <summary>
         /// Get the vehicle model hash (as uint) from the specified (int) entity/vehicle.

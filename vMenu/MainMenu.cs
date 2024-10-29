@@ -11,6 +11,7 @@ using MenuAPI;
 
 using Newtonsoft.Json;
 
+using vMenuClient.MenuAPIWrapper;
 using vMenuClient.menus;
 
 using static CitizenFX.Core.Native.API;
@@ -28,9 +29,9 @@ namespace vMenuClient
         public static bool ConfigOptionsSetupComplete = false;
 
         public static string NoClipKey { get; private set; } = "F2"; // F2 by default (ReplayStartStopRecordingSecondary)
-        public static Menu Menu { get; private set; }
-        public static Menu PlayerSubmenu { get; private set; }
-        public static Menu VehicleSubmenu { get; private set; }
+        public static WMenu Menu { get; private set; }
+        public static WMenu PlayerSubmenu { get; private set; }
+        public static WMenu VehicleSubmenu { get; private set; }
 
         public static PlayerOptions PlayerOptionsMenu { get; private set; }
         public static OnlinePlayers OnlinePlayersMenu { get; private set; }
@@ -188,7 +189,7 @@ namespace vMenuClient
 
                     if (!MenuController.IsAnyMenuOpen())
                     {
-                        Menu.OpenMenu();
+                        Menu.Menu.OpenMenu();
                     }
                     else
                     {
@@ -696,16 +697,14 @@ namespace vMenuClient
                 NoClipKey = "F2";
             }
             // Create the main menu.
-            Menu = Lm.GetMenu(new Menu(MenuTitle, "Main Menu"));
-            PlayerSubmenu = Lm.GetMenu(new Menu(MenuTitle, "My Character"));
-            VehicleSubmenu = Lm.GetMenu(new Menu(MenuTitle, "Vehicles"));
+            Menu = new WMenu(MenuTitle, "Main Menu");
+
+            PlayerSubmenu = new WMenu(MenuTitle, "My Character");
+            VehicleSubmenu = new WMenu(MenuTitle, "Vehicles");
 
             // Add the main menu to the menu pool.
-            MenuController.AddMenu(Menu);
-            MenuController.MainMenu = Menu;
-
-            MenuController.AddSubmenu(Menu, PlayerSubmenu);
-            MenuController.AddSubmenu(Menu, VehicleSubmenu);
+            MenuController.AddMenu(Menu.Menu);
+            MenuController.MainMenu = Menu.Menu;
 
             // Create all (sub)menus.
             CreateSubmenus();
@@ -799,371 +798,390 @@ namespace vMenuClient
             }
         }
 
-        #region Add Menu Function
-        /// <summary>
-        /// Add the menu to the menu pool and set it up correctly.
-        /// Also add and bind the menu buttons.
-        /// </summary>
-        /// <param name="submenu"></param>
-        /// <param name="menuButton"></param>
-        private static void AddMenu(Menu parentMenu, Menu submenu, MenuItem menuButton, bool grabForTranslation = true)
-        {
-            parentMenu.AddMenuItem(menuButton);
-            MenuController.AddSubmenu(parentMenu, submenu);
-            MenuController.BindMenuItem(parentMenu, submenu, menuButton);
-            submenu.RefreshIndex();
-
-            // Less code = better
-            Lm.GetMenu(parentMenu);
-            if (grabForTranslation)
-                Lm.GetMenu(submenu);
-        }
-        #endregion
         #region Create Submenus
         /// <summary>
         /// Creates all the submenus depending on the permissions of the user.
         /// </summary>
         private static void CreateSubmenus()
         {
-            var playerSubmenuBtn = new MenuItem("My Character", "Customize your character.") { Label = "→→→" };
-            Menu.AddMenuItem(playerSubmenuBtn);
+            #region Submenu Creation
+            if (IsAllowed(Permission.VSMenu))
+            {
+                VehicleSpawnerMenu = new VehicleSpawner();
+                VehicleSpawnerMenu.GetMenu();
+            }
+            if (IsAllowed(Permission.VOMenu))
+            {
+                VehicleOptionsMenu = new VehicleOptions();
+                VehicleOptionsMenu.GetMenu();
+            }
+            if (IsAllowed(Permission.TPMenu))
+            {
+                TeleportOptionsMenu = new TeleportOptions();
+                TeleportOptionsMenu.GetMenu();
+            }
+            #endregion
+
+            #region Player Submenu
+            var pedSect = new List<WMenuItem>();
 
             // Add the player appearance menu.
             if (IsAllowed(Permission.PAMenu))
             {
                 MpPedCustomizationMenu = new MpPedCustomization();
-                var menu1 = MpPedCustomizationMenu.GetMenu();
-                var button1 = new MenuItem("Multiplayer Ped Customization", "Create, edit and load multiplayer peds.~n~~y~Ped models created in other submenus or resources cannot be saved here.~s~")
-                {
-                    Label = "→→→"
-                };
-                AddMenu(PlayerSubmenu, menu1, button1);
+                PlayerSubmenu.BindSubmenu(
+                    MpPedCustomizationMenu.GetMenu(),
+                    out WMenuItem mpPedCustomizationButton,
+                    "Create, edit and load multiplayer peds.~n~~y~Ped models created in other submenus or resources cannot be saved here.~s~");
+
 
                 PlayerAppearanceMenu = new PlayerAppearance();
-                var menu2 = PlayerAppearanceMenu.GetMenu();
-                var button2 = new MenuItem("Generic Ped Customization", "Spawn, customize, and save and load generic ped models.")
-                {
-                    Label = "→→→"
-                };
-                AddMenu(PlayerSubmenu, menu2, button2);
+                PlayerSubmenu.BindSubmenu(
+                    PlayerAppearanceMenu.GetMenu(),
+                    out WMenuItem genericPedCustomizationButton,
+                    "Spawn, customize, and save and load generic ped models.");
+
+                pedSect.AddRange([mpPedCustomizationButton, genericPedCustomizationButton]);
             }
 
             // Add the player options menu.
             if (IsAllowed(Permission.POMenu))
             {
                 PlayerOptionsMenu = new PlayerOptions();
-                var menu = PlayerOptionsMenu.GetMenu();
-                var button = new MenuItem("Ped Options", "Change ped options.")
-                {
-                    Label = "→→→"
-                };
-                AddMenu(PlayerSubmenu, menu, button);
+                PlayerSubmenu.BindSubmenu(
+                    PlayerOptionsMenu.GetMenu(),
+                    out WMenuItem playerOptionsButton,
+                    "Change ped options.");
+
+                pedSect.Add(playerOptionsButton);
             }
 
-            bool hasWeaponItems = false;
-            var weaponSpacer = GetSpacerMenuItem("Weapons");
-            PlayerSubmenu.AddMenuItem(weaponSpacer);
-            AddSpacerAction(PlayerSubmenu);
+
+            var weaponsSect = new List<WMenuItem>();
 
             // Add the weapons menu.
             if (IsAllowed(Permission.WPMenu))
             {
-                hasWeaponItems = true;
                 WeaponOptionsMenu = new WeaponOptions();
-                var menu = WeaponOptionsMenu.GetMenu();
-                var button = new MenuItem("Weapons", "Add, remove and modify weapons, and change ammo options.")
-                {
-                    Label = "→→→"
-                };
-                AddMenu(PlayerSubmenu, menu, button);
+                PlayerSubmenu.BindSubmenu(
+                    WeaponOptionsMenu.GetMenu(),
+                    out WMenuItem weaponsMenu,
+                    "Add, remove and modify weapons, and change ammo options.");
+
+                weaponsSect.Add(weaponsMenu);
             }
 
             // Add Weapon Loadouts menu.
             if (IsAllowed(Permission.WLMenu))
             {
-                hasWeaponItems = true;
                 WeaponLoadoutsMenu = new WeaponLoadouts();
-                var menu = WeaponLoadoutsMenu.GetMenu();
-                var button = new MenuItem("Weapon Loadouts", "Mange and load saved weapon loadouts.")
-                {
-                    Label = "→→→"
-                };
-                AddMenu(PlayerSubmenu, menu, button);
+                PlayerSubmenu.BindSubmenu(
+                    WeaponLoadoutsMenu.GetMenu(),
+                    out WMenuItem weaponLoadoutsMenu,
+                    "Mange and load saved weapon loadouts.");
+
+                weaponsSect.Add(weaponLoadoutsMenu);
             }
 
-            if (!hasWeaponItems)
-                PlayerSubmenu.RemoveMenuItem(weaponSpacer);
 
-            var vehicleSubmenuBtn = new MenuItem("Vehicles", "Spawn, customize, and save vehicles.") { Label = "→→→" };
-            Menu.AddMenuItem(vehicleSubmenuBtn);
+            PlayerSubmenu.AddSections([
+                new Section("Ped", pedSect),
+                new Section("Weapons", weaponsSect)
+            ]);
+
+            Menu.AddSubmenu(PlayerSubmenu, "Customize your character.");
+            #endregion
+
+            #region Vehicle Submenu
 
             // Add the vehicle spawner menu.
             if (IsAllowed(Permission.VSMenu))
             {
-                VehicleSpawnerMenu = new VehicleSpawner();
-                var menu = VehicleSpawnerMenu.GetMenu();
-                var button = new MenuItem("Spawn Vehicles", "Search and spawn vehicles by name, or choose one from several categories.")
-                {
-                    Label = "→→→"
-                };
-                AddMenu(VehicleSubmenu, menu, button);
+                VehicleSubmenu.AddSubmenu(
+                    VehicleSpawnerMenu.GetMenu(),
+                    "Search and spawn vehicles by name, or choose one from several categories.");
             }
 
             // Add the vehicle options Menu.
             if (IsAllowed(Permission.VOMenu))
             {
-                VehicleOptionsMenu = new VehicleOptions();
-                var menu = VehicleOptionsMenu.GetMenu();
-                var button = new MenuItem("Vehicle Options", "Change options of your current vehicle.")
-                {
-                    Label = "→→→"
-                };
-                AddMenu(VehicleSubmenu, menu, button);
+                VehicleSubmenu.AddSubmenu(
+                    VehicleOptionsMenu.GetMenu(),
+                    "Change options of your current vehicle.");
             }
 
             // Add the vehicle options Menu.
             if (IsAllowed(Permission.VOMenu))
             {
                 VehicleCustomizationMenu = new VehicleCustomization();
-                var menu = VehicleCustomizationMenu.GetMenu();
-                var button = new MenuItem("Customize Vehicle", "Tune and style your vehicle.")
-                {
-                    Label = "→→→"
-                };
-                AddMenu(VehicleSubmenu, menu, button);
+                VehicleSubmenu.AddSubmenu(
+                    VehicleCustomizationMenu.GetMenu(),
+                    "Tune and style your vehicle.");
             }
 
             // Add Saved Vehicles menu.
             if (IsAllowed(Permission.SVMenu))
             {
                 SavedVehiclesMenu = new SavedVehicles();
-                var menu = SavedVehiclesMenu.GetMenu();
-                var button = new MenuItem("Saved Vehicles", "Save and manage customized vehicles.")
-                {
-                    Label = "→→→"
-                };
-                AddMenu(VehicleSubmenu, menu, button);
-                VehicleSubmenu.OnItemSelect += (sender, item, index) =>
-                {
-                    if (item == button)
-                    {
-                        SavedVehiclesMenu.UpdateMenuAvailableCategories();
-                    }
-                };
+                VehicleSubmenu.BindSubmenu(
+                    SavedVehiclesMenu.GetMenu(),
+                    out WMenuItem button,
+                    "Save and manage customized vehicles.");
+
+                button.Selected += (_s, _args) =>
+                    SavedVehiclesMenu.UpdateMenuAvailableCategories();
+
+                VehicleSubmenu.AddItem(button);
             }
 
             // Add the Personal Vehicle menu.
             if (IsAllowed(Permission.PVMenu))
             {
                 PersonalVehicleMenu = new PersonalVehicle();
-                var menu = PersonalVehicleMenu.GetMenu();
-                var button = new MenuItem("Personal Vehicle", "Set and manage your personal vehicle.")
-                {
-                    Label = "→→→"
-                };
-                AddMenu(VehicleSubmenu, menu, button);
+                VehicleSubmenu.AddSubmenu(
+                    PersonalVehicleMenu.GetMenu(),
+                    "Set and manage your personal vehicle.");
             }
+
+            Menu.AddSubmenu(VehicleSubmenu, "Spawn, customize, and save vehicles.");
+            #endregion
 
             // Add Teleport Menu.
             if (IsAllowed(Permission.TPMenu))
             {
-                TeleportOptionsMenu = new TeleportOptions();
-                var menu = TeleportOptionsMenu.GetMenu();
-                var button = new MenuItem("Teleport", "Teleport to your waypoint or various other locations, and save custom teleport locations.")
-                {
-                    Label = "→→→"
-                };
-                AddMenu(Menu, menu, button);
+                Menu.AddSubmenu(
+                    TeleportOptionsMenu.GetMenu(),
+                    "Teleport to your waypoint or various other locations, and save custom teleport locations.");
             }
+
+            #region Practice Quick Access Menu
+            {
+                var qaMenu = new WMenu(MenuTitle, "Practice Quick Access");
+
+
+                var vehicleSect = new List<WMenuItem>();
+
+                if (IsAllowed(Permission.VSMenu))
+                {
+                    var allVehsButton = new MenuItem("All Vehicles and Search", "A list of all vehicles you can also search in.").ToWrapped();
+                    qaMenu.BindSubmenu(VehicleSpawnerMenu.AllVehiclesMenu, allVehsButton);
+                    vehicleSect.Add(allVehsButton);
+
+                    var spawnRandomButton = new MenuItem("Spawn Random Sporty Vehicle", "Spawn a random, but sporty land-based vehicle.").ToWrapped();
+                    spawnRandomButton.Selected += async (_s, _args) => await VehicleSpawnerMenu.SpawnRandomSportyVehicle();
+                    vehicleSect.Add(spawnRandomButton);
+                }
+                if (IsAllowed(Permission.VOMenu) && IsAllowed(Permission.VORepair))
+                {
+                    var fixVehicle = new MenuItem(
+                        "Repair Vehicle",
+                        "Repair you vehicle's visual and physical damage.").ToWrapped();
+                    fixVehicle.Selected += (_s, _args) =>
+                    {
+                        var veh = TryGetDriverVehicle("repair");
+                        veh?.Repair();
+                    };
+
+                    vehicleSect.Add(fixVehicle);
+                }
+
+
+                var tpSect = new List<WMenuItem>();
+
+                if (IsAllowed(Permission.TPMenu))
+                {
+                    if (IsAllowed(Permission.TPTeleportToWp))
+                    {
+                        var tpToWp = new MenuItem(
+                            "Teleport To Waypoint",
+                            "Teleport to the waypoint on your map.").ToWrapped();
+                        tpToWp.Selected += async (_s, _args) =>  await TeleportOptionsMenu.TeleportToWaypoint();
+
+                        tpSect.Add(tpToWp);
+                    }
+                    if (IsAllowed(Permission.TPTeleportToPrev))
+                    {
+                        var tpToPrev = new MenuItem(
+                            "Teleport To Previous Location",
+                            "Teleport to the location you last teleported to.").ToWrapped();
+                        tpToPrev.Selected += async (_s, _args) =>  await TeleportOptionsMenu.TeleportToPrevTPLocation();
+
+                        tpSect.Add(tpToPrev);
+                    }
+                    if (IsAllowed(Permission.TPTeleportToPrev))
+                    {
+                        var overridePrev = new MenuItem(
+                            "Override Previous Location",
+                            "Overrides the previous teleport location with your current position.").ToWrapped();
+                        overridePrev.Selected += (_s, _args) =>  TeleportOptionsMenu.OverridePrevLocation();
+
+                        tpSect.Add(overridePrev);
+                    }
+                }
+
+
+                qaMenu.AddSections([
+                    new Section("Vehicle", vehicleSect),
+                    new Section("Teleport", tpSect)
+                ]);
+
+                Menu.AddSubmenu(qaMenu, "Quick access to some functions useful for practicing.");
+            }
+            #endregion
 
             if (IsAllowed(Permission.TWClientMenu))
             {
                 PlayerTimeWeatherOptionsMenu = new PlayerTimeWeatherOptions();
-                var menu2 = PlayerTimeWeatherOptionsMenu.GetMenu();
-                var button2 = new MenuItem("Local Time & Weather", "Change the local time and weather.")
-                {
-                    Label = "→→→"
-                };
-                AddMenu(Menu, menu2, button2);
+                Menu.AddSubmenu(
+                    PlayerTimeWeatherOptionsMenu.GetMenu(),
+                    "Change the local time and weather.");
             }
 
             {
                 RecordingMenu = new Recording();
-                var menu = RecordingMenu.GetMenu();
-                var button = new MenuItem("Recording", "In-game screenshots and recording.")
-                {
-                    Label = "→→→"
-                };
-                AddMenu(Menu, menu, button);
+                Menu.AddSubmenu(
+                    RecordingMenu.GetMenu(),
+                    "In-game screenshots and recording.");
             }
 
             // Add enhanced camera menu.
             if (IsAllowed(Permission.ECMenu))
             {
                 EnhancedCameraMenu = new EnhancedCamera();
-                var menu = EnhancedCameraMenu.GetMenu();
-                var button = new MenuItem("Enhanced Camera", "Opens the enhanced camera menu.")
-                {
-                    Label = "→→→"
-                };
-                AddMenu(Menu, menu, button);
+                Menu.AddSubmenu(
+                    EnhancedCameraMenu.GetMenu(),
+                    "Opens the enhanced camera menu.");
             }
 
             // Add misc settings menu.
             {
                 MiscSettingsMenu = new MiscSettings();
-                var menu = MiscSettingsMenu.GetMenu();
-                var button = new MenuItem("Miscellaneous", "Miscellaneous settings and options.")
-                {
-                    Label = "→→→"
-                };
-                AddMenu(Menu, menu, button);
+                Menu.AddSubmenu(
+                    MiscSettingsMenu.GetMenu(),
+                    "Miscellaneous settings and options.");
             }
 
+            // Add Help Menu.
             {
+                var helpMenu = new WMenu(MenuTitle, "Help");
+
                 var helpItems = MenuItemsFromJsonTuples("config/help.json");
-                if (helpItems.Count > 0)
-                {
-                    var helpMenu = new Menu(Menu.MenuTitle, "Help");
-                    helpItems.ForEach(helpMenu.AddMenuItem);
-                    var btn = new MenuItem("Help", "Helpful tips to get you familiar with the server.")
-                    {
-                        Label = "→→→"
-                    };
+                helpItems.ForEach(i => helpMenu.AddItem(i.ToWrapped()));
 
-                    Menu.AddMenuItem(btn);
-                    MenuController.AddSubmenu(Menu, helpMenu);
-                    MenuController.BindMenuItem(Menu, helpMenu, btn);
-                }
+                Menu.AddSubmenu(helpMenu, "Helpful tips to get you familiar with the server.");
             }
 
-            {
             // Add About Menu.
+            {
                 AboutMenu = new About();
-                var sub = AboutMenu.GetMenu();
-                var btn = new MenuItem("About", "Information about this server.")
-                {
-                    Label = "→→→"
-                };
-                AddMenu(Menu, sub, btn);
+                Menu.AddSubmenu(
+                    AboutMenu.GetMenu(),
+                    "Information about this server.");
             }
 
-            bool hasAdminMenus = false;
-            var adminSpacer = GetSpacerMenuItem("Admin Options");
-            Menu.AddMenuItem(adminSpacer);
-            AddSpacerAction(Menu);
+            #region Admin Stuff
+            var adminSect = new List<WMenuItem>();
+
 
             // Add the online players menu.
             if (IsAllowed(Permission.OPMenu))
             {
-                hasAdminMenus = true;
                 OnlinePlayersMenu = new OnlinePlayers();
-                var menu = OnlinePlayersMenu.GetMenu();
-                var button = new MenuItem("Online Players", "All currently connected players.")
-                {
-                    Label = "→→→"
-                };
-                AddMenu(Menu, menu, button);
-                Menu.OnItemSelect += async (sender, item, index) =>
-                {
-                    if (item == button)
-                    {
-                        PlayersList.RequestPlayerList();
+                Menu.BindSubmenu(
+                    OnlinePlayersMenu.GetMenu(),
+                    out WMenuItem button,
+                    "View and manage all currently connected players.", true);
 
-                        await OnlinePlayersMenu.UpdatePlayerlist();
-                        menu.RefreshIndex();
-                    }
+                button.Selected += async (_s, _args) =>
+                {
+                    PlayersList.RequestPlayerList();
+
+                    await OnlinePlayersMenu.UpdatePlayerlist();
+                    OnlinePlayersMenu.GetMenu().RefreshIndex();
                 };
+
+                adminSect.Add(button);
             }
 
             if (IsAllowed(Permission.OPUnban) || IsAllowed(Permission.OPViewBannedPlayers))
             {
-                hasAdminMenus = true;
                 BannedPlayersMenu = new BannedPlayers();
-                var menu = BannedPlayersMenu.GetMenu();
-                var button = new MenuItem("Banned Players", "View and manage all banned players in this menu.")
+                Menu.BindSubmenu(
+                    BannedPlayersMenu.GetMenu(),
+                    out WMenuItem button,
+                    "View and manage all banned players.", true);
+
+                button.Selected += (_s, _args) =>
                 {
-                    Label = "→→→"
+                    TriggerServerEvent("vMenu:RequestBanList", Game.Player.Handle);
+                    BannedPlayersMenu.GetMenu().RefreshIndex();
                 };
-                AddMenu(Menu, menu, button);
-                Menu.OnItemSelect += (sender, item, index) =>
-                {
-                    if (item == button)
-                    {
-                        TriggerServerEvent("vMenu:RequestBanList", Game.Player.Handle);
-                        menu.RefreshIndex();
-                    }
-                };
+
+                adminSect.Add(button);
             }
 
             if (IsAllowed(Permission.NoClip))
             {
-                var toggleNoclip = new MenuItem("Toggle NoClip", "Toggle NoClip on or off.");
-                Menu.AddMenuItem(toggleNoclip);
-                Menu.OnItemSelect += (sender, item, index) =>
+                var toggleNoclip = new MenuItem("Toggle NoClip", "Toggle NoClip.").ToWrapped();
+                toggleNoclip.Selected += (_s, _args) =>
                 {
-                    if (item == toggleNoclip)
-                    {
-                        NoClipEnabled = !NoClipEnabled;
-                    }
+                    NoClipEnabled = !NoClipEnabled;
                 };
+
+                adminSect.Add(toggleNoclip);
             }
 
             if (IsAllowed(Permission.TWServerMenu) && GetSettingsBool(Setting.vmenu_enable_time_weather_sync))
             {
-                hasAdminMenus = true;
                 TimeWeatherOptionsMenu = new TimeWeatherOptions();
-                var menu = TimeWeatherOptionsMenu.GetMenu();
-                var button = new MenuItem("Server Time & Weather", "Change the server time and weather.")
-                {
-                    Label = "→→→"
-                };
-                AddMenu(Menu, menu, button);
+                Menu.BindSubmenu(
+                    TimeWeatherOptionsMenu.GetMenu(),
+                    out WMenuItem button,
+                    "Change the server time and weather.");
+
+                adminSect.Add(button);
             }
 
             if (IsAllowed(Permission.WRNPCOptions, true) && GetSettingsBool(Setting.vmenu_enable_npc_density))
             {
-                hasAdminMenus = true;
                 DensityOptions = new NPCDensityMenu();
-                var menu = DensityOptions.GetMenu();
-                var button = new MenuItem("NPC Density Options (Experimental)", "Change NPC density options.")
-                {
-                    Label = "→→→"
-                };
-                AddMenu(Menu, menu, button);
-                Menu.OnItemSelect += (sender, item, index) =>
-                {
-                    if (item == button)
-                    {
-                        PlayersList.RequestPlayerList();
+                Menu.BindSubmenu(
+                    DensityOptions.GetMenu(),
+                    out WMenuItem button,
+                    "Change NPC density.");
 
-                        DensityOptions.RefreshMenu();
-                        menu.RefreshIndex();
-                    }
+                button.Selected += (_s, _args) =>
+                {
+                    PlayersList.RequestPlayerList();
+
+                    DensityOptions.RefreshMenu();
+                    DensityOptions.GetMenu().RefreshIndex();
                 };
+
+                adminSect.Add(button);
             }
 
             // Add Plugin Settings Menu
             if (IsAllowed(Permission.PNMenu))
             {
-                hasAdminMenus = true;
                 PluginSettingsMenu = new PluginSettings();
-                var menu = PluginSettingsMenu.GetMenu();
-                var button = new MenuItem("Plugins", "Plugins settings and status.")
-                {
-                    Label = "→→→"
-                };
-                AddMenu(Menu, menu, button);
+                Menu.BindSubmenu(
+                    PluginSettingsMenu.GetMenu(),
+                    out WMenuItem button,
+                    "Plugins settings and status.");
+
+                adminSect.Add(button);
             }
 
-            if (!hasAdminMenus)
-                Menu.RemoveMenuItem(adminSpacer);
 
-            Menu.OnMenuClose += (sender) =>
+            Menu.AddSection("Admin Options", adminSect, false);
+            #endregion
+
+            Menu.Closed += (_s, _args) =>
             {
-                if (MainMenu.MiscSettingsMenu.ResetIndex.Checked)
+                if (MiscSettingsMenu.ResetIndex.Checked)
                 {
-                    Menu.RefreshIndex();
+                    Menu.Menu.RefreshIndex();
                     MenuController.Menus.ForEach(delegate (Menu m)
                     {
                         m.RefreshIndex();
@@ -1177,24 +1195,6 @@ namespace vMenuClient
             if (!GetSettingsBool(Setting.vmenu_use_permissions))
             {
                 Notify.Alert("vMenu is set up to ignore permissions, default permissions will be used.");
-            }
-
-            if (PlayerSubmenu.Size > 0)
-            {
-                MenuController.BindMenuItem(Menu, PlayerSubmenu, playerSubmenuBtn);
-            }
-            else
-            {
-                Menu.RemoveMenuItem(playerSubmenuBtn);
-            }
-
-            if (VehicleSubmenu.Size > 0)
-            {
-                MenuController.BindMenuItem(Menu, VehicleSubmenu, vehicleSubmenuBtn);
-            }
-            else
-            {
-                Menu.RemoveMenuItem(vehicleSubmenuBtn);
             }
 
             if (MiscSettingsMenu != null)
