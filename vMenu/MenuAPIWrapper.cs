@@ -362,6 +362,9 @@ namespace vMenuClient
             }
             public WMenu AddItem(WMenuItem menuItem)
             {
+                if (menuItem == null)
+                    return this;
+
                 itemsDict[menuItem.MenuItem] = menuItem;
                 Menu.AddMenuItem(menuItem.MenuItem);
                 return this;
@@ -488,23 +491,29 @@ namespace vMenuClient
             public WMenu BindSubmenu(WMenu submenu, WMenuItem button, bool addLabel = true) =>
                 BindSubmenu(submenu.Menu, button.MenuItem, addLabel);
 
-            public WMenu BindSubmenu(Menu submenu, out MenuItem button, string description = "")
+            public WMenu BindSubmenu(Menu submenu, out MenuItem button, string description = "", bool addEmpty = false)
             {
+                if (submenu.GetMenuItems().Count == 0 && !addEmpty)
+                {
+                    button = null;
+                    return this;
+                }
+
                 button = new MenuItem(submenu.MenuSubtitle, description);
                 return BindSubmenu(submenu, button, true);
             }
-            public WMenu BindSubmenu(WMenu submenu, out MenuItem button, string description = "") =>
-                BindSubmenu(submenu.Menu, out button, description);
-            public WMenu BindSubmenu(Menu submenu, out WMenuItem button, string description = "")
+            public WMenu BindSubmenu(WMenu submenu, out MenuItem button, string description = "", bool addEmpty = false) =>
+                BindSubmenu(submenu.Menu, out button, description, addEmpty);
+            public WMenu BindSubmenu(Menu submenu, out WMenuItem button, string description = "", bool addEmpty = false)
             {
                 MenuItem nonWrapperButton;
-                BindSubmenu(submenu, out nonWrapperButton, description);
+                BindSubmenu(submenu, out nonWrapperButton, description, addEmpty);
                 button = nonWrapperButton.ToWrapped();
                 return this;
             }
 
-            public WMenu BindSubmenu(WMenu submenu, out WMenuItem button, string description = "") =>
-                BindSubmenu(submenu.Menu, out button, description);
+            public WMenu BindSubmenu(WMenu submenu, out WMenuItem button, string description = "", bool addEmpty = false) =>
+                BindSubmenu(submenu.Menu, out button, description, addEmpty);
 
             public WMenu AddSubmenu(Menu submenu, string description = "", bool addEmpty = false)
             {
