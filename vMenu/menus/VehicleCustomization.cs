@@ -68,7 +68,7 @@ namespace vMenuClient.menus
 
             #region menu items variables
             // Create buttons.
-            var setLicensePlateText = new MenuItem("Set License Plate Text", "Enter a custom license plate for your vehicle.");
+            var setLicensePlateText = new MenuItem("License Plate Text", "Enter custom ~b~license plate text~s~.");
             var modMenuBtn = new MenuItem("Vehicle Mods", "Tune and customize your vehicle.")
             {
                 Label = "→→→"
@@ -171,8 +171,7 @@ namespace vMenuClient.menus
             }
 
             var licensePlates = new List<string> { plate01, plate02, plate03, plate04, plate05, plate06 };
-            var setLicensePlateType = new MenuListItem("License Plate Type", licensePlates, 0, "Choose a license plate type and press ~r~enter ~s~to apply " +
-                "it to your vehicle.");
+            var setLicensePlateType = new MenuListItem("License Plate Type", licensePlates, 0, "Select the ~b~license plate type~s~.");
             #endregion
 
             #region Submenus
@@ -389,7 +388,7 @@ namespace vMenuClient.menus
             var wheelColorsList = new MenuListItem("Wheel Colour", wheelColors, 0);
             var dashColorList = new MenuListItem("Dashboard Colour", classic, 0);
             var intColorList = new MenuListItem("Interior / Trim Colour", classic, 0);
-            var vehicleEnveffScale = new MenuSliderItem("Vehicle Enveff Scale", "This works on certain vehicles only, like the besra for example. It 'fades' certain paint layers.", 0, 20, 10, true);
+            var vehicleEnveffScale = new MenuSliderItem("Vehicle Enveff Scale", "This only works on certain vehicles. It fades some paint layers.", 0, 20, 10, true);
 
             var chrome = new MenuItem("Chrome");
             //VehicleColorsMenu.AddMenuItem(chrome);
@@ -675,7 +674,7 @@ namespace vMenuClient.menus
                 Description = "Select a paint finish for your Primary paint job.",
 
             };
-            var SecondaryMatchColorPrimary = new MenuItem("Match from Secondary", "Copies the Secondary Colour's colour data.");
+            var SecondaryMatchColorPrimary = new MenuItem("Copy Secondary Paint", "Copy the secondary paint's color.");
             primaryColorsMenuRGB.AddMenuItem(RedSliderPrimary);
             primaryColorsMenuRGB.AddMenuItem(GreenSliderPrimary);
             primaryColorsMenuRGB.AddMenuItem(BlueSliderPrimary);
@@ -902,7 +901,7 @@ namespace vMenuClient.menus
                 Description = "Select a paint finish for your Secondary paint job.",
 
             };
-            var PrimaryMatchColorSecondary = new MenuItem("Match from Primary Colour", "Copies the Primary Colour's colour data.");
+            var PrimaryMatchColorSecondary = new MenuItem("Copy Primary Paint", "Copy the primary paint's color.");
 
             secondaryColorsMenu.OnItemSelect += async (sender, item, index) =>
             {
@@ -1080,21 +1079,6 @@ namespace vMenuClient.menus
             };
             #endregion
 
-            #region Vehicle Doors Submenu Stuff
-            var openAll = new MenuItem("Open All Doors", "Open all vehicle doors.");
-            var closeAll = new MenuItem("Close All Doors", "Close all vehicle doors.");
-            var LF = new MenuItem("Left Front Door", "Open/close the left front door.");
-            var RF = new MenuItem("Right Front Door", "Open/close the right front door.");
-            var LR = new MenuItem("Left Rear Door", "Open/close the left rear door.");
-            var RR = new MenuItem("Right Rear Door", "Open/close the right rear door.");
-            var HD = new MenuItem("Hood", "Open/close the hood.");
-            var TR = new MenuItem("Trunk", "Open/close the trunk.");
-            var E1 = new MenuItem("Extra 1", "Open/close the extra door (#1). Note this door is not present on most vehicles.");
-            var E2 = new MenuItem("Extra 2", "Open/close the extra door (#2). Note this door is not present on most vehicles.");
-            var BB = new MenuItem("Bomb Bay", "Open/close the bomb bay. Only available on some planes.");
-            var doors = new List<string>() { "Front Left", "Front Right", "Rear Left", "Rear Right", "Hood", "Trunk", "Extra 1", "Extra 2" };
-            var removeDoorList = new MenuListItem("Remove Door", doors, 0, "Remove a specific vehicle door completely.");
-            var deleteDoors = new MenuCheckboxItem("Delete Removed Doors", "When enabled, doors that you remove using the list above will be deleted from the world. If disabled, then the doors will just fall on the ground.", false);
 
             #region Vehicle Liveries Submenu Stuff
             menu.OnItemSelect += (sender, item, idex) =>
@@ -1244,7 +1228,7 @@ namespace vMenuClient.menus
                         {
                             var noExtrasBtn = new MenuItem("No Extras Available.");
                             VehicleComponentsMenu.AddMenuItem(noExtrasBtn);
-    
+
                         }
                         // And update the submenu to prevent weird glitches.
                         VehicleComponentsMenu.RefreshIndex();
@@ -1278,8 +1262,8 @@ namespace vMenuClient.menus
             }
             var underglowColor = new MenuListItem("Underglow preset", underglowColorsList, 0, "Preset underglow colors.");
             var HexColorUnderglow = new MenuItem("Underglow Hex", "Set Underglow colour with hex code.");
-            var syncprimaryUnderglow = new MenuItem("Sync With Primary", "Sync Underglow colour with Secondary Paint.");
-            var syncsecondaryUnderglow = new MenuItem("Sync With Secondary", "Sync Underglow colour with Secondary Paint.");
+            var syncprimaryUnderglow = new MenuItem("Match Primary Paint", "Use the primary paint's color for the underglow.");
+            var syncsecondaryUnderglow = new MenuItem("Match Secondary Paint", "Use the primary paint's color for the underglow.");
             UnderglowColorsMenu.AddMenuItem(underglowFront);
             UnderglowColorsMenu.AddMenuItem(underglowBack);
             UnderglowColorsMenu.AddMenuItem(underglowLeft);
@@ -1590,7 +1574,6 @@ namespace vMenuClient.menus
             #endregion
 
         }
-        #endregion
 
         /// <summary>
         /// Public get method for the menu. Checks if the menu exists, if not create the menu first.
@@ -1649,6 +1632,10 @@ namespace vMenuClient.menus
 
                     // Get the proper localized mod type (suspension, armor, etc) name.
                     var typeName = mod.LocalizedModTypeName;
+                    if (typeName == "Front Wheel" && !veh.Model.IsBike)
+                    {
+                        typeName = "Wheel";
+                    }
 
                     // Create a list to all available upgrades for this modtype.
                     var modlist = new List<string>();
@@ -1681,7 +1668,7 @@ namespace vMenuClient.menus
                         typeName,
                         modlist,
                         currIndex,
-                        $"Choose a ~y~{typeName}~s~ upgrade, it will be automatically applied to your vehicle."
+                        $"Upgrade or change the ~b~{typeName.ToLower()}~s~ modification. Changes will automatically be applied."
                     )
                     {
                         ItemData = (int)mod.ModType
@@ -1711,18 +1698,18 @@ namespace vMenuClient.menus
                     "Street",       // 11
                     "Track"         // 12
                 };
-                var vehicleWheelType = new MenuListItem("Wheel Type", wheelTypes, MathUtil.Clamp(GetVehicleWheelType(veh.Handle), 0, 12), $"Choose a ~y~wheel type~s~ for your vehicle.");
+                var vehicleWheelType = new MenuListItem("Wheel Type", wheelTypes, MathUtil.Clamp(GetVehicleWheelType(veh.Handle), 0, 12), $"Choose the ~b~wheel type~s~ of your vehicle.");
                 if (!veh.Model.IsBoat && !veh.Model.IsHelicopter && !veh.Model.IsPlane && !veh.Model.IsBicycle && !veh.Model.IsTrain)
                 {
                     VehicleModMenu.AddMenuItem(vehicleWheelType);
                 }
 
                 // Create the checkboxes for some options.
-                var toggleCustomWheels = new MenuCheckboxItem("Toggle Custom Wheels", "Press this to add or remove ~y~custom~s~ wheels.", GetVehicleModVariation(veh.Handle, 23));
-                var xenonHeadlights = new MenuCheckboxItem("Xenon Headlights", "Enable or disable ~b~xenon ~s~headlights.", IsToggleModOn(veh.Handle, 22));
-                var turbo = new MenuCheckboxItem("Turbo", "Enable or disable the ~y~turbo~s~ for this vehicle.", IsToggleModOn(veh.Handle, 18));
-                var bulletProofTires = new MenuCheckboxItem("Bulletproof Tires", "Enable or disable ~y~Bulletproof tires~s~ for this vehicle.", !GetVehicleTyresCanBurst(veh.Handle));
-                var driftTires = new MenuCheckboxItem("Low-Grip Tires", "Enable or disable ~y~Low-Grip tires~s~ for this vehicle.", GetDriftTyresEnabled(veh.Handle));
+                var toggleCustomWheels = new MenuCheckboxItem("Toggle Custom Wheels", "Toggle between stock and ~b~custom~s~ tire sidewalls.", GetVehicleModVariation(veh.Handle, 23));
+                var xenonHeadlights = new MenuCheckboxItem("Xenon Headlights", "Enable or disable ~b~xenon~s~ headlights.", IsToggleModOn(veh.Handle, 22));
+                var turbo = new MenuCheckboxItem("Turbo", "Enable or disable the ~b~turbo~s~.", IsToggleModOn(veh.Handle, 18));
+                var bulletProofTires = new MenuCheckboxItem("Bulletproof Tires", "Enable or disable ~b~bulletproof tires~s~.", !GetVehicleTyresCanBurst(veh.Handle));
+                var driftTires = new MenuCheckboxItem("Low-Grip Tires", "Enable or disable ~b~low-grip tires~s~.", GetDriftTyresEnabled(veh.Handle));
 
                 // Add the checkboxes to the menu.
                 VehicleModMenu.AddMenuItem(toggleCustomWheels);
@@ -1732,7 +1719,7 @@ namespace vMenuClient.menus
                 {
                     currentHeadlightColor = 13;
                 }
-                var headlightColor = new MenuListItem("Headlight Color", new List<string>() { "White", "Blue", "Electric Blue", "Mint Green", "Lime Green", "Yellow", "Golden Shower", "Orange", "Red", "Pony Pink", "Hot Pink", "Purple", "Blacklight", "Default Xenon" }, currentHeadlightColor, "New in the Arena Wars GTA V update: Colored headlights. Note you must enable Xenon Headlights first.");
+                var headlightColor = new MenuListItem("Headlight Color", new List<string>() { "White", "Blue", "Electric Blue", "Mint Green", "Lime Green", "Yellow", "Golden Shower", "Orange", "Red", "Pony Pink", "Hot Pink", "Purple", "Blacklight", "Default Xenon" }, currentHeadlightColor, "Select the ~b~headlight color~s~. ~y~You must enable Xenon Headlights first.~s~");
                 VehicleModMenu.AddMenuItem(headlightColor);
                 VehicleModMenu.AddMenuItem(turbo);
                 VehicleModMenu.AddMenuItem(bulletProofTires);
@@ -1762,11 +1749,11 @@ namespace vMenuClient.menus
                     index = 0;
                 }
 
-                var tireSmoke = new MenuListItem("Tire Smoke Color", tireSmokes, index, $"Choose a ~y~tire smoke color~s~ for your vehicle.");
+                var tireSmoke = new MenuListItem("Tire Smoke Color", tireSmokes, index, $"Select the ~b~tire smoke color~s~.");
                 VehicleModMenu.AddMenuItem(tireSmoke);
 
                 // Create the checkbox to enable/disable the tiresmoke.
-                var tireSmokeEnabled = new MenuCheckboxItem("Tire Smoke", "Enable or disable ~y~tire smoke~s~ for your vehicle. ~h~~r~Important:~s~ When disabling tire smoke, you'll need to drive around before it takes affect.", IsToggleModOn(veh.Handle, 20));
+                var tireSmokeEnabled = new MenuCheckboxItem("Tire Smoke", "Enable or disable ~b~tire smoke~s~. ~y~When disabling tire smoke, you will need to drive around before it takes effect.~s~", IsToggleModOn(veh.Handle, 20));
                 VehicleModMenu.AddMenuItem(tireSmokeEnabled);
 
                 // Create list for window tint
@@ -1805,7 +1792,7 @@ namespace vMenuClient.menus
                         break;
                 }
 
-                var windowTint = new MenuListItem("Window Tint", windowTints, currentTint, "Apply tint to your windows.");
+                var windowTint = new MenuListItem("Window Tint", windowTints, currentTint, "Change the ~b~window tint~s~.");
                 VehicleModMenu.AddMenuItem(windowTint);
 
                 #endregion
