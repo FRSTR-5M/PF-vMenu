@@ -997,35 +997,19 @@ namespace vMenuClient
 
                 var tpSect = new List<WMenuItem>();
 
-                if (IsAllowed(Permission.TPMenu))
+                if (IsAllowed(Permission.TPMenu) && IsAllowed(Permission.TPTeleportToPrev))
                 {
-                    if (IsAllowed(Permission.TPTeleportToWp))
-                    {
-                        var tpToWp = new MenuItem(
-                            "Teleport To Waypoint",
-                            "Teleport to the waypoint on your map.").ToWrapped();
-                        tpToWp.Selected += async (_s, _args) =>  await TeleportOptionsMenu.TeleportToWaypoint();
+                    var tpToPrevBtn = new MenuItem(
+                        "Teleport To Previous Location",
+                        "Teleport to the location you last teleported to.").ToWrapped();
+                    tpToPrevBtn.Selected += async (_s, _args) => await TeleportOptionsMenu.TeleportToPrevTPLocation();
 
-                        tpSect.Add(tpToWp);
-                    }
-                    if (IsAllowed(Permission.TPTeleportToPrev))
-                    {
-                        var tpToPrev = new MenuItem(
-                            "Teleport To Previous Location",
-                            "Teleport to the location you last teleported to.").ToWrapped();
-                        tpToPrev.Selected += async (_s, _args) =>  await TeleportOptionsMenu.TeleportToPrevTPLocation();
+                    var overridePrevBtn = new MenuItem(
+                        "Override Previous Location",
+                        "Overrides the previous teleport location with your current position. If you are in a vehicle, the vehicle's momentum will also be saved.").ToWrapped();
+                    overridePrevBtn.Selected += (_s, _args) => TeleportOptionsMenu.OverridePrevLocation();
 
-                        tpSect.Add(tpToPrev);
-                    }
-                    if (IsAllowed(Permission.TPTeleportToPrev))
-                    {
-                        var overridePrev = new MenuItem(
-                            "Override Previous Location",
-                            "Overrides the previous teleport location with your current position.").ToWrapped();
-                        overridePrev.Selected += (_s, _args) =>  TeleportOptionsMenu.OverridePrevLocation();
-
-                        tpSect.Add(overridePrev);
-                    }
+                    tpSect.AddRange([tpToPrevBtn, overridePrevBtn]);
                 }
 
 
