@@ -21,9 +21,25 @@ namespace vMenuClient
         // Variables
         private WMenu menu;
 
-        private Vector3? prevTpCoords = null;
-        private float? prevTpHeading = null;
-        private bool prevTpSafe = true;
+        public struct PrevTpVehicleState
+        {
+            public Vector3 Velocity;
+            public Vector3 Rotation;
+            public Vector3 RotationVelocity;
+            public float SteeringAngle;
+            public float Rpm;
+            public int Gear;
+        }
+
+        public struct PrevTpState
+        {
+            public Vector3 Coords;
+            public float? Heading;
+            public PrevTpVehicleState? VehicleState;
+            public bool Safe;
+        }
+
+        private PrevTpState? prevTpState;
 
         private WMenu personalTpLocationsMenu;
         private List<TeleportLocation> personalTpLocations = new List<TeleportLocation>();
@@ -66,20 +82,24 @@ namespace vMenuClient
         public async Task TeleportToWaypoint()
         {
             var coords = await TeleportToWp();
-            SetPrevTpLocation(coords, null, false);
+            SetPrevTpLocation(coords, null, safe: false);
         }
 
         /// <summary>
         /// Set the previous teleport location
         /// </summary>
-        private void SetPrevTpLocation(Vector3? coords, float? heading, bool safe = false)
+        private void SetPrevTpLocation(Vector3? coords, float? heading, PrevTpVehicleState? vehicleState = null, bool safe = false)
         {
             if (coords == null)
                 return;
 
-            prevTpCoords = coords;
-            prevTpHeading = heading;
-            prevTpSafe = safe;
+            prevTpState = new PrevTpState
+            {
+                Coords = coords.Value,
+                Heading = heading,
+                VehicleState = vehicleState,
+                Safe = safe
+            };
         }
 
         /// <summary>
@@ -87,13 +107,30 @@ namespace vMenuClient
         /// </summary>
         public async Task TeleportToPrevTPLocation()
         {
-            if (prevTpCoords is Vector3 coords)
+            if (prevTpState is PrevTpState state)
             {
-                await TeleportToCoords(coords, prevTpSafe);
-                if (prevTpHeading is float heading)
+                await TeleportToCoords(state.Coords, state.Safe);
+                if (state.Heading is float heading)
                 {
                     SetEntityHeading(Game.PlayerPed.Handle, heading);
                     SetGameplayCamRelativeHeading(0f);
+                }
+
+                if (state.VehicleState is PrevTpVehicleState vehicleState)
+                {
+                    var vehicle = GetVehicle();
+                    if (vehicle != null)
+                    {
+                        vehicle.Speed = vehicleState.Velocity.Length();
+                        vehicle.Velocity = vehicleState.Velocity;
+                        vehicle.Rotation = vehicleState.Rotation;
+
+                        var rv = vehicleState.RotationVelocity;
+                        SetEntityAngularVelocity(vehicle.Handle, rv.X, rv.Y, rv.Z);
+
+                        vehicle.SteeringAngle = vehicleState.SteeringAngle;
+                        vehicle.CurrentRPM = vehicleState.Rpm;
+                    }
                 }
             }
             else
@@ -109,8 +146,23 @@ namespace vMenuClient
         {
             var coords = Game.PlayerPed.Position;
             var heading = Game.PlayerPed.Heading;
+            PrevTpVehicleState? vehicleState = null;
 
-            SetPrevTpLocation(coords, heading, true);
+            var vehicle = GetVehicle();
+            if (vehicle != null)
+            {
+                vehicleState = new PrevTpVehicleState
+                {
+                    Velocity = vehicle.Velocity,
+                    Rotation = vehicle.Rotation,
+                    RotationVelocity = vehicle.RotationVelocity,
+                    SteeringAngle = vehicle.SteeringAngle,
+                    Rpm = vehicle.CurrentRPM,
+                    Gear = vehicle.CurrentGear,
+                };
+            }
+
+            SetPrevTpLocation(coords, heading, vehicleState, safe: true);
 
             Notify.Info("Previous TP location overridden.");
         }
@@ -214,7 +266,7 @@ namespace vMenuClient
             var tpBtn = new MenuItem("Teleport", GetTpToString(tpLoc)).ToWrapped();
             tpBtn.Selected += async (_s, _args) =>
             {
-                    SetPrevTpLocation(tpLoc.coordinates, tpLoc.heading, true);
+                    SetPrevTpLocation(tpLoc.coordinates, tpLoc.heading, safe: true);
                     await TeleportToCoords(tpLoc.coordinates, true);
                     SetEntityHeading(Game.PlayerPed.Handle, tpLoc.heading);
                     SetGameplayCamRelativeHeading(0f);
@@ -295,7 +347,7 @@ namespace vMenuClient
                 var tpBtn = new MenuItem(tpLoc.name, GetTpToString(tpLoc)).ToWrapped();
                 tpBtn.Selected += async (_s, _args) =>
                 {
-                    SetPrevTpLocation(tpLoc.coordinates, tpLoc.heading, true);
+                    SetPrevTpLocation(tpLoc.coordinates, tpLoc.heading, safe: true);
                     await TeleportToCoords(tpLoc.coordinates, true);
                     SetEntityHeading(Game.PlayerPed.Handle, tpLoc.heading);
                     SetGameplayCamRelativeHeading(0f);
@@ -389,7 +441,7 @@ namespace vMenuClient
                     if (coords == null)
                         return;
 
-                    SetPrevTpLocation(coords.Value, null, true);
+                    SetPrevTpLocation(coords.Value, null, safe: true);
                     await TeleportToCoords(coords.Value, true);
                 };
 
@@ -401,7 +453,9 @@ namespace vMenuClient
 
             if (IsAllowed(Permission.TPTeleportToPrev))
             {
-                var overridePrevBtn = new MenuItem("Override Previous Location", "Overrides the previous teleport location with your current position.").ToWrapped();
+                var overridePrevBtn = new MenuItem(
+                    "Override Previous Location",
+                    "Overrides the previous teleport location with your current position. If you are in a vehicle, the vehicle's momentum will also be saved.").ToWrapped();
                 overridePrevBtn.Selected += (_s, _args) => OverridePrevLocation();
 
                 setTpSect.Add(overridePrevBtn);
