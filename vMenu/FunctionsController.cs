@@ -1400,7 +1400,7 @@ namespace vMenuClient
             camera = newCamera;
         }
 
-        private bool IsMpCharEditorOpen()
+        public static bool IsMpCharEditorOpen()
         {
             if (MainMenu.MpPedCustomizationMenu != null)
             {

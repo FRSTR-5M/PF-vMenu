@@ -550,6 +550,15 @@ namespace vMenuClient
             }));
 
             Exports.Add("is_any_menu_open", new Func<bool>(MenuController.IsAnyMenuOpen));
+            Exports.Add("is_freezing_ped", new Func<bool>(() => {
+                if (FunctionsController.IsMpCharEditorOpen())
+                    return true;
+
+                if (PlayerOptionsMenu != null && PlayerOptionsMenu.PlayerFrozen)
+                    return true;
+
+                return false;
+            }));
         }
 
         #region Infinity bits
