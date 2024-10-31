@@ -29,6 +29,10 @@ namespace vMenuClient
         internal static bool DriveWanderTaskActive = false;
         #endregion
 
+        #region Constants
+        const int CUSTOM_PAINT = 1100110;
+        #endregion
+
         #region Menu title
         public static string MenuTitle
         {
@@ -1523,34 +1527,32 @@ namespace vMenuClient
                 ToggleVehicleMod(vehicle.Handle, 20, vehicleInfo.tyreSmoke);
                 ToggleVehicleMod(vehicle.Handle, 22, vehicleInfo.xenonHeadlights);
                 SetVehicleLivery(vehicle.Handle, vehicleInfo.livery);
-                
-                if (!(vehicleInfo.colors["primary"] == 1100110))
-                {
-                if (vehicleInfo.colors["secondary"] == 1100110)
-                {
-                SetVehicleColours(vehicle.Handle, vehicleInfo.colors["primary"], 0);
-                SetVehicleCustomSecondaryColour(vehicle.Handle, vehicleInfo.colors["secondaryr"], vehicleInfo.colors["secondaryg"] , vehicleInfo.colors["secondaryb"]);
-                SetMaterial.SetSecondaryMaterial(vehicle.Handle, vehicleInfo.colors["secondaryf"]);
-                }
-                else
-                SetVehicleColours(vehicle.Handle, vehicleInfo.colors["primary"], vehicleInfo.colors["secondary"]);
-                }
-                else
-                {
-                if (vehicleInfo.colors["secondary"] == 1100110)
-                {
-                SetVehicleColours(vehicle.Handle, 0, 0);
-                SetVehicleCustomSecondaryColour(vehicle.Handle, vehicleInfo.colors["secondaryr"], vehicleInfo.colors["secondaryg"] , vehicleInfo.colors["secondaryb"]);
-                 SetMaterial.SetSecondaryMaterial(vehicle.Handle, vehicleInfo.colors["secondaryf"]);
 
+
+                var colors = vehicleInfo.colors;
+
+                int primary = colors["primary"];
+                if (primary == CUSTOM_PAINT)
+                {
+                    SetVehicleCustomPrimaryColour(vehicle.Handle, colors["primaryr"], colors["primaryg"] , colors["primaryb"]);
+                    SetVehicleCustomPrimaryPaintType(vehicle, colors["primaryf"]);
                 }
                 else
-                SetVehicleColours(vehicle.Handle, 0, vehicleInfo.colors["secondary"]);
-
-                    SetMaterial.SetPrimaryMaterial(vehicle.Handle, vehicleInfo.colors["primaryf"]);
-                
-                SetVehicleCustomPrimaryColour(vehicle.Handle, vehicleInfo.colors["primaryr"], vehicleInfo.colors["primaryg"] , vehicleInfo.colors["primaryb"]);
+                {
+                    SetVehiclePrimaryColor(vehicle, primary);
                 }
+
+                int secondary = colors["secondary"];
+                if (vehicleInfo.colors["secondary"] == CUSTOM_PAINT)
+                {
+                    SetVehicleCustomSecondaryColour(vehicle.Handle, colors["secondaryr"], colors["secondaryg"] , colors["secondaryb"]);
+                    SetVehicleCustomSecondaryPaintType(vehicle, colors["secondaryf"]);
+                }
+                else
+                {
+                    SetVehicleSecondaryColor(vehicle, secondary);
+                }
+
 
                 SetVehicleInteriorColour(vehicle.Handle, vehicleInfo.colors["trim"]);
                 SetVehicleDashboardColour(vehicle.Handle, vehicleInfo.colors["dash"]);
@@ -1595,6 +1597,109 @@ namespace vMenuClient
             }
         }
         #endregion
+        #endregion
+
+        #region Vehicle color stuff
+        public static int GetVehiclePrimaryColor(Vehicle vehicle)
+        {
+            int primary = 0;
+            int _ignore = 0;
+            GetVehicleColours(vehicle.Handle, ref primary, ref _ignore);
+            return primary;
+        }
+
+        public static void SetVehiclePrimaryColor(Vehicle vehicle, int color)
+        {
+            int _ignore = 0;
+
+            int secondary = 0;
+            int secondaryRed = 0;
+            int secondaryGreen = 0;
+            int secondaryBlue = 0;
+            int secondaryFinish;
+
+            GetVehicleColours(vehicle.Handle, ref _ignore, ref secondary);
+            GetVehicleCustomSecondaryColour(vehicle.Handle, ref secondaryRed, ref secondaryGreen, ref secondaryBlue);
+            secondaryFinish = GetVehicleCustomPrimaryPaintType(vehicle);
+
+            if (GetIsVehiclePrimaryColourCustom(vehicle.Handle))
+            {
+                ClearVehicleCustomPrimaryColour(vehicle.Handle);
+            }
+            SetVehicleColours(vehicle.Handle, color, secondary);
+            if (GetIsVehicleSecondaryColourCustom(vehicle.Handle))
+            {
+                SetVehicleCustomSecondaryColour(vehicle.Handle, secondaryRed, secondaryGreen, secondaryBlue);
+                SetVehicleCustomSecondaryPaintType(vehicle, secondaryFinish);
+            }
+        }
+
+        public static int GetVehicleSecondaryColor(Vehicle vehicle)
+        {
+            int secondary = 0;
+            int _ignore = 0;
+            GetVehicleColours(vehicle.Handle, ref _ignore, ref secondary);
+            return secondary;
+        }
+
+        public static void SetVehicleSecondaryColor(Vehicle vehicle, int color)
+        {
+            int _ignore = 0;
+
+            int primary = 0;
+            int primaryRed = 0;
+            int primaryGreen = 0;
+            int primaryBlue = 0;
+            int primaryFinish;
+
+            GetVehicleColours(vehicle.Handle, ref primary, ref _ignore);
+            GetVehicleCustomPrimaryColour(vehicle.Handle, ref primaryRed, ref primaryGreen, ref primaryBlue);
+            primaryFinish = GetVehicleCustomPrimaryPaintType(vehicle);
+
+            if (GetIsVehicleSecondaryColourCustom(vehicle.Handle))
+            {
+                ClearVehicleCustomSecondaryColour(vehicle.Handle);
+            }
+            SetVehicleColours(vehicle.Handle, primary, color);
+            if (GetIsVehiclePrimaryColourCustom(vehicle.Handle))
+            {
+                SetVehicleCustomPrimaryColour(vehicle.Handle, primaryRed, primaryGreen, primaryBlue);
+                SetVehicleCustomPrimaryPaintType(vehicle, primaryFinish);
+            }
+        }
+
+        public static void SetVehicleColors(Vehicle vehicle, int primary, int secondary)
+        {
+            ClearVehicleCustomPrimaryColour(vehicle.Handle);
+            ClearVehicleCustomSecondaryColour(vehicle.Handle);
+            SetVehicleColours(vehicle.Handle, primary, secondary);
+        }
+
+        public static int GetVehicleCustomPrimaryPaintType(Vehicle vehicle)
+        {
+            int primaryType = 0;
+            int _ignore = 0;
+            GetVehicleModColor_1(vehicle.Handle, ref primaryType, ref _ignore, ref _ignore);
+            return primaryType;
+        }
+
+        public static void SetVehicleCustomPrimaryPaintType(Vehicle vehicle, int primaryType)
+        {
+            SetVehicleModColor_1(vehicle.Handle, primaryType, 0, 0);
+        }
+
+        public static int GetVehicleCustomSecondaryPaintType(Vehicle vehicle)
+        {
+            int secondaryType = 0;
+            int _ignore = 0;
+            GetVehicleModColor_2(vehicle.Handle, ref secondaryType, ref _ignore);
+            return secondaryType;
+        }
+
+        public static void SetVehicleCustomSecondaryPaintType(Vehicle vehicle, int secondaryType)
+        {
+            SetVehicleModColor_2(vehicle.Handle, secondaryType, 0);
+        }
         #endregion
 
         #region VehicleInfo struct
@@ -1652,73 +1757,61 @@ namespace vMenuClient
 
                     #region colors
                     var colors = new Dictionary<string, int>();
-                    var primaryColor = 0;
-                    var primaryColorred = 0;
-                    var primaryColorgreen = 0;
-                    var primaryColorblue = 0;
-                    var primaryFinish = await GetMaterial.GetPrimaryMaterialAsync(veh.Handle);
 
-                    var secondaryColor = 0;
-                    var secondaryColorred = 0;
-                    var secondaryColorgreen = 0;
-                    var secondaryColorblue = 0;
-                    var secondaryFinish = await GetMaterial.GetSecondaryMaterialAsync(veh.Handle);
+
+                    var primaryColor = CUSTOM_PAINT;
+                    var primaryColorRed = 0;
+                    var primaryColorGreen = 0;
+                    var primaryColorBlue = 0;
+                    var primaryFinish = 0;
+
+                    var secondaryColor = CUSTOM_PAINT;
+                    var secondaryColorRed = 0;
+                    var secondaryColorGreen = 0;
+                    var secondaryColorBlue = 0;
+                    var secondaryFinish = 0;
+
+                    if (GetIsVehiclePrimaryColourCustom(veh.Handle))
+                    {
+                        GetVehicleCustomPrimaryColour(veh.Handle, ref primaryColorRed, ref primaryColorGreen, ref primaryColorBlue);
+                        primaryFinish = GetVehicleCustomPrimaryPaintType(veh);
+                    }
+                    else
+                    {
+                        primaryColor = GetVehiclePrimaryColor(veh);
+                    }
+
+                    if (GetIsVehicleSecondaryColourCustom(veh.Handle))
+                    {
+                        GetVehicleCustomSecondaryColour(veh.Handle, ref secondaryColorRed, ref secondaryColorGreen, ref secondaryColorBlue);
+                        secondaryFinish = primaryFinish = GetVehicleCustomSecondaryPaintType(veh);
+                    }
+                    else
+                    {
+                        secondaryColor = GetVehicleSecondaryColor(veh);
+                    }
 
 
                     var pearlescentColor = 0;
                     var wheelColor = 0;
                     var dashColor = 0;
                     var trimColor = 0;
-     
-                    GetVehicleExtraColours(veh.Handle, ref pearlescentColor, ref wheelColor);
-                    GetVehicleCustomPrimaryColour(veh.Handle, ref primaryColorred, ref primaryColorgreen, ref primaryColorblue);
-                   
-                   
-                    if (!(!((primaryColorred +primaryColorgreen + primaryColorblue ) == 0 ) ||  !(primaryFinish == 0)))
-                    {
-                    GetVehicleColours(veh.Handle, ref primaryColor, ref secondaryColor);
-                    }
-                    else
-                    {
-                        GetVehicleColours(veh.Handle, ref primaryColor, ref secondaryColor);
-                        primaryColor = 1100110;
-                    }
 
-                    GetVehicleCustomSecondaryColour(veh.Handle, ref secondaryColorred, ref secondaryColorgreen, ref secondaryColorblue);
-                   
-                   
-                    if (!(!((secondaryColorred +secondaryColorgreen + secondaryColorblue ) == 0 ) ||  !(secondaryFinish == 0)))
-                    {
-                    GetVehicleColours(veh.Handle, ref secondaryColor, ref secondaryColor);
-                    }
-                    else
-                    {   
-                        if (primaryColor == 1100110)
-                        {
-                        secondaryColor = 1100110;   
-                        primaryColor = 1100110;                           
-                        }
-                        else
-                        {
-                        GetVehicleColours(veh.Handle, ref secondaryColor, ref secondaryColor);
-                        secondaryColor = 1100110;                            
-                        }
-                    }
-          
-                   
-                    
+                    GetVehicleExtraColours(veh.Handle, ref pearlescentColor, ref wheelColor);
                     GetVehicleDashboardColour(veh.Handle, ref dashColor);
                     GetVehicleInteriorColour(veh.Handle, ref trimColor);
+
+
                     colors.Add("primary", primaryColor);
-                    colors.Add("primaryr", primaryColorred);
-                    colors.Add("primaryg", primaryColorgreen);
-                    colors.Add("primaryb", primaryColorblue);
+                    colors.Add("primaryr", primaryColorRed);
+                    colors.Add("primaryg", primaryColorGreen);
+                    colors.Add("primaryb", primaryColorBlue);
                     colors.Add("primaryf", primaryFinish);
 
                     colors.Add("secondary", secondaryColor);
-                    colors.Add("secondaryr", secondaryColorred);
-                    colors.Add("secondaryg", secondaryColorgreen);
-                    colors.Add("secondaryb", secondaryColorblue);
+                    colors.Add("secondaryr", secondaryColorRed);
+                    colors.Add("secondaryg", secondaryColorGreen);
+                    colors.Add("secondaryb", secondaryColorBlue);
                     colors.Add("secondaryf", secondaryFinish);
 
                     colors.Add("pearlescent", pearlescentColor);
