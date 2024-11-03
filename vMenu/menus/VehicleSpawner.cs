@@ -19,188 +19,70 @@ namespace vMenuClient.menus
 {
     public class VehicleSpawner
     {
+        public struct FilterItems
+        {
+            public WMenuItem Name;
+            public WMenuItem Manufacturer;
+            public WMenuItem CustomClass;
+            public WMenuItem DefaultClass;
+
+            public int Count => 1 + 2 + (CustomClass != null ? 1 : 0) + (DefaultClass != null ? 1 : 0);
+        }
+
         // Variables
         private WMenu menu;
 
 
         public WMenu AllVehiclesMenu;
+        private VehicleData.VehicleFilter filter;
+        FilterItems filterItems;
 
+        public void ResetAllVehiclesFilter()
+        {
+            filter = new VehicleData.VehicleFilter();
+
+            filterItems.Name.Label = "";
+            filterItems.Manufacturer.AsListItem().ListIndex = 0;
+            if (filterItems.CustomClass != null)
+            {
+                filterItems.CustomClass.AsListItem().ListIndex = 0;
+            }
+            if (filterItems.DefaultClass != null)
+            {
+                filterItems.DefaultClass.AsListItem().ListIndex = 0;
+            }
+        }
+
+        private int FilterAllVehiclesMenu(string name = null)
+        {
+            AllVehiclesMenu.Menu.ResetFilter();
+            var countTotal = AllVehiclesMenu.Menu.Size;
+
+            if (name != null)
+            {
+                filter.Name = name;
+            }
+
+            filterItems.Name.Label = $"~c~{filter.Name}~s~";
+
+            AllVehiclesMenu.Menu.FilterMenuItems(mi =>
+                mi.ItemData == null ||
+                filter.IsMatching(mi.ItemData as VehicleData.VehicleModelInfo));
+            var countFiltered = AllVehiclesMenu.Menu.Size;
+
+            AllVehiclesMenu.ResetIncrement();
+
+            return countFiltered - filterItems.Count;
+        }
 
         public bool SpawnInVehicle { get; private set; } = UserDefaults.VehicleSpawnerSpawnInside;
         public bool ReplaceVehicle { get; private set; } = UserDefaults.VehicleSpawnerReplacePrevious;
         public bool SpawnNpcLike { get; private set; } = UserDefaults.VehicleSpawnerSpawnNpcLike;
 
-
-        private List<VehicleData.VehicleInfo> allowedVehicles;
-        private HashSet<string> displayVehicles;
+        private List<VehicleData.VehicleModelInfo> allowedVehiclesList;
 
 
-        public static List<bool> allowedCategories;
-
-        public static bool IsVehicleAllowedClass(VehicleData.VehicleInfo vi) => allowedCategories[vi.Class];
-        public static bool IsVehicleAllowedAddon(VehicleData.VehicleInfo vi) =>
-            !vi.IsAddon || IsAllowed(Permission.VSAddon);
-        public static bool IsVehicleAllowedBlacklist(VehicleData.VehicleInfo vi) =>
-            !VehicleData.VehicleBlacklist.Contains(vi.Shortname) || IsAllowed(Permission.VOVehiclesBlacklist);
-        public static bool IsVehicleAllowedDisablelist(VehicleData.VehicleInfo vi) =>
-            !VehicleData.VehicleDisablelist.Contains(vi.Shortname) || IsAllowed(Permission.VODisableFromDefaultList);
-
-        public static bool IsVehicleAllowed(VehicleData.VehicleInfo vi) =>
-            IsVehicleAllowedClass(vi) &&
-            IsVehicleAllowedAddon(vi) &&
-            IsVehicleAllowedBlacklist(vi) &&
-            IsVehicleAllowedDisablelist(vi);
-
-        public static bool ShowVehicle(VehicleData.VehicleInfo vi) =>
-            IsVehicleAllowed(vi) && !VehicleData.VehicleDisablelist.Contains(vi.Shortname);
-
-
-        public static Tuple<string,string,string> GetDigitsNondigitsRest(string s)
-        {
-            int i = 0;
-            for (; i < s.Length && char.IsDigit(s[i]); ++i) ;
-
-            string digits = s.Substring(0, i);
-
-            int k = i;
-            for(; i < s.Length && !char.IsDigit(s[i]); ++i) ;
-
-            string nondigits = s.Substring(k, i - k);
-            string rest = s.Substring(i);
-
-            return new Tuple<string, string, string>(digits, nondigits, rest);
-        }
-
-        public static int StringCompareWithNumbers(string s1, string s2)
-        {
-            if (string.IsNullOrEmpty(s1) || string.IsNullOrEmpty(s2))
-                return s1.CompareTo(s2);
-
-            var dndr1 = GetDigitsNondigitsRest(s1);
-            var dndr2 = GetDigitsNondigitsRest(s2);
-
-            var digits1 = dndr1.Item1;
-            var digits2 = dndr2.Item1;
-
-            int ret;
-            if (!string.IsNullOrEmpty(digits1) && !string.IsNullOrEmpty(digits2))
-            {
-                int num1 = int.Parse(digits1);
-                int num2 = int.Parse(digits2);
-
-                ret = num1.CompareTo(num2);
-                if (ret != 0)
-                    return ret;
-
-                // If both digit strings parse to the same number, order the one with (more) leading zeros before
-                ret = digits2.Length.CompareTo(digits1.Length);
-                if (ret != 0)
-                    return ret;
-            }
-            else if (!string.IsNullOrEmpty(digits1) && string.IsNullOrEmpty(digits2))
-            {
-                return -1;
-            }
-            else if (string.IsNullOrEmpty(digits1) && !string.IsNullOrEmpty(digits2))
-            {
-                return 1;
-            }
-
-            var nondigits1 = dndr1.Item2;
-            var nondigits2 = dndr2.Item2;
-
-            ret = nondigits1.CompareTo(nondigits2);
-            if (ret != 0)
-                return ret;
-
-            var rest1 = dndr1.Item3;
-            var rest2 = dndr2.Item3;
-
-            return StringCompareWithNumbers(rest1, rest2);
-        }
-
-        public static Tuple<string, string> GetYearModel(string name)
-        {
-            if (name.Length < 6)
-                return new Tuple<string, string>("", name);
-
-            bool hasYear = true;
-            for (int i = 0; i < 4; i++)
-            {
-                if (!char.IsDigit(name[i]))
-                {
-                    hasYear = false;
-                    break;
-                }
-            }
-            if (name[4] != ' ')
-                hasYear = false;
-
-            if (!hasYear)
-                return new Tuple<string, string>("", name);
-
-            return new Tuple<string, string>(name.Substring(0,4), name.Substring(4));
-        }
-
-        public static int CompareVehicleNames(VehicleData.VehicleInfo vi1, VehicleData.VehicleInfo vi2)
-        {
-            var name1 = vi1.Name;
-            var name2 = vi2.Name;
-
-            var yearModel1 = GetYearModel(name1);
-            var yearModel2 = GetYearModel(name2);
-
-            var year1Str = yearModel1.Item1;
-            year1Str = string.IsNullOrEmpty(year1Str) ? "0000" : year1Str;
-            var year2Str = yearModel2.Item1;
-            year2Str = string.IsNullOrEmpty(year2Str) ? "0000" : year2Str;
-
-            var year1 = int.Parse(year1Str);
-            var year2 = int.Parse(year2Str);
-
-            var model1 = yearModel1.Item2;
-            var model2 = yearModel2.Item2;
-
-            int ret = StringCompareWithNumbers(model1, model2);
-            if (ret != 0)
-                return ret;
-
-            ret = year1.CompareTo(year2);
-            if (ret != 0)
-                return ret;
-
-            return StringCompareWithNumbers(vi1.Shortname, vi2.Shortname);
-        }
-
-
-        public static int StringCompareNullLast(string s1, string s2)
-        {
-            if (s1 == "NULL" && s2 != "NULL")
-            {
-                return 1;
-            }
-            else if (s1 != "NULL" && s2 == "NULL")
-            {
-                return -1;
-            }
-            else
-            {
-                return string.Compare(s1, s2);
-            }
-        }
-
-
-        private static Dictionary<int,int> compareVehicleClassDict =
-            new int[]{0,3,4,9,22,1,6,5,7,2,12,8,15,16,14,20,18,10,19,17,11,13,21}
-                .Select((num, ix) => new KeyValuePair<int,int>(num,ix))
-                .ToDictionary(kv => kv.Key, kv => kv.Value);
-        private static int CompareVehicleClass(int i1, int i2)
-        {
-            return compareVehicleClassDict[i1].CompareTo(compareVehicleClassDict[i2]);
-        }
-
-
-        private WMenuItem CreateSpawnVehicleButton(VehicleData.VehicleInfo vi)
+        private WMenuItem CreateSpawnVehicleButton(VehicleData.VehicleModelInfo vi)
         {
             var textColor = !vi.HasProperName ? "~y~" : vi.IsAddon ? "~q~" : "";
             var text = $"{textColor}{vi.Name}~s~";
@@ -211,106 +93,183 @@ namespace vMenuClient.menus
             var btn = new MenuItem(text, description)
             {
                 Label = $"~c~({vi.Shortname})~s~",
+                ItemData = vi
             }.ToWrapped();
             btn.Selected += async (_s, _args) => await SpawnVehicle(vi.Shortname, SpawnInVehicle, ReplaceVehicle, SpawnNpcLike);
 
             return btn;
         }
 
-        private WMenu CreateVehicleMenu(string subtitle, List<VehicleData.VehicleInfo> vehicles, bool showDisabled = false)
+        private void AddFilterItems(WMenu vehiclesMenu)
+        {
+            filter = new VehicleData.VehicleFilter();
+            filterItems = new FilterItems();
+
+            {
+                var nameFilter = new MenuItem("~b~Filter By Name~s~", "Filter vehicles by (model) name or reset the filter.").ToWrapped();
+                nameFilter.Selected += async (_s, _args) =>
+                {
+                    var input = await GetUserInput("Enter filter text. Leave empty to reset the filter", 20);
+                    if (input == null)
+                        return;
+
+                    filter.Name = input;
+                    FilterAllVehiclesMenu();
+                    vehiclesMenu.Menu.RefreshIndex(0);
+                };
+
+                filterItems.Name = nameFilter;
+                vehiclesMenu.AddItem(nameFilter);
+            }
+
+
+            {
+                var manufacturers = VehicleData.DisplayVehicles
+                    .Select(veh => VehicleData.AllVehicles[veh].Manufacturer)
+                    .Distinct()
+                    .OrderBy(s => s, Comparer<string>.Create(VehicleData.CompareManufacturers))
+                    .Select(s => s == "NULL" ? "~italic~Unknown~italic~" : s);
+
+                var manufacturerFilterOptions = Enumerable.Concat(["~italic~All~italic~"], manufacturers).ToList();
+                var manufacturerFilter = new MenuListItem("~b~Filter By Manufacturer~s~", manufacturerFilterOptions, 0, "Filter vehicles by manufacturer. Click to reset the filter.").ToWrapped();
+                manufacturerFilter.ListChanged += (_s, args) =>
+                {
+                    if (args.ListIndexNew == 0)
+                    {
+                        filter.Manufacturer = null;
+                    }
+                    else if (args.ListIndexNew == manufacturerFilterOptions.Count - 1)
+                    {
+                        filter.Manufacturer = "NULL";
+                    }
+                    else
+                    {
+                        filter.Manufacturer = manufacturerFilterOptions[args.ListIndexNew];
+                    }
+                    FilterAllVehiclesMenu();
+                    vehiclesMenu.Menu.RefreshIndex(1);
+                };
+                manufacturerFilter.ListSelected += (_s, _args) =>
+                {
+                    manufacturerFilter.AsListItem().ListIndex = 0;
+                    filter.Manufacturer = null;
+                    FilterAllVehiclesMenu();
+                    vehiclesMenu.Menu.RefreshIndex(1);
+                };
+
+                filterItems.Manufacturer = manufacturerFilter;
+                vehiclesMenu.AddItem(manufacturerFilter);
+            }
+
+
+            bool customClassesOnly = GetSettingsBool(Setting.vmenu_only_custom_classes);
+
+            var customClasses = VehicleData.CustomVehiclesClasses.Select(c => c.Name).ToList();
+            if (customClasses.Count > 0)
+            {
+                var customClassesOptions = Enumerable.Concat(["~italic~All~italic~"], customClasses).ToList();
+                var customClassesFilter = new MenuListItem(
+                    $"~b~Filter By {(customClassesOnly ? "" : "Custom ")}Class~s~",
+                    customClassesOptions,
+                    0,
+                    "Filter vehicles by custom class. Click to reset the filter.").ToWrapped();
+                customClassesFilter.ListChanged += (_s, args) =>
+                {
+                    if (args.ListIndexNew == 0)
+                    {
+                        filter.CustomClass = null;
+                    }
+                    else
+                    {
+                        filter.CustomClass = customClassesOptions[args.ListIndexNew];
+                    }
+                    FilterAllVehiclesMenu();
+                    vehiclesMenu.Menu.RefreshIndex(2);
+                };
+                customClassesFilter.ListSelected += (_s, _args) =>
+                {
+                    customClassesFilter.AsListItem().ListIndex = 0;
+                    filter.CustomClass = null;
+                    FilterAllVehiclesMenu();
+                    vehiclesMenu.Menu.RefreshIndex(2);
+                };
+
+                filterItems.CustomClass = customClassesFilter;
+                vehiclesMenu.AddItem(customClassesFilter);
+            }
+
+            if (customClasses.Count == 0 || !GetSettingsBool(Setting.vmenu_only_custom_classes))
+            {
+                var defaultClasses = VehicleData.DisplayVehicles
+                    .Select(veh => VehicleData.AllVehicles[veh].Class)
+                    .OrderBy(c => c, Comparer<int>.Create(VehicleData.CompareClasses))
+                    .Distinct()
+                    .Select(c => VehicleData.ClassIdToName[c]);
+
+                var defaultClassesOptions = Enumerable.Concat(["~italic~All~italic~"], defaultClasses).ToList();
+                var defaultClassesFilter = new MenuListItem(
+                    $"~b~Filter By {(customClasses.Count == 0 ? "" : "Default ")}Class~s~",
+                    defaultClassesOptions,
+                    0,
+                    "Filter vehicles by default class. Click to reset the filter.").ToWrapped();
+                defaultClassesFilter.ListChanged += (_s, args) =>
+                {
+                    if (args.ListIndexNew == 0)
+                    {
+                        filter.DefaultClass = null;
+                    }
+                    else
+                    {
+                        filter.DefaultClass = defaultClassesOptions[args.ListIndexNew];
+                    }
+                    FilterAllVehiclesMenu();
+                    vehiclesMenu.Menu.RefreshIndex(2 + (customClasses.Count > 0 ? 1 : 0));
+                };
+                defaultClassesFilter.ListSelected += (_s, _args) =>
+                {
+                    defaultClassesFilter.AsListItem().ListIndex = 0;
+                    filter.DefaultClass = null;
+                    FilterAllVehiclesMenu();
+                    vehiclesMenu.Menu.RefreshIndex(2 + (customClasses.Count > 0 ? 1 : 0));
+                };
+
+                filterItems.DefaultClass = defaultClassesFilter;
+                vehiclesMenu.AddItem(defaultClassesFilter);
+            }
+
+            vehiclesMenu.AddItem(vehiclesMenu.CreateSeparatorItem("Vehicles"));
+
+            vehiclesMenu.Menu.InstructionalButtons.Add(Control.SelectWeapon, "Filter Vehicles");
+            vehiclesMenu.Menu.ButtonPressHandlers.Add(new Menu.ButtonPressHandler(
+                Control.SelectWeapon,
+                Menu.ControlPressCheckType.JUST_RELEASED,
+                (m, _c) =>
+                {
+                    vehiclesMenu.Menu.RefreshIndex();
+                    vehiclesMenu.ResetIncrement();
+                },
+                true));
+        }
+
+        private WMenu CreateVehiclesMenu(string subtitle, List<VehicleData.VehicleModelInfo> vehicles, bool addFilters = false, bool showDisabled = false)
         {
             var vehiclesMenu = new WMenu(MenuTitle, subtitle);
 
             if (!showDisabled)
             {
-                vehicles = vehicles.Where(vi => displayVehicles.Contains(vi.Shortname)).ToList();
+                vehicles = vehicles.Where(vi => VehicleData.DisplayVehicles.Contains(vi.Shortname)).ToList();
+            }
+
+            if (addFilters)
+            {
+                AddFilterItems(vehiclesMenu);
             }
 
             if (vehicles.Count > 10)
             {
-                int increment = 1;
-                void SetIncrement(int newIncrement)
-                {
-                    if (newIncrement > 1 && vehiclesMenu.Menu.GetMenuItems().Count <= newIncrement)
-                    {
-                        Notify.Info("You cannot change the increment right now, because there are not enough vehicles.");
-                        return;
-                    }
-                    increment = newIncrement;
-                    vehiclesMenu.Menu.InstructionalButtons.Remove(Control.NextCamera);
-                    vehiclesMenu.Menu.InstructionalButtons.Add(Control.NextCamera, $"Increment: {increment}");
-                }
+                vehiclesMenu.AddIncrementToggle(Control.NextCamera);
 
-                var filterBtn = new MenuItem("~b~~h~Search Vehicles / Reset Search~h~~s~", "Search vehicles or reset a search.").ToWrapped();
-                filterBtn.Selected += async (_s, _args) =>
-                {
-                    await SearchVehiclesMenu(vehiclesMenu.Menu);
-                    SetIncrement(1);
-                };
-
-                vehiclesMenu.AddItem(filterBtn);
-
-                SetIncrement(1);
-
-                vehiclesMenu.Menu.ButtonPressHandlers.Add(new Menu.ButtonPressHandler(
-                    Control.NextCamera,
-                    Menu.ControlPressCheckType.JUST_RELEASED,
-                    (m, _c) => SetIncrement(increment == 1 ? 10: 1),
-                    true));
-
-                vehiclesMenu.Menu.InstructionalButtons.Add(Control.SelectWeapon, "Search Vehicles");
-                vehiclesMenu.Menu.ButtonPressHandlers.Add(new Menu.ButtonPressHandler(
-                    Control.SelectWeapon,
-                    Menu.ControlPressCheckType.JUST_RELEASED,
-                    async (m, _c) =>
-                    {
-                        await SearchVehiclesMenu(m);
-                        SetIncrement(1);
-                    },
-                    true));
-
-                vehiclesMenu.Closed += (_s, _args) => SetIncrement(1);
-
-                bool incrementing = false;
-                vehiclesMenu.IndexChanged += (_s, args) =>
-                {
-                    var noMenuItems = vehiclesMenu.Menu.GetMenuItems().Count;
-
-                    if (increment == 1 || incrementing)
-                        return;
-
-                    incrementing = true;
-
-                    bool down = 
-                        (args.IndexOld < args.IndexNew && !(args.IndexOld == 0 && args.IndexNew == noMenuItems - 1)) ||
-                        (args.IndexNew == 0 && args.IndexOld == noMenuItems - 1);
-
-                    int indexNew = args.IndexOld;
-                    for (int i = -1; i < increment - 1; i++)
-                    {
-                        indexNew += down ? 1 : -1;
-
-                        if (indexNew < 0 || indexNew >= noMenuItems)
-                        {
-                            SetIncrement(1);
-                            break;
-                        }
-
-                        if (i == -1)
-                            continue;
-
-                        if (down)
-                        {
-                            vehiclesMenu.Menu.GoDown();
-                        }
-                        else
-                        {
-                            vehiclesMenu.Menu.GoUp();
-                        }
-                    }
-
-                    incrementing = false;
-                };
+                vehiclesMenu.Closed += (_s, _args) => vehiclesMenu.ResetIncrement();
             }
 
             foreach(var vehicle in vehicles)
@@ -320,73 +279,6 @@ namespace vMenuClient.menus
             }
 
             return vehiclesMenu;
-        }
-
-        private WMenu CreateVehicleGroupsMenu(string subtitle, Func<string, string> description, List<Tuple<string, List<VehicleData.VehicleInfo>>> vehicleGroups)
-        {
-            WMenu vehicleGroupsMenu = new WMenu(MenuTitle, subtitle);
-
-            foreach (var group in vehicleGroups)
-            {
-                var name = group.Item1;
-                var nameOrUnknown = name != "NULL" ? name : "~italic~Unknown~italic~";
-                var vehiclesMenu = CreateVehicleMenu(nameOrUnknown, group.Item2);
-                vehicleGroupsMenu.AddSubmenu(vehiclesMenu, $"Spawn vehicles {description(name)}");
-            }
-
-            return vehicleGroupsMenu;
-        }
-
-
-        private Menu currentSearchedMenu = null;
-
-        private async Task<bool> SearchVehiclesMenu(Menu menu, string input = null)
-        {
-            if (input == null)
-                input = await GetUserInput("Search vehicles. Leave empty to reset");
-
-            if (input == null)
-                return false;
-
-
-            if (!string.IsNullOrEmpty(input))
-            {
-                menu.FilterMenuItems(mi =>
-                    string.IsNullOrEmpty(mi.Label) ||
-                    mi.Label.ToLower().Contains(input.ToLower()) ||
-                    mi.Text.ToLower().Contains(input.ToLower()));
-
-                if (menu.Size == 0 || (string.IsNullOrEmpty(menu.GetMenuItems()[0].Label) && menu.Size == 1))
-                {
-                    Subtitle.Custom("There are no vehicles matching this search.");
-                    menu.ResetFilter();
-                    if (menu == currentSearchedMenu)
-                    {
-                        currentSearchedMenu = null;
-                    }
-                    return false;
-                }
-                else
-                {
-                    if (menu != currentSearchedMenu)
-                    {
-                        currentSearchedMenu?.ResetFilter();
-                    }
-                    currentSearchedMenu = menu;
-                    Subtitle.Custom("Search completed.");
-                    return true;
-                }
-            }
-            else
-            {
-                if (menu == currentSearchedMenu)
-                {
-                    currentSearchedMenu?.ResetFilter();
-                    currentSearchedMenu = null;
-                    Subtitle.Custom("Search reset.");
-                }
-                return false;
-            }
         }
 
         private Random random = new Random();
@@ -418,13 +310,12 @@ namespace vMenuClient.menus
 
         private void CreateMenu()
         {
-            allowedVehicles = VehicleData.AllVehicles.Values
-                .Where(IsVehicleAllowed)
-                .OrderBy(vi => vi, Comparer<VehicleData.VehicleInfo>.Create(CompareVehicleNames))
-                .ToList();
-            displayVehicles = new HashSet<string>(allowedVehicles.Where(ShowVehicle).Select(vi => vi.Shortname));
+            allowedVehiclesList = VehicleData.AllVehicles.Values
+                        .Where(vi => vi.IsAllowed)
+                        .OrderBy(vi => vi.Name, Comparer<string>.Create(VehicleData.CompareVehicleNames))
+                        .ToList();
 
-            randomVehiclesList = displayVehicles.Where(veh =>
+            randomVehiclesList = VehicleData.DisplayVehicles.Where(veh =>
                 {
                     var hash = (uint)GetHashKey(veh);
                     return
@@ -455,28 +346,37 @@ namespace vMenuClient.menus
             }
 
             {
-                var searchVehicles = new MenuItem("Search Vehicle By Name", "Search all vehicles by (model) name.").ToWrapped();
-                searchVehicles.Selected += async (_s, _args) =>
+                var searchByName = new MenuItem("Search Vehicle By Name", "Search a vehicle by its (model) name").ToWrapped();
+                searchByName.Selected += async (_s, _args) =>
                 {
-                    var input = await GetUserInput("Search vehicle");
+                    var input = await GetUserInput("Enter search text", 20);
                     if (string.IsNullOrEmpty(input))
                         return;
 
-                    var success = await SearchVehiclesMenu(AllVehiclesMenu.Menu, input);
-                    if (success)
+                    ResetAllVehiclesFilter();
+                    int count = FilterAllVehiclesMenu(input);
+                    if (count == 0)
+                    {
+                        Notify.Info("No vehicles found matching this search.");
+
+                        ResetAllVehiclesFilter();
+                        FilterAllVehiclesMenu();
+                    }
+                    else
                     {
                         MenuController.CloseAllMenus();
                         AllVehiclesMenu.Menu.OpenMenu();
+                        AllVehiclesMenu.Menu.RefreshIndex(filterItems.Count);
                     }
                 };
 
-                menu.AddItem(searchVehicles);
+                menu.AddItem(searchByName);
             }
 
 
             {
-                AllVehiclesMenu = CreateVehicleMenu("All Vehicles", allowedVehicles);
-                menu.AddSubmenu(AllVehiclesMenu);
+                AllVehiclesMenu = CreateVehiclesMenu("Vehicles List", allowedVehiclesList, addFilters: true);
+                menu.AddSubmenu(AllVehiclesMenu, "A list of all vehicles that you can also filter.");
             }
 
 
@@ -534,78 +434,15 @@ namespace vMenuClient.menus
                 };
             }
 
-
-            var vehicleCategories = new List<WMenuItem>();
-
-            {
-                var vehiclesByManufacturer = allowedVehicles
-                    .ToLookup(vehicle => vehicle.Manufacturer)
-                    .OrderBy(g => g.Key, Comparer<string>.Create(StringCompareNullLast))
-                    .Select(g => new Tuple<string, List<VehicleData.VehicleInfo>>(g.Key, g.ToList()))
-                    .ToList();
-
-                var vehiclesByManufacturerMenu = CreateVehicleGroupsMenu(
-                    "Manufacturers",
-                    s => s == "NULL" ? "without a known manufacturer" : $"from ~b~{s}~s~",
-                    vehiclesByManufacturer);
-
-                menu.BindSubmenu(vehiclesByManufacturerMenu, out WMenuItem button);
-                vehicleCategories.Add(button);
-            }
-
-            bool hasCustomClasses = false;
-            bool onlyCustomClasses = GetSettingsBool(Setting.vmenu_only_custom_classes);
-
-            if (VehicleData.CustomVehiclesClasses.Count > 0)
-            {
-                hasCustomClasses = true;
-
-                var textPrefix = !onlyCustomClasses ? "Custom " : "";
-                var descriptionInfinx = !onlyCustomClasses ? "custom " : "";
-
-                var vehiclesByCustomClass = VehicleData.CustomVehiclesClasses
-                    .Select(c => new Tuple<string, List<VehicleData.VehicleInfo>>(c.Name, c.Vehicles))
-                    .ToList();
-
-                var vehiclesByCustomClassMenu = CreateVehicleGroupsMenu(
-                    $"{textPrefix}Classes",
-                    s => $"from the {descriptionInfinx}~b~{s}~s~ class",
-                    vehiclesByCustomClass);
-
-                menu.BindSubmenu(vehiclesByCustomClassMenu, out WMenuItem button, $"Vehicles grouped by {descriptionInfinx}class.");
-                vehicleCategories.Add(button);
-            }
-
-            if (!onlyCustomClasses || !hasCustomClasses)
-            {
-                var textPrefix = hasCustomClasses ? "Default " : "";
-                var descriptionInfinx = hasCustomClasses ? "default " : "";
-
-                var vehiclesByDefaultClass = allowedVehicles
-                    .ToLookup(vehicle => vehicle.Class)
-                    .OrderBy(g => g.Key, Comparer<int>.Create(CompareVehicleClass))
-                    .Select(g => new Tuple<string, List<VehicleData.VehicleInfo>>(VehicleData.ClassIdToName[g.Key], g.ToList()))
-                    .ToList();
-
-                var vehiclesByDefaultClassMenu = CreateVehicleGroupsMenu(
-                    $"{textPrefix}Classes",
-                    s => $"from the {descriptionInfinx}~b~{s}~s~ class",
-                    vehiclesByDefaultClass);
-
-                menu.BindSubmenu(vehiclesByDefaultClassMenu, out WMenuItem button, $"Vehicles grouped by {descriptionInfinx}class.");
-                vehicleCategories.Add(button);
-            }
-
-
             if (VehicleData.VehicleDisablelist.Count > 0 && IsAllowed(Permission.VODisableFromDefaultList))
             {
-                var allowedDisabledVehicles = allowedVehicles
+                var allowedDisabledVehicles = allowedVehiclesList
                     .Where(vi => VehicleData.VehicleDisablelist.Contains(vi.Shortname))
                     .ToList();
 
                 if (allowedDisabledVehicles.Count > 0)
                 {
-                    var disabledVehiclesMenu = CreateVehicleMenu("Hidden Vehicles", allowedDisabledVehicles, true);
+                    var disabledVehiclesMenu = CreateVehiclesMenu("Hidden Vehicles", allowedDisabledVehicles, addFilters: false, showDisabled: true);
 
                     WMenuItem button = new MenuItem(
                         "~y~Hidden Vehicles~s~",
@@ -613,19 +450,19 @@ namespace vMenuClient.menus
                         .ToWrapped();
                     menu.BindSubmenu(disabledVehiclesMenu, button);
 
-                    vehicleCategories.Add(button);
+                    menu.AddItem(button);
                 }
             }
 
             if (VehicleData.VehicleBlacklist.Count > 0 && IsAllowed(Permission.VOVehiclesBlacklist))
             {
-                var allowedBlacklistedVehicles = allowedVehicles
+                var allowedBlacklistedVehicles = allowedVehiclesList
                     .Where(vi => VehicleData.VehicleBlacklist.Contains(vi.Shortname))
                     .ToList();
 
                 if (allowedBlacklistedVehicles.Count > 0)
                 {
-                    var disabledVehiclesMenu = CreateVehicleMenu("Blacklisted Vehicles", allowedBlacklistedVehicles, true);
+                    var disabledVehiclesMenu = CreateVehiclesMenu("Blacklisted Vehicles", allowedBlacklistedVehicles, addFilters: false, showDisabled: false);
 
                     WMenuItem button = new MenuItem(
                         "~y~Blacklisted Vehicles~s~",
@@ -633,11 +470,9 @@ namespace vMenuClient.menus
                         .ToWrapped();
                     menu.BindSubmenu(disabledVehiclesMenu, button);
 
-                    vehicleCategories.Add(button);
+                    menu.AddItem(button);
                 }
             }
-
-            menu.AddSection("Categories", vehicleCategories);
         }
 
         /// <summary>

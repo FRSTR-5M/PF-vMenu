@@ -7,6 +7,7 @@ using CitizenFX.Core;
 using Newtonsoft.Json;
 
 using static CitizenFX.Core.Native.API;
+using static vMenuShared.PermissionsManager;
 
 namespace vMenuClient.data
 {
@@ -436,7 +437,45 @@ namespace vMenuClient.data
             }
         }
 
-        public class VehicleInfo
+        private static List<bool> allowedClasses;
+        public static List<bool> AllowedClasses
+        {
+            get
+            {
+                if (allowedClasses != null)
+                    return allowedClasses;
+
+                allowedClasses = new List<bool>()
+                {
+                    IsAllowed(Permission.VSCompacts, checkAnyway: true),
+                    IsAllowed(Permission.VSSedans, checkAnyway: true),
+                    IsAllowed(Permission.VSSUVs, checkAnyway: true),
+                    IsAllowed(Permission.VSCoupes, checkAnyway: true),
+                    IsAllowed(Permission.VSMuscle, checkAnyway: true),
+                    IsAllowed(Permission.VSSportsClassic, checkAnyway: true),
+                    IsAllowed(Permission.VSSports, checkAnyway: true),
+                    IsAllowed(Permission.VSSuper, checkAnyway: true),
+                    IsAllowed(Permission.VSMotorcycles, checkAnyway: true),
+                    IsAllowed(Permission.VSOffRoad, checkAnyway: true),
+                    IsAllowed(Permission.VSIndustrial, checkAnyway: true),
+                    IsAllowed(Permission.VSUtility, checkAnyway: true),
+                    IsAllowed(Permission.VSVans, checkAnyway: true),
+                    IsAllowed(Permission.VSCycles, checkAnyway: true),
+                    IsAllowed(Permission.VSBoats, checkAnyway: true),
+                    IsAllowed(Permission.VSHelicopters, checkAnyway: true),
+                    IsAllowed(Permission.VSPlanes, checkAnyway: true),
+                    IsAllowed(Permission.VSService, checkAnyway: true),
+                    IsAllowed(Permission.VSEmergency, checkAnyway: true),
+                    IsAllowed(Permission.VSMilitary, checkAnyway: true),
+                    IsAllowed(Permission.VSCommercial, checkAnyway: true),
+                    IsAllowed(Permission.VSTrains, checkAnyway: true),
+                    IsAllowed(Permission.VSOpenWheel, checkAnyway: true)
+                };
+                return allowedClasses;
+            }
+        }
+
+        public class VehicleModelInfo
         {
             public static string GetName(uint hash, string shortname, out bool hasProperName)
             {
@@ -471,7 +510,7 @@ namespace vMenuClient.data
                 return labelname;
             }
 
-            public VehicleInfo(string shortname)
+            public VehicleModelInfo(string shortname)
             {
                 Shortname = shortname;
                 Hash = (uint)GetHashKey(shortname);
@@ -490,15 +529,42 @@ namespace vMenuClient.data
             public bool HasProperName { get; } = false;
             public string Manufacturer { get; } = null;
             public int Class { get; }
+            public string ClassName => GetLabelText($"VEH_CLASS_{Class}");
             public bool IsAddon
             {
                 get => AddonVehicles.Contains(Shortname);
             }
+
+            private HashSet<string> customVehicleClasses;
+            public HashSet<string> CustomVehicleClasses
+            {
+                get
+                {
+                    if (customVehicleClasses != null)
+                        return customVehicleClasses;
+
+                    customVehicleClasses = new HashSet<string>(CustomVehiclesClasses
+                        .Where(c => c.Vehicles.Any(vi => vi.Shortname == Shortname))
+                        .Select(c => c.Name));
+
+                    return customVehicleClasses;
+                }
+            }
+
+            public bool IsAllowed =>
+                AllowedClasses[Class] &&
+                (!IsAddon || IsAllowed(Permission.VSAddon)) &&
+                (!VehicleBlacklist.Contains(Shortname) || IsAllowed(Permission.VOVehiclesBlacklist)) &&
+                (!VehicleDisablelist.Contains(Shortname) || IsAllowed(Permission.VODisableFromDefaultList));
+
+            public bool DisplayVehicle => IsAllowed && !IsHidden;
+            public bool IsHidden => vehicleDisablelist.Contains(Shortname);
+            public bool IsBlacklisted => vehicleBlacklist.Contains(Shortname);
         }
 
-        private static Dictionary<string, VehicleInfo> allVehicles = null;
+        private static Dictionary<string, VehicleModelInfo> allVehicles = null;
 
-        public static Dictionary<string, VehicleInfo> AllVehicles
+        public static Dictionary<string, VehicleModelInfo> AllVehicles
         {
             get
             {
@@ -506,15 +572,247 @@ namespace vMenuClient.data
                     return allVehicles;
 
                 allVehicles = ((List<object>)GetAllVehicleModels())
-                    .Select(shortname => new VehicleInfo((string)shortname))
+                    .Select(shortname => new VehicleModelInfo((string)shortname))
                     .ToDictionary(vi => vi.Shortname, vi => vi);
                 return allVehicles;
             }
         }
 
+        public static Dictionary<uint, VehicleModelInfo> hashToVehicle;
+        public static Dictionary<uint, VehicleModelInfo> HashToVehicle
+        {
+            get
+            {
+                if (hashToVehicle != null)
+                    return hashToVehicle;
+
+                hashToVehicle = AllVehicles.ToDictionary(kv => kv.Value.Hash, kv => kv.Value);
+                return hashToVehicle;
+            }
+        }
+
+        private static HashSet<string> allowedVehicles;
+        public static HashSet<string> AllowedVehicles
+        {
+            get
+            {
+                if (allowedVehicles != null)
+                    return allowedVehicles;
+
+                allowedVehicles = new HashSet<string>(AllVehicles.Values
+                    .Where(vi => vi.IsAllowed)
+                    .Select(v => v.Shortname));
+                return allowedVehicles;
+            }
+        }
+
+
+        private static HashSet<string> displayVehicles;
+
+        public static HashSet<string> DisplayVehicles
+        {
+            get
+            {
+                if (displayVehicles != null)
+                    return displayVehicles;
+
+                displayVehicles = new HashSet<string>(AllowedVehicles.Where(shortname => !VehicleDisablelist.Contains(shortname)));
+                return displayVehicles;
+            }
+        }
+
+
+        public static Tuple<string,string,string> GetDigitsNondigitsRest(string s)
+        {
+            int i = 0;
+            for (; i < s.Length && char.IsDigit(s[i]); ++i) ;
+
+            string digits = s.Substring(0, i);
+
+            int k = i;
+            for(; i < s.Length && !char.IsDigit(s[i]); ++i) ;
+
+            string nondigits = s.Substring(k, i - k);
+            string rest = s.Substring(i);
+
+            return new Tuple<string, string, string>(digits, nondigits, rest);
+        }
+
+        public static int StringCompareWithNumbers(string s1, string s2)
+        {
+            if (string.IsNullOrEmpty(s1) || string.IsNullOrEmpty(s2))
+                return s1.CompareTo(s2);
+
+            var dndr1 = GetDigitsNondigitsRest(s1);
+            var dndr2 = GetDigitsNondigitsRest(s2);
+
+            var digits1 = dndr1.Item1;
+            var digits2 = dndr2.Item1;
+
+            int ret;
+            if (!string.IsNullOrEmpty(digits1) && !string.IsNullOrEmpty(digits2))
+            {
+                int num1 = int.Parse(digits1);
+                int num2 = int.Parse(digits2);
+
+                ret = num1.CompareTo(num2);
+                if (ret != 0)
+                    return ret;
+
+                // If both digit strings parse to the same number, order the one with (more) leading zeros before
+                ret = digits2.Length.CompareTo(digits1.Length);
+                if (ret != 0)
+                    return ret;
+            }
+            else if (!string.IsNullOrEmpty(digits1) && string.IsNullOrEmpty(digits2))
+            {
+                return -1;
+            }
+            else if (string.IsNullOrEmpty(digits1) && !string.IsNullOrEmpty(digits2))
+            {
+                return 1;
+            }
+
+            var nondigits1 = dndr1.Item2;
+            var nondigits2 = dndr2.Item2;
+
+            ret = nondigits1.CompareTo(nondigits2);
+            if (ret != 0)
+                return ret;
+
+            var rest1 = dndr1.Item3;
+            var rest2 = dndr2.Item3;
+
+            return StringCompareWithNumbers(rest1, rest2);
+        }
+
+        public static Tuple<string, string> GetYearModel(string name)
+        {
+            if (name.Length <= 5)
+                return new Tuple<string, string>("", name);
+
+            bool hasYear = true;
+            for (int i = 0; i < 4; i++)
+            {
+                if (!char.IsDigit(name[i]))
+                {
+                    hasYear = false;
+                    break;
+                }
+            }
+            if (name[4] != ' ')
+                hasYear = false;
+
+            if (!hasYear)
+                return new Tuple<string, string>("", name);
+
+            return new Tuple<string, string>(name.Substring(0,4), name.Substring(5));
+        }
+
+        public static int CompareVehicleNames(string name1, string name2)
+        {
+            var yearModel1 = GetYearModel(name1);
+            var yearModel2 = GetYearModel(name2);
+
+            var year1Str = yearModel1.Item1;
+            year1Str = string.IsNullOrEmpty(year1Str) ? "0000" : year1Str;
+            var year2Str = yearModel2.Item1;
+            year2Str = string.IsNullOrEmpty(year2Str) ? "0000" : year2Str;
+
+            var year1 = int.Parse(year1Str);
+            var year2 = int.Parse(year2Str);
+
+            var model1 = yearModel1.Item2;
+            var model2 = yearModel2.Item2;
+
+            int ret = StringCompareWithNumbers(model1, model2);
+            if (ret != 0)
+                return ret;
+
+            return year1.CompareTo(year2);
+        }
+
+
+        public static int CompareManufacturers(string s1, string s2)
+        {
+            if (s1 == "NULL" && s2 != "NULL")
+            {
+                return 1;
+            }
+            else if (s1 != "NULL" && s2 == "NULL")
+            {
+                return -1;
+            }
+            else
+            {
+                return string.Compare(s1, s2);
+            }
+        }
+
+
+        public struct VehicleFilter
+        {
+            public string Name;
+            public string Manufacturer;
+            public string CustomClass;
+            public string DefaultClass;
+
+            private bool IsNameMatching(VehicleModelInfo info, string name)
+            {
+                if (string.IsNullOrEmpty(Name))
+                    return true;
+
+                return
+                    info.Name.ToLower().Contains(Name) ||
+                    info.Shortname.ToLower().Contains(Name) ||
+                    (!string.IsNullOrEmpty(name) && name.Contains(Name));
+            }
+
+            private bool IsManufacturerMatching(VehicleModelInfo info)
+            {
+                if (string.IsNullOrEmpty(Manufacturer))
+                    return true;
+
+                return info.Manufacturer == Manufacturer;
+            }
+
+            private bool IsCustomClassMatching(VehicleModelInfo info)
+            {
+                if (string.IsNullOrEmpty(CustomClass))
+                    return true;
+
+                return info.CustomVehicleClasses.Contains(CustomClass);
+            }
+
+            private bool IsDefaultClassMatching(VehicleModelInfo info)
+            {
+                if (string.IsNullOrEmpty(DefaultClass))
+                    return true;
+
+                return info.ClassName == DefaultClass;
+            }
+
+            public bool IsMatching(VehicleModelInfo info, string name = null) =>
+                info != null &&
+                IsNameMatching(info, name) &&
+                IsManufacturerMatching(info) &&
+                IsCustomClassMatching(info) &&
+                IsDefaultClassMatching(info);
+        }
+
+
+        private static Dictionary<int,int> compareVehicleClassDict =
+            new int[]{0,3,4,9,22,1,6,5,7,2,12,8,15,16,14,20,18,10,19,17,11,13,21}
+                .Select((num, ix) => new KeyValuePair<int,int>(num,ix))
+                .ToDictionary(kv => kv.Key, kv => kv.Value);
+        public static int CompareClasses(int i1, int i2) =>
+            compareVehicleClassDict[i1].CompareTo(compareVehicleClassDict[i2]);
+
+
+
         public class CustomVehicleClass
         {
-            public CustomVehicleClass(string name, List<VehicleInfo> vehicles)
+            public CustomVehicleClass(string name, List<VehicleModelInfo> vehicles)
             {
                 Name = name;
                 Vehicles = vehicles;
@@ -523,10 +821,10 @@ namespace vMenuClient.data
             public CustomVehicleClass(string name, List<string> shortnames)
             {
                 Name = name;
-                Vehicles = new List<VehicleInfo>();
+                Vehicles = new List<VehicleModelInfo>();
                 foreach(var shortname in shortnames)
                 {
-                    VehicleInfo vi;
+                    VehicleModelInfo vi;
                     if(AllVehicles.TryGetValue(shortname, out vi))
                     {
                         Vehicles.Add(vi);
@@ -539,7 +837,7 @@ namespace vMenuClient.data
             }
 
             public string Name { get; }
-            public List<VehicleInfo> Vehicles { get; }
+            public List<VehicleModelInfo> Vehicles { get; }
         }
 
         public class CustomVehicleClassJson
@@ -639,9 +937,20 @@ namespace vMenuClient.data
                 ["openwheels"] = 22,
             };
 
-        private static Dictionary<int, List<VehicleInfo>> vehiclesByClass = AllVehicles.Values
-            .ToLookup(vi => vi.Class)
-            .ToDictionary(g => g.Key, g => g.ToList());
+        private static Dictionary<int, List<VehicleModelInfo>> vehiclesByClass;
+        private static Dictionary<int, List<VehicleModelInfo>> VehiclesByClass
+        {
+            get
+            {
+                if (vehiclesByClass != null)
+                    return vehiclesByClass;
+
+                vehiclesByClass = AllVehicles.Values
+                    .ToLookup(vi => vi.Class)
+                    .ToDictionary(g => g.Key, g => g.ToList());
+                return vehiclesByClass;
+            }
+        }
 
         private static CustomVehicleClass CustomVehicleClassFromJson(CustomVehicleClassJson customVehicleClassJson)
         {
@@ -652,7 +961,7 @@ namespace vMenuClient.data
                 if (permissiveClassNameToId.TryGetValue(builtinClassName.ToLower(), out builtinClassId))
                 {
                     var name = ClassIdToName[builtinClassId];
-                    var vehicles = vehiclesByClass[builtinClassId];
+                    var vehicles = VehiclesByClass[builtinClassId];
 
                     return new CustomVehicleClass(name, vehicles);
                 }

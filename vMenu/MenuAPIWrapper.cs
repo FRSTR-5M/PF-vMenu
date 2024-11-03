@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+using CitizenFX.Core;
+
 using MenuAPI;
 
 namespace vMenuClient
@@ -354,6 +356,49 @@ namespace vMenuClient
                         Position = position,
                     });
                 };
+
+                {
+                    bool incrementing = false;
+                    IndexChanged += (_s, args) =>
+                    {
+                        var noMenuItems = Menu.GetMenuItems().Count;
+
+                        if (increment == 1 || incrementing)
+                            return;
+
+                        incrementing = true;
+
+                        bool down =
+                            (args.IndexOld < args.IndexNew && !(args.IndexOld == 0 && args.IndexNew == noMenuItems - 1)) ||
+                            (args.IndexNew == 0 && args.IndexOld == noMenuItems - 1);
+
+                        int indexNew = args.IndexOld;
+                        for (int i = -1; i < increment - 1; i++)
+                        {
+                            indexNew += down ? 1 : -1;
+
+                            if (indexNew < 0 || indexNew >= noMenuItems)
+                            {
+                                SetIncrement(1);
+                                break;
+                            }
+
+                            if (i == -1)
+                                continue;
+
+                            if (down)
+                            {
+                                Menu.GoDown();
+                            }
+                            else
+                            {
+                                Menu.GoUp();
+                            }
+                        }
+
+                        incrementing = false;
+                    };
+                }
             }
 
             public WMenu AddItem(MenuItem menuItem)
@@ -396,37 +441,8 @@ namespace vMenuClient
 
                 if (Menu.GetMenuItems().Count != 0 || index0Header)
                 {
-                    var headerItem = new WMenuItem(
-                        new MenuItem($"~h~~c~— {text} —~h~~s~")
-                        {
-                            Enabled = false,
-                        });
-
-                    headerItem.MenuIndexChanged += (_, args) =>
-                    {
-                        if (args.IndexNew != headerItem.MenuItem.Index)
-                            return;
-
-                        if (args.IndexOld < args.IndexNew ||
-                            (args.IndexNew == 0 && args.IndexOld == Menu.GetMenuItems().Count - 1))
-                        {
-                            Menu.GoDown();
-                        }
-                        else
-                        {
-                            Menu.GoUp();
-                        }
-                    };
-
-                    AddItem(headerItem);
-
-                    Opened += (_s, _args) =>
-                    {
-                        if (Menu.GetCurrentMenuItem() == headerItem.MenuItem)
-                        {
-                            Menu.GoDown();
-                        }
-                    };
+                    var separator = CreateSeparatorItem(text);
+                    AddItem(separator);
                 }
 
                 AddItems(menuItems);
@@ -531,6 +547,9 @@ namespace vMenuClient
 
             public WMenu RemoveSubmenu(Menu submenu)
             {
+                if (submenu == null)
+                    return this;
+
                 var removeButtons = submenuButtons.Where(kv => kv.Value == submenu).Select(kv => kv.Key);
                 foreach (var button in removeButtons.ToList())
                 {
@@ -545,6 +564,122 @@ namespace vMenuClient
                 itemsDict.Clear();
                 submenuButtons.Clear();
                 Menu.ClearMenuItems();
+
+                return this;
+            }
+
+
+            public WMenuItem CreateSeparatorItem(string text)
+            {
+                var separatorItem = new WMenuItem(
+                    new MenuItem(string.IsNullOrEmpty(text) ? "" : $"~h~~c~— {text} —~h~~s~")
+                    {
+                        Enabled = false,
+                    });
+
+                separatorItem.MenuIndexChanged += (_, args) =>
+                {
+                    if (args.IndexNew != separatorItem.MenuItem.Index)
+                        return;
+
+                    var oldIncrement = increment;
+                    ResetIncrement();
+
+                    if (args.IndexOld == args.IndexNew - 1 ||
+                        (args.IndexNew == 0 && args.IndexOld == Menu.GetMenuItems().Count - 1))
+                    {
+                        Menu.GoDown();
+                    }
+                    else
+                    {
+                        Menu.GoUp();
+                    }
+
+                    SetIncrement(oldIncrement);
+                };
+
+                Opened += (_s, _args) =>
+                {
+                    if (Menu.GetCurrentMenuItem() == separatorItem.MenuItem)
+                    {
+                        Menu.GoDown();
+                    }
+                };
+
+                return separatorItem;
+            }
+
+
+            Menu.ButtonPressHandler? incrementBtnPressHandler = null;
+            Control? incrementBtnPressHandlerControl = null;
+            private int increment = 1;
+
+            private void SetIncrement(int newIncrement)
+            {
+                increment = newIncrement;
+                if (incrementBtnPressHandlerControl is Control control)
+                {
+                    Menu.InstructionalButtons.Remove(control);
+                    Menu.InstructionalButtons.Add(control, $"Increment: {increment}");
+                }
+            }
+
+            public void ResetIncrement()
+            {
+                SetIncrement(1);
+            }
+
+            public void NextIncrement()
+            {
+                var count = Menu.GetMenuItems().Count;
+
+                int newIncrement = 1;
+                if (increment == 1)
+                {
+                    if (count <= 10)
+                    {
+                        Notify.Info("You cannot increase the increment right now, because there are not enough vehicles.");
+                    }
+                    else
+                    {
+                        newIncrement = 10;
+                    }
+                }
+                else if (increment == 10)
+                {
+                    if (count <= 100)
+                    {
+                        newIncrement = 1;
+                    }
+                    else
+                    {
+                        newIncrement = 100;
+                    }
+                }
+                else
+                {
+                    newIncrement = 1;
+                }
+
+                SetIncrement(newIncrement);
+            }
+
+            public WMenu AddIncrementToggle(Control control)
+            {
+                if (incrementBtnPressHandler is Menu.ButtonPressHandler handler)
+                {
+                    Menu.ButtonPressHandlers.Remove(handler);
+                }
+
+                incrementBtnPressHandlerControl = control;
+                SetIncrement(increment);
+
+                incrementBtnPressHandler = new Menu.ButtonPressHandler(
+                    control,
+                    Menu.ControlPressCheckType.JUST_RELEASED,
+                    (m, _c) => NextIncrement(),
+                    true);
+                Menu.ButtonPressHandlers.Add(incrementBtnPressHandler.Value);
 
                 return this;
             }

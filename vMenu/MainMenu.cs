@@ -11,6 +11,7 @@ using MenuAPI;
 
 using Newtonsoft.Json;
 
+using vMenuClient.data;
 using vMenuClient.MenuAPIWrapper;
 using vMenuClient.menus;
 
@@ -616,32 +617,6 @@ namespace vMenuClient
         {
             vMenuShared.PermissionsManager.SetPermissions(permissionsList);
 
-            VehicleSpawner.allowedCategories = new List<bool>()
-            {
-                IsAllowed(Permission.VSCompacts, checkAnyway: true),
-                IsAllowed(Permission.VSSedans, checkAnyway: true),
-                IsAllowed(Permission.VSSUVs, checkAnyway: true),
-                IsAllowed(Permission.VSCoupes, checkAnyway: true),
-                IsAllowed(Permission.VSMuscle, checkAnyway: true),
-                IsAllowed(Permission.VSSportsClassic, checkAnyway: true),
-                IsAllowed(Permission.VSSports, checkAnyway: true),
-                IsAllowed(Permission.VSSuper, checkAnyway: true),
-                IsAllowed(Permission.VSMotorcycles, checkAnyway: true),
-                IsAllowed(Permission.VSOffRoad, checkAnyway: true),
-                IsAllowed(Permission.VSIndustrial, checkAnyway: true),
-                IsAllowed(Permission.VSUtility, checkAnyway: true),
-                IsAllowed(Permission.VSVans, checkAnyway: true),
-                IsAllowed(Permission.VSCycles, checkAnyway: true),
-                IsAllowed(Permission.VSBoats, checkAnyway: true),
-                IsAllowed(Permission.VSHelicopters, checkAnyway: true),
-                IsAllowed(Permission.VSPlanes, checkAnyway: true),
-                IsAllowed(Permission.VSService, checkAnyway: true),
-                IsAllowed(Permission.VSEmergency, checkAnyway: true),
-                IsAllowed(Permission.VSMilitary, checkAnyway: true),
-                IsAllowed(Permission.VSCommercial, checkAnyway: true),
-                IsAllowed(Permission.VSTrains, checkAnyway: true),
-                IsAllowed(Permission.VSOpenWheel, checkAnyway: true)
-            };
             ArePermissionsSetup = true;
             while (!ConfigOptionsSetupComplete)
             {
@@ -937,9 +912,6 @@ namespace vMenuClient
                     out WMenuItem button,
                     "Save and manage customized vehicles.");
 
-                button.Selected += (_s, _args) =>
-                    SavedVehiclesMenu.UpdateMenuAvailableCategories();
-
                 VehicleSubmenu.AddItem(button);
             }
 
@@ -972,7 +944,7 @@ namespace vMenuClient
 
                 if (IsAllowed(Permission.VSMenu))
                 {
-                    var allVehsButton = new MenuItem("All Vehicles and Search", "A list of all vehicles you can also search in.").ToWrapped();
+                    var allVehsButton = new MenuItem("Vehicles List", "A list of all vehicles that you can also filter.").ToWrapped();
                     qaMenu.BindSubmenu(VehicleSpawnerMenu.AllVehiclesMenu, allVehsButton);
                     vehicleSect.Add(allVehsButton);
 

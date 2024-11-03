@@ -6,27 +6,468 @@ using CitizenFX.Core;
 
 using MenuAPI;
 
-using Newtonsoft.Json;
+using vMenuClient.data;
+using vMenuClient.MenuAPIWrapper;
 
 using static CitizenFX.Core.Native.API;
+
 using static vMenuClient.CommonFunctions;
+using static vMenuShared.ConfigManager;
 
 namespace vMenuClient.menus
 {
     public class SavedVehicles
     {
         // Variables
-        private Menu menu;
-        private readonly Menu selectedVehicleMenu = Lm.GetMenu(new Menu(MenuTitle, "Manage this saved vehicle."));
-        private readonly Menu unavailableVehiclesMenu = Lm.GetMenu(new Menu(MenuTitle, "Unavailable Saved Vehicles"));
-        private Dictionary<string, VehicleInfo> savedVehicles = new();
-        private readonly List<Menu> subMenus = new();
-        private Dictionary<MenuItem, KeyValuePair<string, VehicleInfo>> svMenuItems = new();
-        private KeyValuePair<string, VehicleInfo> currentlySelectedVehicle = new();
-        private int deleteButtonPressedCount = 0;
-        private int replaceButtonPressedCount = 0;
+        private WMenu menu;
 
-        private static readonly LanguageManager Lm = new LanguageManager();
+        private WMenu manageAvailableVehicleMenu = new WMenu(MenuTitle, "CHANGE ME");
+        private WMenu manageUnavailableVehicleMenu = new WMenu(MenuTitle, "CHANGE ME");
+
+
+        private Tuple<string, VehicleInfo> selectedVehicle;
+
+        private struct SavedVehiclesMenuData
+        {
+            public WMenu Menu;
+            public List<WMenuItem> VehicleButtons;
+        };
+
+        public struct FilterItems
+        {
+            public WMenuItem Name;
+            public WMenuItem Manufacturer;
+            public WMenuItem CustomClass;
+            public WMenuItem DefaultClass;
+
+            public int Count => 1 + 2 + (CustomClass != null ? 1 : 0) + (DefaultClass != null ? 1 : 0);
+        }
+
+
+        private SavedVehiclesMenuData availableSavedVehiclesMenuData;
+        private VehicleData.VehicleFilter filter;
+        private FilterItems filterItems;
+
+
+        public void ResetAvailableSavedVehiclesFilter()
+        {
+            filter = new VehicleData.VehicleFilter();
+
+            filterItems.Name.Label = "";
+            filterItems.Manufacturer.AsListItem().ListIndex = 0;
+            if (filterItems.CustomClass != null)
+            {
+                filterItems.CustomClass.AsListItem().ListIndex = 0;
+            }
+            if (filterItems.DefaultClass != null)
+            {
+                filterItems.DefaultClass.AsListItem().ListIndex = 0;
+            }
+        }
+
+        private int FilterAvailableSavedVehiclesMenu(string name = null)
+        {
+            availableSavedVehiclesMenuData.Menu.Menu.ResetFilter();
+            var countTotal = availableSavedVehiclesMenuData.Menu.Menu.Size;
+
+            if (name != null)
+            {
+                filter.Name = name;
+            }
+
+            filterItems.Name.Label = $"~c~{filter.Name}~s~";
+
+            availableSavedVehiclesMenuData.Menu.Menu.FilterMenuItems(mi =>
+            {
+                if (mi.ItemData is Tuple<string, VehicleData.VehicleModelInfo> t)
+                {
+                    return filter.IsMatching(t.Item2, t.Item1);
+                }
+                else
+                {
+                    return true;
+                }
+            });
+            var countFiltered = availableSavedVehiclesMenuData.Menu.Menu.Size;
+
+            availableSavedVehiclesMenuData.Menu.ResetIncrement();
+
+            return countFiltered - filterItems.Count;
+        }
+
+
+        private SavedVehiclesMenuData unavailableSavedVehiclesMenuData;
+
+
+        public WMenu CreateManageVehicleMenu(bool available)
+        {
+            var manageMenu = new WMenu(MenuTitle, "CHANGE_ME");
+
+            WMenuItem spawnVehicle = null;
+            if (available)
+            {
+                spawnVehicle = new MenuItem("Spawn", "Spawn this saved vehicle.").ToWrapped();
+                spawnVehicle.Selected += async (_s, _args) =>
+                {
+                    if (MainMenu.VehicleSpawnerMenu != null)
+                    {
+                        await SpawnVehicle(
+                            selectedVehicle.Item2.model,
+                            MainMenu.VehicleSpawnerMenu.SpawnInVehicle,
+                            MainMenu.VehicleSpawnerMenu.ReplaceVehicle,
+                            false,
+                            vehicleInfo: selectedVehicle.Item2,
+                            saveName: selectedVehicle.Item1,
+                            despawnable: MainMenu.VehicleSpawnerMenu.SpawnNpcLike);
+                    }
+                    else
+                    {
+                        await SpawnVehicle(
+                            selectedVehicle.Item2.model,
+                            true,
+                            true,
+                            false,
+                            vehicleInfo: selectedVehicle.Item2,
+                            saveName: selectedVehicle.Item1,
+                            despawnable: true);
+                    }
+                };
+            }
+
+            var renameVehicle = new MenuItem("Rename Vehicle", "Rename this saved vehicle.").ToWrapped();
+            renameVehicle.Selected += async (s_ , _args) =>
+            {
+                var newName = await GetUserInput("Enter a new name for this vehicle", 30);
+                if (string.IsNullOrEmpty(newName))
+                {
+                    Notify.Error(CommonErrors.InvalidInput);
+                }
+                else
+                {
+                    if (StorageManager.SaveVehicleInfo("veh_" + newName, selectedVehicle.Item2, false))
+                    {
+                        DeleteResourceKvp($"veh_{selectedVehicle.Item1}");
+
+                        selectedVehicle = new Tuple<string, VehicleInfo>(newName, selectedVehicle.Item2);
+                        manageMenu.Menu.MenuSubtitle = newName;
+
+                        RecreateVehicleMenus();
+                    }
+                    else
+                    {
+                        Notify.Error("This name is already in use or something unknown failed. Contact the server owner if you believe something is wrong.");
+                    }
+                }
+            };
+
+            var replaceVehicle = WMenuItem.CreateConfirmationButton("~r~Replace Vehicle~s~", "Replace the saved vehicle with the vehicle you are currently in. ~y~This cannot be undone!~s~");
+            replaceVehicle.Confirmed += async (_s, _args) =>
+            {
+                if (Game.PlayerPed.IsInVehicle())
+                {
+                    await SaveVehicle(selectedVehicle.Item1);
+
+                    RecreateVehicleMenus();
+                    manageMenu.Menu.GoBack();
+
+                    Notify.Success("Your saved vehicle has been replaced with your current vehicle.");
+                }
+                else
+                {
+                    Notify.Error("You need to be in a vehicle before you can replace your old vehicle.");
+                }
+            };
+
+            var deleteVehicle = WMenuItem.CreateConfirmationButton("~r~Delete Vehicle~s~", "This will delete the saved vehicle. ~y~This cannot be undone!~s~");
+            deleteVehicle.Confirmed += (_s, _args) =>
+            {
+                DeleteResourceKvp($"veh_{selectedVehicle.Item1}");
+
+                RecreateVehicleMenus();
+                manageMenu.Menu.GoBack();
+
+                Notify.Success("The saved vehicle has been deleted.");
+            };
+
+            manageMenu.AddItems([spawnVehicle, renameVehicle, replaceVehicle, deleteVehicle]);
+
+            manageMenu.Closed += (_s, _args) =>
+            {
+                manageMenu.Menu.RefreshIndex();
+            };
+
+            return manageMenu;
+        }
+
+        private WMenuItem CreateAvailableVehicleButton(string name, VehicleInfo info)
+        {
+            var vi = VehicleData.HashToVehicle[info.model];
+
+            var textColor = !vi.HasProperName ? "~y~" : vi.IsAddon ? "~q~" : "";
+            var text = $"{textColor}{name}~s~";
+
+            var manufacturerDescr = vi.Manufacturer != "NULL" ? $"~b~{vi.Manufacturer}~s~ " : "";
+            var description = $"Spawn your {manufacturerDescr}~b~{vi.Name}~s~: ~b~{name}~s~.";
+
+            var btn = new MenuItem(text, description)
+            {
+                Label = $"~c~({vi.Name})~s~ →→→",
+                ItemData = vi
+            }.ToWrapped();
+            btn.Selected += (_s, _args) =>
+            {
+                selectedVehicle = new Tuple<string, VehicleInfo>(name, info);
+                manageAvailableVehicleMenu.Menu.MenuSubtitle = name;
+            };
+
+            return btn;
+        }
+
+        private WMenuItem CreateUnavailableVehicleButton(string name, VehicleInfo info)
+        {
+            var btn = new MenuItem($"~c~{name}~s~")
+            {
+                Label = $"~c~({info.name})~s~ →→→",
+            }.ToWrapped();
+            btn.Selected += (_s, _args) =>
+            {
+                selectedVehicle = new Tuple<string, VehicleInfo>(name, info);
+                manageUnavailableVehicleMenu.Menu.MenuSubtitle = name;
+            };
+
+            return btn;
+        }
+
+        private void AddFilterItems(WMenu vehiclesMenu)
+        {
+            filter = new VehicleData.VehicleFilter();
+            filterItems = new FilterItems();
+
+            {
+                var nameFilter = new MenuItem("~b~Filter By Name~s~", "Filter vehicles by (model) name or reset the filter.").ToWrapped();
+                nameFilter.Selected += async (_s, _args) =>
+                {
+                    var input = await GetUserInput("Enter filter text. Leave empty to reset the filter", 20);
+                    if (input == null)
+                        return;
+
+                    filter.Name = input;
+                    FilterAvailableSavedVehiclesMenu();
+                    vehiclesMenu.Menu.RefreshIndex(0);
+                };
+
+                vehiclesMenu.AddItem(nameFilter);
+                filterItems.Name = nameFilter;
+            }
+
+
+            {
+                var manufacturers = VehicleData.AllowedVehicles
+                    .Select(veh => VehicleData.AllVehicles[veh].Manufacturer)
+                    .Distinct()
+                    .OrderBy(s => s, Comparer<string>.Create(VehicleData.CompareManufacturers))
+                    .Select(s => s == "NULL" ? "~italic~Unknown~italic~" : s);
+
+                var manufacturerFilterOptions = Enumerable.Concat(["~italic~All~italic~"], manufacturers).ToList();
+                var manufacturerFilter = new MenuListItem("~b~Filter By Manufacturer~s~", manufacturerFilterOptions, 0, "Filter vehicles by manufacturer. Click to reset the filter.").ToWrapped();
+                manufacturerFilter.ListChanged += (_s, args) =>
+                {
+                    if (args.ListIndexNew == 0)
+                    {
+                        filter.Manufacturer = null;
+                    }
+                    else if (args.ListIndexNew == manufacturerFilterOptions.Count - 1)
+                    {
+                        filter.Manufacturer = "NULL";
+                    }
+                    else
+                    {
+                        filter.Manufacturer = manufacturerFilterOptions[args.ListIndexNew];
+                    }
+
+                    FilterAvailableSavedVehiclesMenu();
+                    vehiclesMenu.Menu.RefreshIndex(1);
+                };
+                manufacturerFilter.ListSelected += (_s, _args) =>
+                {
+                    manufacturerFilter.AsListItem().ListIndex = 0;
+                    filter.Manufacturer = null;
+
+                    FilterAvailableSavedVehiclesMenu();
+                    vehiclesMenu.Menu.RefreshIndex(1);
+                };
+
+                vehiclesMenu.AddItem(manufacturerFilter);
+                filterItems.Manufacturer = manufacturerFilter;
+            }
+
+
+            bool customClassesOnly = GetSettingsBool(Setting.vmenu_only_custom_classes);
+
+            var customClasses = VehicleData.CustomVehiclesClasses.Select(c => c.Name).ToList();
+            if (customClasses.Count > 0)
+            {
+                var customClassesOptions = Enumerable.Concat(["~italic~All~italic~"], customClasses).ToList();
+                var customClassesFilter = new MenuListItem(
+                    $"~b~Filter By {(customClassesOnly ? "" : "Custom ")}Class~s~",
+                    customClassesOptions,
+                    0,
+                    "Filter vehicles by custom class. Click to reset the filter.").ToWrapped();
+                customClassesFilter.ListChanged += (_s, args) =>
+                {
+                    if (args.ListIndexNew == 0)
+                    {
+                        filter.CustomClass = null;
+                    }
+                    else
+                    {
+                        filter.CustomClass = customClassesOptions[args.ListIndexNew];
+                    }
+
+                    FilterAvailableSavedVehiclesMenu();
+                    vehiclesMenu.Menu.RefreshIndex(2);
+                };
+                customClassesFilter.ListSelected += (_s, _args) =>
+                {
+                    customClassesFilter.AsListItem().ListIndex = 0;
+                    filter.CustomClass = null;
+
+                    FilterAvailableSavedVehiclesMenu();
+                    vehiclesMenu.Menu.RefreshIndex(2);
+                };
+
+                vehiclesMenu.AddItem(customClassesFilter);
+                filterItems.CustomClass = customClassesFilter;
+            }
+
+            if (customClasses.Count == 0 || !GetSettingsBool(Setting.vmenu_only_custom_classes))
+            {
+                var defaultClasses = VehicleData.AllowedVehicles
+                    .Select(veh => VehicleData.AllVehicles[veh].Class)
+                    .OrderBy(c => c, Comparer<int>.Create(VehicleData.CompareClasses))
+                    .Distinct()
+                    .Select(c => VehicleData.ClassIdToName[c]);
+
+                var defaultClassesOptions = Enumerable.Concat(["~italic~All~italic~"], defaultClasses).ToList();
+                var defaultClassesFilter = new MenuListItem(
+                    $"~b~Filter By {(customClasses.Count == 0 ? "" : "Default ")}Class~s~",
+                    defaultClassesOptions,
+                    0,
+                    "Filter vehicles by default class. Click to reset the filter.").ToWrapped();
+                defaultClassesFilter.ListChanged += (_s, args) =>
+                {
+                    if (args.ListIndexNew == 0)
+                    {
+                        filter.DefaultClass = null;
+                    }
+                    else
+                    {
+                        filter.DefaultClass = defaultClassesOptions[args.ListIndexNew];
+                    }
+
+                    FilterAvailableSavedVehiclesMenu();
+                    vehiclesMenu.Menu.RefreshIndex(2 + (customClasses.Count > 0 ? 1 : 0));
+                };
+                defaultClassesFilter.ListSelected += (_s, _args) =>
+                {
+                    defaultClassesFilter.AsListItem().ListIndex = 0;
+                    filter.DefaultClass = null;
+
+                    vehiclesMenu.Menu.RefreshIndex(2 + (customClasses.Count > 0 ? 1 : 0));
+                };
+
+                vehiclesMenu.AddItem(defaultClassesFilter);
+                filterItems.DefaultClass = defaultClassesFilter;
+            }
+
+            vehiclesMenu.Menu.InstructionalButtons.Add(Control.SelectWeapon, "Filter Vehicles");
+            vehiclesMenu.Menu.ButtonPressHandlers.Add(new Menu.ButtonPressHandler(
+                Control.SelectWeapon,
+                Menu.ControlPressCheckType.JUST_RELEASED,
+                (m, _c) =>
+                {
+                    vehiclesMenu.Menu.RefreshIndex(0);
+                    vehiclesMenu.ResetIncrement();
+                },
+                true));
+
+            vehiclesMenu.AddItem(vehiclesMenu.CreateSeparatorItem("Vehicles"));
+        }
+
+        private SavedVehiclesMenuData CreateVehiclesMenu(string subtitle, bool addFilters = false)
+        {
+            SavedVehiclesMenuData menuData = new SavedVehiclesMenuData();
+
+            menuData.Menu = new WMenu(MenuTitle, subtitle);
+            menuData.VehicleButtons = new List<WMenuItem>();
+
+            if (addFilters)
+            {
+                AddFilterItems(menuData.Menu);
+            }
+
+            return menuData;
+        }
+
+        private void PopulateVehiclesMenu(SavedVehiclesMenuData menuData, List<Tuple<string, VehicleInfo>> vehicles, bool available)
+        {
+            foreach (var btn in menuData.VehicleButtons)
+            {
+                menuData.Menu.RemoveItem(btn);
+            }
+            menuData.VehicleButtons.Clear();
+
+            foreach(var vehicle in vehicles)
+            {
+                var btn = available
+                    ? CreateAvailableVehicleButton(vehicle.Item1, vehicle.Item2)
+                    : CreateUnavailableVehicleButton(vehicle.Item1, vehicle.Item2);
+                menuData.Menu.BindSubmenu(manageAvailableVehicleMenu, btn, addLabel: false);
+                menuData.Menu.AddItem(btn);
+                menuData.VehicleButtons.Add(btn);
+
+                VehicleData.VehicleModelInfo modelInfo;
+                if (!VehicleData.HashToVehicle.TryGetValue(vehicle.Item2.model, out modelInfo))
+                {
+                    modelInfo = new VehicleData.VehicleModelInfo("");
+                }
+
+                btn.ItemData = new Tuple<string, VehicleData.VehicleModelInfo>(vehicle.Item1, modelInfo);
+            }
+        }
+
+
+        private void RecreateVehicleMenus()
+        {
+            var savedVehicles = GetSavedVehicles()
+                .Select(kv => new Tuple<string, VehicleInfo>(kv.Key.Substring(4), kv.Value))
+                .OrderBy(kv => kv.Item1, Comparer<string>.Create(VehicleData.CompareVehicleNames));
+
+            var availableSavedVehicles = savedVehicles
+                .Where(t =>
+                {
+                    if (VehicleData.HashToVehicle.TryGetValue(t.Item2.model, out var vi))
+                    {
+                        return vi.IsAllowed;
+                    }
+                    return false;
+                })
+                .ToList();
+            PopulateVehiclesMenu(availableSavedVehiclesMenuData, availableSavedVehicles, true);
+            FilterAvailableSavedVehiclesMenu();
+
+            var unavailableSavedVehicles = savedVehicles
+                .Where(t =>
+                {
+                    if (VehicleData.HashToVehicle.TryGetValue(t.Item2.model, out var vi))
+                    {
+                        return !vi.IsAllowed;
+                    }
+                    return true;
+                })
+                .ToList();
+            PopulateVehiclesMenu(unavailableSavedVehiclesMenuData, unavailableSavedVehicles, false);
+        }
 
         /// <summary>
         /// Creates the menu.
@@ -35,344 +476,65 @@ namespace vMenuClient.menus
         {
             #region Create menus and submenus
             // Create the menu.
-            menu = new Menu(MenuTitle, "Saved Vehicles");
+            menu = new WMenu(MenuTitle, "Saved Vehicles");
 
-            var saveVehicle = new MenuItem("Save Current Vehicle", "Save the vehicle you are currently sitting in.");
-            menu.AddMenuItem(saveVehicle);
-            saveVehicle.LeftIcon = MenuItem.Icon.CAR;
-
-            menu.OnItemSelect += (sender, item, index) =>
             {
-                if (item == saveVehicle)
+                var saveVehicle = new MenuItem("Save Current Vehicle", "Save the vehicle you are currently in.").ToWrapped();
+                saveVehicle.Selected += async (_s, _args) =>
                 {
-                    if (Game.PlayerPed.IsInVehicle())
-                    {
-                        SaveVehicle();
-                    }
-                    else
-                    {
-                        Notify.Error("You are currently not in any vehicle. Please enter a vehicle before trying to save it.");
-                    }
-                }
-            };
-
-            for (var i = 0; i < 23; i++)
-            {
-                var categoryMenu = new Menu(MenuTitle, GetLabelText($"VEH_CLASS_{i}"));
-
-                var categoryButton = new MenuItem(GetLabelText($"VEH_CLASS_{i}"), $"All saved vehicles from the {GetLabelText($"VEH_CLASS_{i}")} category.");
-                subMenus.Add(categoryMenu);
-                MenuController.AddSubmenu(menu, categoryMenu);
-                menu.AddMenuItem(categoryButton);
-                categoryButton.Label = "→→→";
-                MenuController.BindMenuItem(menu, categoryMenu, categoryButton);
-
-                categoryMenu.OnMenuClose += (sender) =>
-                {
-                    UpdateMenuAvailableCategories();
+                    var name = await SaveVehicle();
+                    RecreateVehicleMenus();
                 };
-
-                categoryMenu.OnItemSelect += (sender, item, index) =>
-                {
-                    UpdateSelectedVehicleMenu(item, sender);
-                };
+                menu.AddItem(saveVehicle);
             }
 
-            var unavailableModels = new MenuItem("Unavailable Saved Vehicles", "These vehicles are currently unavailable because the models are not present in the game. These vehicles are most likely not being streamed from the server.")
             {
-                Label = "→→→"
-            };
-
-            menu.AddMenuItem(unavailableModels);
-            MenuController.BindMenuItem(menu, unavailableVehiclesMenu, unavailableModels);
-            MenuController.AddSubmenu(menu, unavailableVehiclesMenu);
-
-
-            MenuController.AddMenu(selectedVehicleMenu);
-            var spawnVehicle = new MenuItem("Spawn Vehicle", "Spawn this saved vehicle.");
-            var renameVehicle = new MenuItem("Rename Vehicle", "Rename your saved vehicle.");
-            var replaceVehicle = new MenuItem("~r~Replace Vehicle", "Your saved vehicle will be replaced with the vehicle you are currently sitting in. ~r~Warning: this can NOT be undone!");
-            var deleteVehicle = new MenuItem("~r~Delete Vehicle", "~r~This will delete your saved vehicle. Warning: this can NOT be undone!");
-            selectedVehicleMenu.AddMenuItem(spawnVehicle);
-            selectedVehicleMenu.AddMenuItem(renameVehicle);
-            selectedVehicleMenu.AddMenuItem(replaceVehicle);
-            selectedVehicleMenu.AddMenuItem(deleteVehicle);
-
-            selectedVehicleMenu.OnMenuOpen += (sender) =>
-            {
-                spawnVehicle.Label = "(" + GetDisplayNameFromVehicleModel(currentlySelectedVehicle.Value.model).ToLower() + ")";
-            };
-
-            selectedVehicleMenu.OnMenuClose += (sender) =>
-            {
-                selectedVehicleMenu.RefreshIndex();
-                deleteButtonPressedCount = 0;
-                deleteVehicle.Label = "";
-                replaceButtonPressedCount = 0;
-                replaceVehicle.Label = "";
-            };
-
-            selectedVehicleMenu.OnItemSelect += async (sender, item, index) =>
-            {
-                if (item == spawnVehicle)
+                var searchByName = new MenuItem("Search Vehicle By Name", "Search a saved vehicle by its (model) name").ToWrapped();
+                searchByName.Selected += async (_s, _args) =>
                 {
-                    if (MainMenu.VehicleSpawnerMenu != null)
+                    var input = await GetUserInput("Enter search text", 20);
+                    if (string.IsNullOrEmpty(input))
+                        return;
+
+                    ResetAvailableSavedVehiclesFilter();
+                    int count = FilterAvailableSavedVehiclesMenu(input);
+                    if (count == 0)
                     {
-                        await SpawnVehicle(currentlySelectedVehicle.Value.model, MainMenu.VehicleSpawnerMenu.SpawnInVehicle, MainMenu.VehicleSpawnerMenu.ReplaceVehicle, false, vehicleInfo: currentlySelectedVehicle.Value, saveName: currentlySelectedVehicle.Key.Substring(4), despawnable: MainMenu.VehicleSpawnerMenu.SpawnNpcLike);
+                        Notify.Info("No vehicles found matching this search.");
+
+                        ResetAvailableSavedVehiclesFilter();
+                        FilterAvailableSavedVehiclesMenu();
                     }
                     else
                     {
-                        await SpawnVehicle(currentlySelectedVehicle.Value.model, true, true, false, vehicleInfo: currentlySelectedVehicle.Value, saveName: currentlySelectedVehicle.Key.Substring(4), despawnable: true);
+                        MenuController.CloseAllMenus();
+                        availableSavedVehiclesMenuData.Menu.Menu.OpenMenu();
+                        availableSavedVehiclesMenuData.Menu.Menu.RefreshIndex(filterItems.Count);
                     }
-                }
-                else if (item == renameVehicle)
-                {
-                    var newName = await GetUserInput(windowTitle: "Enter a new name for this vehicle.", maxInputLength: 30);
-                    if (string.IsNullOrEmpty(newName))
-                    {
-                        Notify.Error(CommonErrors.InvalidInput);
-                    }
-                    else
-                    {
-                        if (StorageManager.SaveVehicleInfo("veh_" + newName, currentlySelectedVehicle.Value, false))
-                        {
-                            DeleteResourceKvp(currentlySelectedVehicle.Key);
-                            while (!selectedVehicleMenu.Visible)
-                            {
-                                await BaseScript.Delay(0);
-                            }
-                            Notify.Success("Your vehicle has successfully been renamed.");
-                            UpdateMenuAvailableCategories();
-                            selectedVehicleMenu.GoBack();
-                            currentlySelectedVehicle = new KeyValuePair<string, VehicleInfo>(); // clear the old info
-                        }
-                        else
-                        {
-                            Notify.Error("This name is already in use or something unknown failed. Contact the server owner if you believe something is wrong.");
-                        }
-                    }
-                }
-                else if (item == replaceVehicle)
-                {
-                    if (Game.PlayerPed.IsInVehicle())
-                    {
-                        if (replaceButtonPressedCount == 0)
-                        {
-                            replaceButtonPressedCount = 1;
-                            item.Label = "Press again to confirm.";
-                            Notify.Alert("Are you sure you want to replace this vehicle? Press the button again to confirm.");
-                        }
-                        else
-                        {
-                            replaceButtonPressedCount = 0;
-                            item.Label = "";
-                            SaveVehicle(currentlySelectedVehicle.Key.Substring(4));
-                            selectedVehicleMenu.GoBack();
-                            Notify.Success("Your saved vehicle has been replaced with your current vehicle.");
-                        }
-                    }
-                    else
-                    {
-                        Notify.Error("You need to be in a vehicle before you can replace your old vehicle.");
-                    }
-                }
-                else if (item == deleteVehicle)
-                {
-                    if (deleteButtonPressedCount == 0)
-                    {
-                        deleteButtonPressedCount = 1;
-                        item.Label = "Press again to confirm.";
-                        Notify.Alert("Are you sure you want to delete this vehicle? Press the button again to confirm.");
-                    }
-                    else
-                    {
-                        deleteButtonPressedCount = 0;
-                        item.Label = "";
-                        DeleteResourceKvp(currentlySelectedVehicle.Key);
-                        UpdateMenuAvailableCategories();
-                        selectedVehicleMenu.GoBack();
-                        Notify.Success("Your saved vehicle has been deleted.");
-                    }
-                }
-                if (item != deleteVehicle) // if any other button is pressed, restore the delete vehicle button pressed count.
-                {
-                    deleteButtonPressedCount = 0;
-                    deleteVehicle.Label = "";
-                }
-                if (item != replaceVehicle)
-                {
-                    replaceButtonPressedCount = 0;
-                    replaceVehicle.Label = "";
-                }
-            };
-            unavailableVehiclesMenu.InstructionalButtons.Add(Control.FrontendDelete, "Delete Vehicle!");
+                };
 
-            unavailableVehiclesMenu.ButtonPressHandlers.Add(new Menu.ButtonPressHandler(Control.FrontendDelete, Menu.ControlPressCheckType.JUST_RELEASED, new Action<Menu, Control>((m, c) =>
-            {
-                if (m.Size > 0)
-                {
-                    var index = m.CurrentIndex;
-                    if (index < m.Size)
-                    {
-                        var item = m.GetMenuItems().Find(i => i.Index == index);
-                        if (item != null && item.ItemData is KeyValuePair<string, VehicleInfo> sd)
-                        {
-                            if (item.Label == "~r~Are you sure?")
-                            {
-                                Log("Unavailable saved vehicle deleted, data: " + JsonConvert.SerializeObject(sd));
-                                DeleteResourceKvp(sd.Key);
-                                unavailableVehiclesMenu.GoBack();
-                                UpdateMenuAvailableCategories();
-                            }
-                            else
-                            {
-                                item.Label = "~r~Are you sure?";
-                            }
-                        }
-                        else
-                        {
-                            Notify.Error("Somehow this vehicle could not be found.");
-                        }
-                    }
-                    else
-                    {
-                        Notify.Error("You somehow managed to trigger deletion of a menu item that doesn't exist, how...?");
-                    }
-                }
-                else
-                {
-                    Notify.Error("There are currrently no unavailable vehicles to delete!");
-                }
-            }), true));
-
-            void ResetAreYouSure()
-            {
-                foreach (var i in unavailableVehiclesMenu.GetMenuItems())
-                {
-                    if (i.ItemData is KeyValuePair<string, VehicleInfo> vd)
-                    {
-                        i.Label = $"({vd.Value.name})";
-                    }
-                }
+                menu.AddItem(searchByName);
             }
-            unavailableVehiclesMenu.OnMenuClose += (sender) => ResetAreYouSure();
-            unavailableVehiclesMenu.OnIndexChange += (sender, oldItem, newItem, oldIndex, newIndex) => ResetAreYouSure();
+
+            {
+                manageAvailableVehicleMenu = CreateManageVehicleMenu(true);
+                availableSavedVehiclesMenuData = CreateVehiclesMenu("Saved Vehicles List", true);
+
+                menu.AddSubmenu(availableSavedVehiclesMenuData.Menu, "A list of all saved vehicles that you can also filter.", true);
+            }
+
+            {
+                manageUnavailableVehicleMenu = CreateManageVehicleMenu(false);
+                unavailableSavedVehiclesMenuData = CreateVehiclesMenu("Unavailable Saved Vehicles", false);
+
+                var btn = new MenuItem("~c~Unavailable Saved Vehicles~s~", "A list of all saved vehicles that are unavailable on this server, either because the vehicle does not exists or you are not allowed to spawn it.");
+                menu.BindSubmenu(unavailableSavedVehiclesMenuData.Menu, btn);
+                menu.AddItem(btn);
+            }
+
+            RecreateVehicleMenus();
 
             #endregion
-        }
-
-
-        /// <summary>
-        /// Updates the selected vehicle.
-        /// </summary>
-        /// <param name="selectedItem"></param>
-        /// <returns>A bool, true if successfull, false if unsuccessfull</returns>
-        private bool UpdateSelectedVehicleMenu(MenuItem selectedItem, Menu parentMenu = null)
-        {
-            if (!svMenuItems.ContainsKey(selectedItem))
-            {
-                Notify.Error("In some very strange way, you've managed to select a button, that does not exist according to this list. So your vehicle could not be loaded. :( Maybe your save files are broken?");
-                return false;
-            }
-            var vehInfo = svMenuItems[selectedItem];
-            selectedVehicleMenu.MenuSubtitle = $"{vehInfo.Key.Substring(4)} ({vehInfo.Value.name})";
-            currentlySelectedVehicle = vehInfo;
-            MenuController.CloseAllMenus();
-            selectedVehicleMenu.OpenMenu();
-            if (parentMenu != null)
-            {
-                MenuController.AddSubmenu(parentMenu, selectedVehicleMenu);
-            }
-            return true;
-        }
-
-
-        /// <summary>
-        /// Updates the available vehicle category list.
-        /// </summary>
-        public void UpdateMenuAvailableCategories()
-        {
-            savedVehicles = GetSavedVehicles();
-            svMenuItems = new Dictionary<MenuItem, KeyValuePair<string, VehicleInfo>>();
-
-            for (var i = 1; i < GetMenu().Size - 1; i++)
-            {
-                if (savedVehicles.Any(a => GetVehicleClassFromName(a.Value.model) == i - 1 && IsModelInCdimage(a.Value.model)))
-                {
-                    GetMenu().GetMenuItems()[i].RightIcon = MenuItem.Icon.NONE;
-                    GetMenu().GetMenuItems()[i].Label = "→→→";
-                    GetMenu().GetMenuItems()[i].Enabled = true;
-                    GetMenu().GetMenuItems()[i].Description = $"All saved vehicles from the {GetMenu().GetMenuItems()[i].Text} category.";
-                }
-                else
-                {
-                    GetMenu().GetMenuItems()[i].Label = "";
-                    GetMenu().GetMenuItems()[i].RightIcon = MenuItem.Icon.LOCK;
-                    GetMenu().GetMenuItems()[i].Enabled = false;
-                    GetMenu().GetMenuItems()[i].Description = $"You do not have any saved vehicles that belong to the {GetMenu().GetMenuItems()[i].Text} category.";
-                }
-            }
-
-            // Check if the items count will be changed. If there are less cars than there were before, one probably got deleted
-            // so in that case we need to refresh the index of that menu just to be safe. If not, keep the index where it is for improved
-            // usability of the menu.
-            foreach (var m in subMenus)
-            {
-                var size = m.Size;
-                var vclass = subMenus.IndexOf(m);
-
-                var count = savedVehicles.Count(a => GetVehicleClassFromName(a.Value.model) == vclass);
-                if (count < size)
-                {
-                    m.RefreshIndex();
-                }
-            }
-
-            foreach (var m in subMenus)
-            {
-                // Clear items but don't reset the index because we can guarantee that the index won't be out of bounds.
-                // this is the case because of the loop above where we reset the index if the items count changes.
-                m.ClearMenuItems(true);
-            }
-
-            // Always clear this index because it's useless anyway and it's safer.
-            unavailableVehiclesMenu.ClearMenuItems();
-
-            foreach (var sv in savedVehicles)
-            {
-                if (IsModelInCdimage(sv.Value.model))
-                {
-                    var vclass = GetVehicleClassFromName(sv.Value.model);
-                    var menu = subMenus[vclass];
-
-                    var savedVehicleBtn = new MenuItem(sv.Key.Substring(4), $"Manage this saved vehicle.")
-                    {
-                        Label = $"({sv.Value.name}) →→→"
-                    };
-                    menu.AddMenuItem(savedVehicleBtn);
-
-                    svMenuItems.Add(savedVehicleBtn, sv);
-                }
-                else
-                {
-                    var missingVehItem = new MenuItem(sv.Key.Substring(4), "This model could not be found in the game files. Most likely because this is an addon vehicle and it's currently not streamed by the server.")
-                    {
-                        Label = "(" + sv.Value.name + ")",
-                        Enabled = false,
-                        LeftIcon = MenuItem.Icon.LOCK,
-                        ItemData = sv
-                    };
-                    //SetResourceKvp(sv.Key + "_tmp_dupe", JsonConvert.SerializeObject(sv.Value));
-                    unavailableVehiclesMenu.AddMenuItem(missingVehItem);
-                }
-            }
-            foreach (var m in subMenus)
-            {
-                m.SortMenuItems((A, B) =>
-                {
-                    return A.Text.ToLower().CompareTo(B.Text.ToLower());
-                });
-            }
         }
 
         /// <summary>
@@ -385,7 +547,7 @@ namespace vMenuClient.menus
             {
                 CreateMenu();
             }
-            return menu;
+            return menu.Menu;
         }
     }
 }

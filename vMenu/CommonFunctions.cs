@@ -1315,32 +1315,10 @@ namespace vMenuClient
                 speed = GetEntitySpeedVector(tmpOldVehicle.Handle, true).Y; // get forward/backward speed only
                 rpm = tmpOldVehicle.CurrentRPM;
             }
-            string jsonData = LoadResourceFile(GetCurrentResourceName(), "config/addons.json") ?? "{}";
-            var addons = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(jsonData);
 
-
-            foreach (string addon in addons["vehicleblacklist"])
+            if (!VehicleData.HashToVehicle[vehicleHash].IsAllowed)
             {
-                uint vehicleblackist = (uint)GetHashKey(addon);
-                if ((vehicleHash == vehicleblackist) && !IsAllowed(Permission.VOVehiclesBlacklist))
-                    {
-                        Notify.Alert("You are not allowed to spawn this vehicle, because it is restricted.");
-                        return 0;     
-                    }
-                }
-            foreach (string addon in addons["disablefromdefaultlist"])
-            {
-                uint removedefaultlist = (uint)GetHashKey(addon.ToLower());
-                if ((vehicleHash == removedefaultlist) && !IsAllowed(Permission.VODisableFromDefaultList))
-                    {
-                        Notify.Alert("You are not allowed to spawn this vehicle, because it is restricted.");
-                        return 0;     
-                    }
-                }
-            var modelClass = GetVehicleClassFromName(vehicleHash);
-            if (!VehicleSpawner.allowedCategories[modelClass])
-            {
-                Notify.Alert("You are not allowed to spawn this vehicle, because it belongs to a category which is restricted by the server owner.");
+                Notify.Error("You are not allowed to spawn this vehicle.");
                 return 0;
             }
 
@@ -1735,195 +1713,184 @@ namespace vMenuClient
 
         #region Save Vehicle
         /// <summary>
-        /// Saves the vehicle the player is currently in to the client's kvp storage.
+        /// Saves the vehicle the player is currently in to the client's kvp storage and returns the save name
         /// </summary>
-        public static async void SaveVehicle(string updateExistingSavedVehicleName = null)
+        public static async Task<string> SaveVehicle(string updateExistingSavedVehicleName = null)
         {
-            // Only continue if the player is in a vehicle.
-            if (Game.PlayerPed.IsInVehicle())
+            var veh = GetVehicle();
+            if (veh == null)
             {
-                // Get the vehicle.
-                var veh = GetVehicle();
-                // Make sure the entity is actually a vehicle and it still exists, and it's not dead.
-                if (veh != null && veh.Exists() && !veh.IsDead && veh.IsDriveable)
-                {
-                    #region new saving method
-                    var mods = new Dictionary<int, int>();
-
-                    foreach (var mod in veh.Mods.GetAllMods())
-                    {
-                        mods.Add((int)mod.ModType, mod.Index);
-                    }
-
-                    #region colors
-                    var colors = new Dictionary<string, int>();
-
-
-                    var primaryColor = CUSTOM_PAINT;
-                    var primaryColorRed = 0;
-                    var primaryColorGreen = 0;
-                    var primaryColorBlue = 0;
-                    var primaryFinish = 0;
-
-                    var secondaryColor = CUSTOM_PAINT;
-                    var secondaryColorRed = 0;
-                    var secondaryColorGreen = 0;
-                    var secondaryColorBlue = 0;
-                    var secondaryFinish = 0;
-
-                    if (GetIsVehiclePrimaryColourCustom(veh.Handle))
-                    {
-                        GetVehicleCustomPrimaryColour(veh.Handle, ref primaryColorRed, ref primaryColorGreen, ref primaryColorBlue);
-                        primaryFinish = GetVehicleCustomPrimaryPaintType(veh);
-                    }
-                    else
-                    {
-                        primaryColor = GetVehiclePrimaryColor(veh);
-                    }
-
-                    if (GetIsVehicleSecondaryColourCustom(veh.Handle))
-                    {
-                        GetVehicleCustomSecondaryColour(veh.Handle, ref secondaryColorRed, ref secondaryColorGreen, ref secondaryColorBlue);
-                        secondaryFinish = primaryFinish = GetVehicleCustomSecondaryPaintType(veh);
-                    }
-                    else
-                    {
-                        secondaryColor = GetVehicleSecondaryColor(veh);
-                    }
-
-
-                    var pearlescentColor = 0;
-                    var wheelColor = 0;
-                    var dashColor = 0;
-                    var trimColor = 0;
-
-                    GetVehicleExtraColours(veh.Handle, ref pearlescentColor, ref wheelColor);
-                    GetVehicleDashboardColour(veh.Handle, ref dashColor);
-                    GetVehicleInteriorColour(veh.Handle, ref trimColor);
-
-
-                    colors.Add("primary", primaryColor);
-                    colors.Add("primaryr", primaryColorRed);
-                    colors.Add("primaryg", primaryColorGreen);
-                    colors.Add("primaryb", primaryColorBlue);
-                    colors.Add("primaryf", primaryFinish);
-
-                    colors.Add("secondary", secondaryColor);
-                    colors.Add("secondaryr", secondaryColorRed);
-                    colors.Add("secondaryg", secondaryColorGreen);
-                    colors.Add("secondaryb", secondaryColorBlue);
-                    colors.Add("secondaryf", secondaryFinish);
-
-                    colors.Add("pearlescent", pearlescentColor);
-                    colors.Add("wheels", wheelColor);
-                    colors.Add("dash", dashColor);
-                    colors.Add("trim", trimColor);
-                    var neonR = 255;
-                    var neonG = 255;
-                    var neonB = 255;
-                    if (veh.Mods.HasNeonLights)
-                    {
-                        GetVehicleNeonLightsColour(veh.Handle, ref neonR, ref neonG, ref neonB);
-                    }
-                    colors.Add("neonR", neonR);
-                    colors.Add("neonG", neonG);
-                    colors.Add("neonB", neonB);
-                    var tyresmokeR = 0;
-                    var tyresmokeG = 0;
-                    var tyresmokeB = 0;
-                    GetVehicleTyreSmokeColor(veh.Handle, ref tyresmokeR, ref tyresmokeG, ref tyresmokeB);
-                    colors.Add("tyresmokeR", tyresmokeR);
-                    colors.Add("tyresmokeG", tyresmokeG);
-                    colors.Add("tyresmokeB", tyresmokeB);
-                    #endregion
-
-                    var extras = new Dictionary<int, bool>();
-                    for (var i = 0; i < 20; i++)
-                    {
-                        if (veh.ExtraExists(i))
-                        {
-                            extras.Add(i, veh.IsExtraOn(i));
-                        }
-                    }
-
-                    var vi = new VehicleInfo()
-                    {
-                        colors = colors,
-                        customWheels = GetVehicleModVariation(veh.Handle, 23),
-                        extras = extras,
-                        livery = GetVehicleLivery(veh.Handle),
-                        model = (uint)GetEntityModel(veh.Handle),
-                        mods = mods,
-                        name = GetLabelText(GetDisplayNameFromVehicleModel((uint)GetEntityModel(veh.Handle))),
-                        neonBack = veh.Mods.IsNeonLightsOn(VehicleNeonLight.Back),
-                        neonFront = veh.Mods.IsNeonLightsOn(VehicleNeonLight.Front),
-                        neonLeft = veh.Mods.IsNeonLightsOn(VehicleNeonLight.Left),
-                        neonRight = veh.Mods.IsNeonLightsOn(VehicleNeonLight.Right),
-                        plateText = veh.Mods.LicensePlate,
-                        plateStyle = (int)veh.Mods.LicensePlateStyle,
-                        turbo = IsToggleModOn(veh.Handle, 18),
-                        tyreSmoke = IsToggleModOn(veh.Handle, 20),
-                        version = 1,
-                        wheelType = GetVehicleWheelType(veh.Handle),
-                        windowTint = (int)veh.Mods.WindowTint,
-                        xenonHeadlights = IsToggleModOn(veh.Handle, 22),
-                        bulletProofTires = !veh.CanTiresBurst,
-                        headlightColor = VehicleCustomization.GetHeadlightsColorForVehicle(veh),
-                        enveffScale = GetVehicleEnveffScale(veh.Handle)
-                    };
-
-                    #endregion
-
-                    if (updateExistingSavedVehicleName == null)
-                    {
-                        // Ask the user for a save name (will be displayed to the user and will be used as unique identifier for this vehicle)
-                        var saveName = await GetUserInput(windowTitle: "Enter a save name", maxInputLength: 30);
-                        // If the name is not invalid.
-                        if (!string.IsNullOrEmpty(saveName))
-                        {
-                            // Save everything from the dictionary into the client's kvp storage.
-                            // If the save was successfull:
-                            if (StorageManager.SaveVehicleInfo("veh_" + saveName, vi, false))
-                            {
-                                Notify.Success($"Vehicle {saveName} saved.");
-                            }
-                            // If the save was not successfull:
-                            else
-                            {
-                                Notify.Error(CommonErrors.SaveNameAlreadyExists, placeholderValue: "(" + saveName + ")");
-                            }
-                        }
-                        // The user did not enter a valid name to use as a save name for this vehicle.
-                        else
-                        {
-                            Notify.Error(CommonErrors.InvalidSaveName);
-                        }
-                    }
-                    // We need to update an existing slot.
-                    else
-                    {
-                        StorageManager.SaveVehicleInfo("veh_" + updateExistingSavedVehicleName, vi, true);
-                    }
-
-                }
-                // The player is not inside a vehicle, or the vehicle is dead/not existing so we won't do anything. Only alert the user.
-                else
-                {
-                    Notify.Error(CommonErrors.NoVehicle, placeholderValue: "to save it");
-                }
+                Notify.Error(CommonErrors.NoVehicle, placeholderValue: "to save it");
+                return null;
             }
-            // The player is not inside a vehicle.
+
+            if (!veh.Exists() ||
+                veh.IsDead ||
+                !veh.IsDriveable)
+            {
+                Notify.Error("Your current vehicle cannot be saved.");
+                return null;
+            }
+
+            #region new saving method
+            var mods = new Dictionary<int, int>();
+
+            foreach (var mod in veh.Mods.GetAllMods())
+            {
+                mods.Add((int)mod.ModType, mod.Index);
+            }
+
+            #region colors
+            var colors = new Dictionary<string, int>();
+
+
+            var primaryColor = CUSTOM_PAINT;
+            var primaryColorRed = 0;
+            var primaryColorGreen = 0;
+            var primaryColorBlue = 0;
+            var primaryFinish = 0;
+
+            var secondaryColor = CUSTOM_PAINT;
+            var secondaryColorRed = 0;
+            var secondaryColorGreen = 0;
+            var secondaryColorBlue = 0;
+            var secondaryFinish = 0;
+
+            if (GetIsVehiclePrimaryColourCustom(veh.Handle))
+            {
+                GetVehicleCustomPrimaryColour(veh.Handle, ref primaryColorRed, ref primaryColorGreen, ref primaryColorBlue);
+                primaryFinish = GetVehicleCustomPrimaryPaintType(veh);
+            }
             else
             {
-                Notify.Error(CommonErrors.NoVehicle);
+                primaryColor = GetVehiclePrimaryColor(veh);
             }
 
-            // update the saved vehicles menu list to reflect the new saved car.
-            if (MainMenu.SavedVehiclesMenu != null)
+            if (GetIsVehicleSecondaryColourCustom(veh.Handle))
             {
-                MainMenu.SavedVehiclesMenu?.UpdateMenuAvailableCategories();
+                GetVehicleCustomSecondaryColour(veh.Handle, ref secondaryColorRed, ref secondaryColorGreen, ref secondaryColorBlue);
+                secondaryFinish = GetVehicleCustomSecondaryPaintType(veh);
+            }
+            else
+            {
+                secondaryColor = GetVehicleSecondaryColor(veh);
             }
 
+
+            var pearlescentColor = 0;
+            var wheelColor = 0;
+            var dashColor = 0;
+            var trimColor = 0;
+
+            GetVehicleExtraColours(veh.Handle, ref pearlescentColor, ref wheelColor);
+            GetVehicleDashboardColour(veh.Handle, ref dashColor);
+            GetVehicleInteriorColour(veh.Handle, ref trimColor);
+
+
+            colors.Add("primary", primaryColor);
+            colors.Add("primaryr", primaryColorRed);
+            colors.Add("primaryg", primaryColorGreen);
+            colors.Add("primaryb", primaryColorBlue);
+            colors.Add("primaryf", primaryFinish);
+
+            colors.Add("secondary", secondaryColor);
+            colors.Add("secondaryr", secondaryColorRed);
+            colors.Add("secondaryg", secondaryColorGreen);
+            colors.Add("secondaryb", secondaryColorBlue);
+            colors.Add("secondaryf", secondaryFinish);
+
+            colors.Add("pearlescent", pearlescentColor);
+            colors.Add("wheels", wheelColor);
+            colors.Add("dash", dashColor);
+            colors.Add("trim", trimColor);
+            var neonR = 255;
+            var neonG = 255;
+            var neonB = 255;
+            if (veh.Mods.HasNeonLights)
+            {
+                GetVehicleNeonLightsColour(veh.Handle, ref neonR, ref neonG, ref neonB);
+            }
+            colors.Add("neonR", neonR);
+            colors.Add("neonG", neonG);
+            colors.Add("neonB", neonB);
+            var tyresmokeR = 0;
+            var tyresmokeG = 0;
+            var tyresmokeB = 0;
+            GetVehicleTyreSmokeColor(veh.Handle, ref tyresmokeR, ref tyresmokeG, ref tyresmokeB);
+            colors.Add("tyresmokeR", tyresmokeR);
+            colors.Add("tyresmokeG", tyresmokeG);
+            colors.Add("tyresmokeB", tyresmokeB);
+            #endregion
+
+            var extras = new Dictionary<int, bool>();
+            for (var i = 0; i < 20; i++)
+            {
+                if (veh.ExtraExists(i))
+                {
+                    extras.Add(i, veh.IsExtraOn(i));
+                }
+            }
+
+            var vi = new VehicleInfo()
+            {
+                colors = colors,
+                customWheels = GetVehicleModVariation(veh.Handle, 23),
+                extras = extras,
+                livery = GetVehicleLivery(veh.Handle),
+                model = (uint)GetEntityModel(veh.Handle),
+                mods = mods,
+                name = GetLabelText(GetDisplayNameFromVehicleModel((uint)GetEntityModel(veh.Handle))),
+                neonBack = veh.Mods.IsNeonLightsOn(VehicleNeonLight.Back),
+                neonFront = veh.Mods.IsNeonLightsOn(VehicleNeonLight.Front),
+                neonLeft = veh.Mods.IsNeonLightsOn(VehicleNeonLight.Left),
+                neonRight = veh.Mods.IsNeonLightsOn(VehicleNeonLight.Right),
+                plateText = veh.Mods.LicensePlate,
+                plateStyle = (int)veh.Mods.LicensePlateStyle,
+                turbo = IsToggleModOn(veh.Handle, 18),
+                tyreSmoke = IsToggleModOn(veh.Handle, 20),
+                version = 1,
+                wheelType = GetVehicleWheelType(veh.Handle),
+                windowTint = (int)veh.Mods.WindowTint,
+                xenonHeadlights = IsToggleModOn(veh.Handle, 22),
+                bulletProofTires = !veh.CanTiresBurst,
+                headlightColor = VehicleCustomization.GetHeadlightsColorForVehicle(veh),
+                enveffScale = GetVehicleEnveffScale(veh.Handle)
+            };
+
+            #endregion
+
+            if (updateExistingSavedVehicleName == null)
+            {
+                // Ask the user for a save name (will be displayed to the user and will be used as unique identifier for this vehicle)
+                var saveName = await GetUserInput(windowTitle: "Enter a save name", maxInputLength: 30);
+                // If the name is not invalid.
+                if (string.IsNullOrEmpty(saveName))
+                {
+                    Notify.Error(CommonErrors.InvalidSaveName);
+                    return null;
+                }
+
+                // Save everything from the dictionary into the client's kvp storage.
+                // If the save was successfull:
+                if (StorageManager.SaveVehicleInfo("veh_" + saveName, vi, false))
+                {
+                    Notify.Success($"Vehicle {saveName} saved.");
+                    return saveName;
+                }
+                // If the save was not successfull:
+                else
+                {
+                    Notify.Error(CommonErrors.SaveNameAlreadyExists, placeholderValue: "(" + saveName + ")");
+                    return null;
+                }
+            }
+            // We need to update an existing slot.
+            else
+            {
+                return StorageManager.SaveVehicleInfo("veh_" + updateExistingSavedVehicleName, vi, true)
+                    ? updateExistingSavedVehicleName
+                    : null;
+            }
         }
         #endregion
 
