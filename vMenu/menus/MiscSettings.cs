@@ -399,21 +399,32 @@ namespace vMenuClient.menus
                         var printEntityInfo =
                             (StringBuilder sb, Entity e) => sb.AppendLine(PrintEntityInfo(e, printHandle, printHash, printCoords, printOwner));
 
+                        bool multipleCategories = ((props != null ? 1 : 0) + (peds != null ? 1 : 0) + (vehicles != null ? 1 : 0)) > 1;
+
                         if (props?.Count > 0)
                         {
-                            sbProps.AppendLine("====================\nPROPS\n====================");
+                            if (multipleCategories)
+                            {
+                                sbProps.AppendLine("====================\nPROPS\n====================");
+                            }
                             props.ForEach(e => printEntityInfo(sbProps, e));
                         }
 
                         if (peds?.Count > 0)
                         {
-                            sbPeds.AppendLine("====================\nPEDS\n====================");
+                            if (multipleCategories)
+                            {
+                                sbPeds.AppendLine("====================\nPEDS\n====================");
+                            }
                             peds.ForEach(e => printEntityInfo(sbPeds, e));
                         }
 
                         if (vehicles?.Count > 0)
                         {
-                            sbVehicles.AppendLine("====================\nVEHICLES\n====================");
+                            if (multipleCategories)
+                            {
+                                sbVehicles.AppendLine("====================\nVEHICLES\n====================");
+                            }
                             vehicles.ForEach(e => printEntityInfo(sbVehicles, e));
                         }
 
