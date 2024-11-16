@@ -1848,6 +1848,7 @@ namespace vMenuClient
         /// Restores player appearance after dying.
         /// </summary>
         /// <returns></returns>
+        private bool alertedNoDefaultCharacterSet = false;
         private async Task RestorePlayerAfterBeingDead()
         {
             if (!await MainMenu.CheckVMenuEnabled())
@@ -1862,9 +1863,10 @@ namespace vMenuClient
                     {
                         restoreDefault = true;
                     }
-                    else
+                    else if (!alertedNoDefaultCharacterSet)
                     {
-                        Notify.Error("You did not set a saved character to restore to. Do so in the ~g~Multiplayer Ped Customization~s~ > ~g~Saved Characters~s~ menu.");
+                        alertedNoDefaultCharacterSet = true;
+                        Notify.Alert("You did not set a default character and might have respawned as the wrong ped. Use the ~b~Set As Default Character~s~ button for one of your saved multiplayer peds under ~b~My Character > Multiplayer Ped Customization > Saved Characters~s~ to set a default character.");
                     }
                 }
                 if (!restoreDefault)
