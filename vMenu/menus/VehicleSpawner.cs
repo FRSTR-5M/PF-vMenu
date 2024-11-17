@@ -329,9 +329,15 @@ namespace vMenuClient.menus
 
             randomSportyVehiclesList = randomVehiclesList.Where(veh =>
             {
-                var vehClass = VehicleData.AllVehicles[veh].Class;
-                // 4-7 = Muscle, Sports Classics, Sports, Super
-                return vehClass >= 4 && vehClass <= 7;
+                var vi = VehicleData.AllVehicles[veh];
+
+                if (VehicleData.CustomVehicleClassesDict.TryGetValue("Sporty", out var _))
+                {
+                    return vi.CustomVehicleClasses.Contains("Sporty");
+                }
+
+                // 5-7 = Sports Classics, Sports, Super
+                return vi.Class >= 5 && vi.Class <= 7 && !vi.CustomVehicleClasses.Contains("Meme");
             }).ToList();
 
             // Create the menu.

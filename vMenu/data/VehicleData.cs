@@ -1026,5 +1026,18 @@ namespace vMenuClient.data
                 return customVehicleClasses;
             }
         }
+
+        private static Dictionary<string, CustomVehicleClass> customVehicleClassesDict = null;
+        public static Dictionary<string, CustomVehicleClass> CustomVehicleClassesDict
+        {
+            get
+            {
+                if (customVehicleClassesDict != null)
+                    return customVehicleClassesDict;
+
+                customVehicleClassesDict = CustomVehiclesClasses.ToDictionary(c => c.Name, c => c);
+                return customVehicleClassesDict;
+            }
+        }
     }
 }
