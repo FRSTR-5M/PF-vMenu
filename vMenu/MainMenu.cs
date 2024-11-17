@@ -981,7 +981,15 @@ namespace vMenuClient
                         "Overrides the previous teleport location with your current position. If you are in a vehicle, the vehicle's momentum will also be saved.").ToWrapped();
                     overridePrevBtn.Selected += (_s, _args) => TeleportOptionsMenu.OverridePrevLocation();
 
-                    tpSect.AddRange([tpToPrevBtn, overridePrevBtn]);
+                    var tpToWaypoint = new MenuItem(
+                        "Teleport To Waypoint",
+                        "Teleport to the waypoint on your map.").ToWrapped();
+                    overridePrevBtn.Selected += async (_s, _args) => await TeleportOptionsMenu.TeleportToWaypoint();
+
+                    qaMenu.BindSubmenu(TeleportOptionsMenu.PersonalTpLocationsMenu, out WMenuItem tpToPersonalBtn, "Teleport to your personal teleport locations");
+                    qaMenu.BindSubmenu(TeleportOptionsMenu.ServerTpLocationsMenu, out WMenuItem tpToServerBtn, "Teleport to pre-configured locations, added by the server owner.");
+
+                    tpSect.AddRange([tpToPrevBtn, overridePrevBtn, tpToWaypoint, tpToPersonalBtn, tpToServerBtn]);
                 }
 
 

@@ -41,7 +41,8 @@ namespace vMenuClient
 
         private PrevTpState? prevTpState;
 
-        private WMenu personalTpLocationsMenu;
+        public WMenu ServerTpLocationsMenu { get; private set; }
+        public WMenu PersonalTpLocationsMenu { get; private set; }
         private List<TeleportLocation> personalTpLocations = new List<TeleportLocation>();
 
         // keybind states
@@ -238,14 +239,14 @@ namespace vMenuClient
 
         public void AddPersonalTpLocationMenu(WMenu tpLocMenu, TeleportLocation tpLoc)
         {
-            personalTpLocationsMenu.AddSubmenu(tpLocMenu, $"Teleport to ~b~{tpLoc.name}~s~.");
-            personalTpLocationsMenu.Menu.SortMenuItems((a, b) => string.Compare(a.Text, b.Text));
+            PersonalTpLocationsMenu.AddSubmenu(tpLocMenu, $"Teleport to ~b~{tpLoc.name}~s~.");
+            PersonalTpLocationsMenu.Menu.SortMenuItems((a, b) => string.Compare(a.Text, b.Text));
         }
 
         public void RemovePersonalTpLocationMenu(WMenu tpLocMenu)
         {
             tpLocMenu.Menu.GoBack();
-            personalTpLocationsMenu.RemoveSubmenu(tpLocMenu);
+            PersonalTpLocationsMenu.RemoveSubmenu(tpLocMenu);
         }
 
         public string GetTpToString(TeleportLocation tpLoc)
@@ -403,18 +404,18 @@ namespace vMenuClient
 
             if (IsAllowed(Permission.TPTeleportPersonalLocations))
             {
-                personalTpLocationsMenu = new WMenu(MenuTitle, "Personal Teleport Locations");
-                personalTpLocationsMenu.Opened += (_s, _args) =>
+                PersonalTpLocationsMenu = new WMenu(MenuTitle, "Personal Teleport Locations");
+                PersonalTpLocationsMenu.Opened += (_s, _args) =>
                 {
-                    if (personalTpLocationsMenu.Menu.GetMenuItems().Count != 0)
+                    if (PersonalTpLocationsMenu.Menu.GetMenuItems().Count != 0)
                         return;
 
                     Notify.Info("You currently do not have any personal teleport locations. Use ~b~Save Personal Teleport Location~s~ to add one.");
-                    personalTpLocationsMenu.Menu.GoBack();
+                    PersonalTpLocationsMenu.Menu.GoBack();
                 };
 
                 WMenuItem button;
-                menu.BindSubmenu(personalTpLocationsMenu, out button, "Teleport to your personal teleport locations.", true);
+                menu.BindSubmenu(PersonalTpLocationsMenu, out button, "Teleport to your personal teleport locations.", true);
 
                 tpItems.Add(button);
 
@@ -423,10 +424,10 @@ namespace vMenuClient
 
             if (IsAllowed(Permission.TPTeleportLocations))
             {
-                var teleportMenu = CreateServerTeleportLoactionsMenu();
+                ServerTpLocationsMenu = CreateServerTeleportLoactionsMenu();
 
                 WMenuItem button;
-                menu.BindSubmenu(teleportMenu, out button, "Teleport to pre-configured locations, added by the server owner.");
+                menu.BindSubmenu(ServerTpLocationsMenu, out button, "Teleport to pre-configured locations, added by the server owner.");
 
                 tpItems.Add(button);
             }
