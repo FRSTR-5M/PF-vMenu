@@ -148,6 +148,8 @@ namespace vMenuClient
 
             public WMenuItem(MenuItem menuItem)
             {
+                if (menuItem == null)
+                    throw new ArgumentNullException(nameof(menuItem));
                 MenuItem = menuItem;
             }
 
@@ -524,7 +526,7 @@ namespace vMenuClient
             {
                 MenuItem nonWrapperButton;
                 BindSubmenu(submenu, out nonWrapperButton, description, addEmpty);
-                button = nonWrapperButton.ToWrapped();
+                button = nonWrapperButton?.ToWrapped();
                 return this;
             }
 
