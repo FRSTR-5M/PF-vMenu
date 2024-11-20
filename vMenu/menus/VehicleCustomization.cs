@@ -1486,6 +1486,9 @@ namespace vMenuClient.menus
 
                     // Get the proper localized mod type (suspension, armor, etc) name.
                     var typeName = mod.LocalizedModTypeName;
+                    if (typeName == null)
+                        continue;
+
                     if (typeName == "Front Wheel" && !veh.Model.IsBike)
                     {
                         typeName = "Wheel";
