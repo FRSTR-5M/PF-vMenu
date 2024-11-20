@@ -75,6 +75,7 @@ namespace vMenuClient
             {
                 _vMenuEnabled = value;
                 MenuController.EnableMenuToggleKeyOnController = value;
+                DontOpenMenus = !value;
                 if (!value)
                 {
                     MenuController.CloseAllMenus();
