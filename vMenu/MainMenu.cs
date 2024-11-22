@@ -985,7 +985,7 @@ namespace vMenuClient
                     var tpToWaypoint = new MenuItem(
                         "Teleport To Waypoint",
                         "Teleport to the waypoint on your map.").ToWrapped();
-                    overridePrevBtn.Selected += async (_s, _args) => await TeleportOptionsMenu.TeleportToWaypoint();
+                    tpToWaypoint.Selected += async (_s, _args) => await TeleportOptionsMenu.TeleportToWaypoint();
 
                     qaMenu.BindSubmenu(TeleportOptionsMenu.PersonalTpLocationsMenu, out WMenuItem tpToPersonalBtn, "Teleport to your personal teleport locations");
                     qaMenu.BindSubmenu(TeleportOptionsMenu.ServerTpLocationsMenu, out WMenuItem tpToServerBtn, "Teleport to pre-configured locations, added by the server owner.");
