@@ -196,20 +196,20 @@ namespace vMenuClient.menus
 
             /*
 
-            0               Blemishes             0 - 23,   255  
-            1               Facial Hair           0 - 28,   255  
-            2               Eyebrows              0 - 33,   255  
-            3               Ageing                0 - 14,   255  
-            4               Makeup                0 - 74,   255  
-            5               Blush                 0 - 6,    255  
-            6               Complexion            0 - 11,   255  
-            7               Sun Damage            0 - 10,   255  
-            8               Lipstick              0 - 9,    255  
-            9               Moles/Freckles        0 - 17,   255  
-            10              Chest Hair            0 - 16,   255  
-            11              Body Blemishes        0 - 11,   255  
-            12              Add Body Blemishes    0 - 1,    255  
-            
+            0               Blemishes             0 - 23,   255
+            1               Facial Hair           0 - 28,   255
+            2               Eyebrows              0 - 33,   255
+            3               Ageing                0 - 14,   255
+            4               Makeup                0 - 74,   255
+            5               Blush                 0 - 6,    255
+            6               Complexion            0 - 11,   255
+            7               Sun Damage            0 - 10,   255
+            8               Lipstick              0 - 9,    255
+            9               Moles/Freckles        0 - 17,   255
+            10              Chest Hair            0 - 16,   255
+            11              Body Blemishes        0 - 11,   255
+            12              Add Body Blemishes    0 - 1,    255
+
             */
 
 
@@ -1368,26 +1368,26 @@ namespace vMenuClient.menus
 
             #region face shape data
             /*
-            Nose_Width  
-            Nose_Peak_Hight  
-            Nose_Peak_Lenght  
-            Nose_Bone_High  
-            Nose_Peak_Lowering  
-            Nose_Bone_Twist  
-            EyeBrown_High  
-            EyeBrown_Forward  
-            Cheeks_Bone_High  
-            Cheeks_Bone_Width  
-            Cheeks_Width  
-            Eyes_Openning  
-            Lips_Thickness  
-            Jaw_Bone_Width 'Bone size to sides  
-            Jaw_Bone_Back_Lenght 'Bone size to back  
-            Chimp_Bone_Lowering 'Go Down  
-            Chimp_Bone_Lenght 'Go forward  
-            Chimp_Bone_Width  
-            Chimp_Hole  
-            Neck_Thikness  
+            Nose_Width
+            Nose_Peak_Hight
+            Nose_Peak_Lenght
+            Nose_Bone_High
+            Nose_Peak_Lowering
+            Nose_Bone_Twist
+            EyeBrown_High
+            EyeBrown_Forward
+            Cheeks_Bone_High
+            Cheeks_Bone_Width
+            Cheeks_Width
+            Eyes_Openning
+            Lips_Thickness
+            Jaw_Bone_Width 'Bone size to sides
+            Jaw_Bone_Back_Lenght 'Bone size to back
+            Chimp_Bone_Lowering 'Go Down
+            Chimp_Bone_Lenght 'Go forward
+            Chimp_Bone_Width
+            Chimp_Hole
+            Neck_Thikness
             */
 
             var faceFeaturesValuesList = new List<float>()
@@ -1978,10 +1978,10 @@ namespace vMenuClient.menus
                 SetPedHeadOverlayColor(Game.PlayerPed.Handle, 8, 2, appData.lipstickColor, appData.lipstickColor);
                 // moles and freckles
                 SetPedHeadOverlay(Game.PlayerPed.Handle, 9, appData.molesFrecklesStyle, appData.molesFrecklesOpacity);
-                // chest hair 
+                // chest hair
                 SetPedHeadOverlay(Game.PlayerPed.Handle, 10, appData.chestHairStyle, appData.chestHairOpacity);
                 SetPedHeadOverlayColor(Game.PlayerPed.Handle, 10, 1, appData.chestHairColor, appData.chestHairColor);
-                // body blemishes 
+                // body blemishes
                 SetPedHeadOverlay(Game.PlayerPed.Handle, 11, appData.bodyBlemishesStyle, appData.bodyBlemishesOpacity);
                 // eyecolor
                 SetPedEyeColor(Game.PlayerPed.Handle, appData.eyeColor);
@@ -2128,7 +2128,7 @@ namespace vMenuClient.menus
                     }
                     else
                     {
-                        if (!string.IsNullOrEmpty(GetResourceKvpString("mp_ped_" + name)))
+                        if (!string.IsNullOrEmpty(KeyValueStore.GetString("mp_ped_" + name)))
                         {
                             Notify.Error(CommonErrors.SaveNameAlreadyExists);
                         }
@@ -2157,7 +2157,7 @@ namespace vMenuClient.menus
                     }
                     else
                     {
-                        if (!string.IsNullOrEmpty(GetResourceKvpString("mp_ped_" + name)))
+                        if (!string.IsNullOrEmpty(KeyValueStore.GetString("mp_ped_" + name)))
                         {
                             Notify.Error(CommonErrors.SaveNameAlreadyExists);
                         }
@@ -2187,7 +2187,7 @@ namespace vMenuClient.menus
                     if (delPed.Label == "Are you sure?")
                     {
                         delPed.Label = "";
-                        DeleteResourceKvp("mp_ped_" + selectedSavedCharacterManageName);
+                        KeyValueStore.Remove("mp_ped_" + selectedSavedCharacterManageName);
                         Notify.Success("Your saved character has been deleted.");
                         manageSavedCharacterMenu.GoBack();
                         UpdateSavedPedsMenu();
@@ -2201,7 +2201,7 @@ namespace vMenuClient.menus
                 else if (item == setAsDefaultPed)
                 {
                     Notify.Success($"Your character <C>{selectedSavedCharacterManageName}</C> will now be used as your default character whenever you (re)spawn.");
-                    SetResourceKvp("vmenu_default_character", "mp_ped_" + selectedSavedCharacterManageName);
+                    KeyValueStore.Set("vmenu_default_character", "mp_ped_" + selectedSavedCharacterManageName);
                 }
 
                 if (item != delPed)
@@ -2233,23 +2233,10 @@ namespace vMenuClient.menus
         /// </summary>
         private void UpdateSavedPedsMenu()
         {
-            var defaultChar = GetResourceKvpString("vmenu_default_character") ?? "";
+            var defaultChar = KeyValueStore.GetString("vmenu_default_character") ?? "";
 
-            var names = new List<string>();
-            var handle = StartFindKvp("mp_ped_");
-            while (true)
-            {
-                var foundName = FindKvp(handle);
-                if (string.IsNullOrEmpty(foundName))
-                {
-                    break;
-                }
-                else
-                {
-                    names.Add(foundName.Substring(7));
-                }
-            }
-            EndFindKvp(handle);
+            var names = KeyValueStore.GetAllWithPrefix("mp_ped_").Select(kv => kv.Key.Substring(7)).ToList();
+
             savedCharactersMenu.ClearMenuItems();
             if (names.Count > 0)
             {

@@ -1859,7 +1859,7 @@ namespace vMenuClient
                 var restoreDefault = false;
                 if (MainMenu.MiscSettingsMenu.MiscRespawnDefaultCharacter)
                 {
-                    if (!string.IsNullOrEmpty(GetResourceKvpString("vmenu_default_character")))
+                    if (!string.IsNullOrEmpty(KeyValueStore.GetString("vmenu_default_character")))
                     {
                         restoreDefault = true;
                     }
@@ -1882,7 +1882,7 @@ namespace vMenuClient
                     //await SaveWeaponLoadout();
                     if (SaveWeaponLoadout("vmenu_temp_weapons_loadout_before_respawn"))
                     {
-                        Log($"weapons saved {GetResourceKvpString("vmenu_temp_weapons_loadout_before_respawn")}");
+                        Log($"weapons saved {KeyValueStore.GetString("vmenu_temp_weapons_loadout_before_respawn")}");
                     }
                     else
                     {
@@ -1897,7 +1897,7 @@ namespace vMenuClient
 
                 if (restoreDefault)
                 {
-                    await MainMenu.MpPedCustomizationMenu.SpawnThisCharacter(GetResourceKvpString("vmenu_default_character"), false);
+                    await MainMenu.MpPedCustomizationMenu.SpawnThisCharacter(KeyValueStore.GetString("vmenu_default_character"), false);
                 }
                 else
                 {
@@ -1911,7 +1911,7 @@ namespace vMenuClient
                 {
                     await SpawnWeaponLoadoutAsync("vmenu_temp_weapons_loadout_before_respawn", true, false, false);
                     Log("weapons restored, deleting kvp");
-                    DeleteResourceKvp("vmenu_temp_weapons_loadout_before_respawn");
+                    KeyValueStore.Remove("vmenu_temp_weapons_loadout_before_respawn");
                 }
             }
         }
@@ -3600,7 +3600,7 @@ namespace vMenuClient
                     {
                         if (Game.IsWaypointActive)
                         {
-                            TeleportToWp();
+                            await TeleportToWp();
                             Notify.Success("Teleported to waypoint.");
                         }
                         else

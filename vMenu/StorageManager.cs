@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 using CitizenFX.Core;
 
@@ -17,13 +18,13 @@ namespace vMenuClient
         /// </summary>
         /// <param name="saveName">Name (including prefix) to save.</param>
         /// <param name="data">Data (dictionary) to save.</param>
-        /// <param name="overrideExistingData">When true, will override existing save data with the same name. 
+        /// <param name="overrideExistingData">When true, will override existing save data with the same name.
         /// If false, it will cancel the save if existing data is found and return false.</param>
         /// <returns>A boolean value indicating if the save was successful.</returns>
         public static bool SaveDictionary(string saveName, Dictionary<string, string> data, bool overrideExistingData)
         {
             // If the savename doesn't exist yet or we're allowed to override it.
-            if (GetResourceKvpString(saveName) == null || overrideExistingData)
+            if (KeyValueStore.GetString(saveName) == null || overrideExistingData)
             {
                 // Get the json string from the dictionary.
                 //string jsonString = CommonFunctions.DictionaryToJson(data);
@@ -31,10 +32,10 @@ namespace vMenuClient
                 Log($"Saving: [name: {saveName}, json:{jsonString}]");
 
                 // Save the kvp.
-                SetResourceKvp(saveName, jsonString);
+                KeyValueStore.Set(saveName, jsonString);
 
                 // Return true if the kvp was set successfully, false if it wasn't set successfully.
-                return GetResourceKvpString(saveName) == jsonString;
+                return KeyValueStore.GetString(saveName) == jsonString;
             }
             // If the data already exists and we are not allowed to override it.
             else
@@ -49,19 +50,9 @@ namespace vMenuClient
         /// <returns></returns>
         public static Dictionary<string, PedInfo> GetSavedPeds()
         {
-            var savedPeds = new Dictionary<string, PedInfo>();
-
-            var handle = StartFindKvp("ped_");
-            while (true)
-            {
-                var kvp = FindKvp(handle);
-                if (string.IsNullOrEmpty(kvp))
-                {
-                    break;
-                }
-                savedPeds.Add(kvp, JsonConvert.DeserializeObject<PedInfo>(GetResourceKvpString(kvp)));
-            }
-            return savedPeds;
+            return KeyValueStore
+                .GetAllWithPrefix("ped_")
+                .ToDictionary(kv => kv.Key, kv => JsonConvert.DeserializeObject<PedInfo>(kv.Value));
         }
 
         /// <summary>
@@ -71,7 +62,7 @@ namespace vMenuClient
         /// <returns></returns>
         public static PedInfo GetSavedPedInfo(string name)
         {
-            return JsonToPedInfo(GetResourceKvpString(name));
+            return JsonToPedInfo(KeyValueStore.GetString(name));
         }
 
         /// <summary>
@@ -83,10 +74,10 @@ namespace vMenuClient
         /// <returns></returns>
         public static bool SavePedInfo(string saveName, PedInfo pedData, bool overrideExisting)
         {
-            if (overrideExisting || string.IsNullOrEmpty(GetResourceKvpString(saveName)))
+            if (overrideExisting || string.IsNullOrEmpty(KeyValueStore.GetString(saveName)))
             {
-                SetResourceKvp(saveName, JsonConvert.SerializeObject(pedData));
-                return GetResourceKvpString(saveName) == JsonConvert.SerializeObject(pedData);
+                KeyValueStore.Set(saveName, JsonConvert.SerializeObject(pedData));
+                return KeyValueStore.GetString(saveName) == JsonConvert.SerializeObject(pedData);
             }
             return false;
 
@@ -94,21 +85,7 @@ namespace vMenuClient
 
         public static List<MpPedDataManager.MultiplayerPedData> GetSavedMpPeds()
         {
-            var peds = new List<MpPedDataManager.MultiplayerPedData>();
-            var handle = StartFindKvp("mp_ped_");
-            while (true)
-            {
-                var foundName = FindKvp(handle);
-                if (string.IsNullOrEmpty(foundName))
-                {
-                    break;
-                }
-                else
-                {
-                    peds.Add(GetSavedMpCharacterData(foundName));
-                }
-            }
-            EndFindKvp(handle);
+            var peds = KeyValueStore.GetAllWithPrefix("mp_ped_").Select(kv => GetSavedMpCharacterData(kv.Key)).ToList();
             peds.Sort((a, b) => a.SaveName.ToLower().CompareTo(b.SaveName.ToLower()));
             return peds;
         }
@@ -119,7 +96,7 @@ namespace vMenuClient
         /// <param name="saveName">The full name of the item to remove.</param>
         public static void DeleteSavedStorageItem(string saveName)
         {
-            DeleteResourceKvp(saveName);
+            KeyValueStore.Remove(saveName);
         }
 
         /// <summary>
@@ -131,7 +108,7 @@ namespace vMenuClient
         /// <returns></returns>
         public static bool SaveVehicleInfo(string saveName, VehicleInfo vehicleInfo, bool overrideOldVersion)
         {
-            if (string.IsNullOrEmpty(GetResourceKvpString(saveName)) || overrideOldVersion)
+            if (string.IsNullOrEmpty(KeyValueStore.GetString(saveName)) || overrideOldVersion)
             {
                 if (!string.IsNullOrEmpty(saveName) && saveName.Length > 4)
                 {
@@ -142,10 +119,10 @@ namespace vMenuClient
                     Log($"[vMenu] Saving!\nName: {saveName}\nVehicle Data: {json}\n");
 
                     // save
-                    SetResourceKvp(saveName, json);
+                    KeyValueStore.Set(saveName, json);
 
                     // confirm
-                    return GetResourceKvpString(saveName) == json;
+                    return KeyValueStore.GetString(saveName) == json;
                 }
             }
             // if something isn't right, then the save is aborted and return false ("failed" state).
@@ -159,7 +136,7 @@ namespace vMenuClient
         /// <returns></returns>
         public static VehicleInfo GetSavedVehicleInfo(string saveName)
         {
-            var json = GetResourceKvpString(saveName);
+            var json = KeyValueStore.GetString(saveName);
             return JsonConvert.DeserializeObject<VehicleInfo>(json);
             //var vi = new VehicleInfo() { };
             //dynamic data = JsonConvert.DeserializeObject(json);
@@ -282,7 +259,7 @@ namespace vMenuClient
         {
             if (!string.IsNullOrEmpty(saveName) && !string.IsNullOrEmpty(jsonData))
             {
-                var existingData = GetResourceKvpString(saveName); // check for existing data.
+                var existingData = KeyValueStore.GetString(saveName); // check for existing data.
 
                 if (!string.IsNullOrEmpty(existingData)) // data already exists for this save name.
                 {
@@ -293,10 +270,10 @@ namespace vMenuClient
                 }
 
                 // write data.
-                SetResourceKvp(saveName, jsonData);
+                KeyValueStore.Set(saveName, jsonData);
 
                 // return true if the data is successfully written, otherwise return false.
-                return (GetResourceKvpString(saveName) ?? "") == jsonData;
+                return (KeyValueStore.GetString(saveName) ?? "") == jsonData;
             }
             return false; // input parameters are invalid.
         }
@@ -311,7 +288,7 @@ namespace vMenuClient
             if (!string.IsNullOrEmpty(saveName))
             {
                 //Debug.WriteLine("not null");
-                var data = GetResourceKvpString(saveName);
+                var data = KeyValueStore.GetString(saveName);
                 //Debug.Write(data + "\n");
                 if (!string.IsNullOrEmpty(data))
                 {
@@ -333,7 +310,7 @@ namespace vMenuClient
             {
                 return output;
             }
-            var jsonString = GetResourceKvpString(name.StartsWith("mp_ped_") ? name : "mp_ped_" + name);
+            var jsonString = KeyValueStore.GetString(name.StartsWith("mp_ped_") ? name : "mp_ped_" + name);
             if (string.IsNullOrEmpty(jsonString))
             {
                 return output;

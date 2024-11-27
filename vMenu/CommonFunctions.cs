@@ -1905,7 +1905,7 @@ namespace vMenuClient
 
                 // If the vehicle as the requirement to do this.
                 var StrAdvancedFlags = GetVehicleHandlingInt( veh.Handle, "CCarHandlingData", "strAdvancedFlags" );
-                if (StrAdvancedFlags == 0) 
+                if (StrAdvancedFlags == 0)
                 {
                     Notify.Error("This vehicle doesn't have the requirement to do this.", true, false);
                     return;
@@ -1930,38 +1930,17 @@ namespace vMenuClient
         public static Dictionary<string, VehicleInfo> GetSavedVehicles()
         {
             // Create a list to store all saved vehicle names in.
-            var savedVehicleNames = new List<string>();
-            // Start looking for kvps starting with veh_
-            var findHandle = StartFindKvp("veh_");
-            // Keep looking...
-            while (true)
-            {
-                // Get the kvp string key.
-                var vehString = FindKvp(findHandle);
-
-                // If it exists then the key to the list.
-                if (vehString is not "" and not null and not "NULL")
-                {
-                    //Debug.WriteLine(vehString);
-                    savedVehicleNames.Add(vehString);
-                }
-                // Otherwise stop.
-                else
-                {
-                    EndFindKvp(findHandle);
-                    break;
-                }
-            }
+            var savedVehicleNames = KeyValueStore.GetAllWithPrefix("veh_").Keys.ToList();
 
             // Create a Dictionary to store all vehicle information in.
             //var vehiclesList = new Dictionary<string, Dictionary<string, string>>();
             var vehiclesList = new Dictionary<string, VehicleInfo>();
-            // Loop through all save names (keys) from the list above, convert the string into a dictionary 
+            // Loop through all save names (keys) from the list above, convert the string into a dictionary
             // and add it to the dictionary above, with the vehicle save name as the key.
             foreach (var saveName in savedVehicleNames)
             {
             string jsonData = LoadResourceFile(GetCurrentResourceName(), "config/addons.json") ?? "{}";
-            var addons = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(jsonData); 
+            var addons = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(jsonData);
             var vehicleblacklist = new List<string>();
             foreach (string addon in addons["vehicleblacklist"])
             {
@@ -1972,9 +1951,9 @@ namespace vMenuClient
                     {
 
                         vehiclesList.Add(saveName, StorageManager.GetSavedVehicleInfo(saveName));
-                        
+
                     }
-                }                                
+                }
             // Return the vehicle dictionary containing all vehicle save names (keys) linked to the correct vehicle
             // including all vehicle mods/customization parts.
             return vehiclesList;
@@ -2189,7 +2168,7 @@ namespace vMenuClient
                 ClearPedTasks(Game.PlayerPed.Handle);
 
                 var canPlay = true;
-                // Check if the player CAN play a scenario... 
+                // Check if the player CAN play a scenario...
                 if (IsPedRunning(Game.PlayerPed.Handle))
                 {
                     Notify.Alert("You can't start a scenario when you are running.", true, false);
@@ -2641,7 +2620,7 @@ namespace vMenuClient
                 var pi = StorageManager.GetSavedPedInfo(savedName);
                 Log(JsonConvert.SerializeObject(pi));
                 await SetPlayerSkin(pi.model, pi, restoreWeapons);
-                DeleteResourceKvp("vMenu_tmp_saved_ped");
+                KeyValueStore.Remove("vMenu_tmp_saved_ped");
             }
 
         }
@@ -2652,7 +2631,7 @@ namespace vMenuClient
         /// <returns></returns>
         public static bool IsTempPedSaved()
         {
-            if (!string.IsNullOrEmpty(GetResourceKvpString("vMenu_tmp_saved_ped")))
+            if (!string.IsNullOrEmpty(KeyValueStore.GetString("vMenu_tmp_saved_ped")))
             {
                 return true;
             }
@@ -2922,11 +2901,11 @@ namespace vMenuClient
         {
             if (saveName == "vmenu_temp_weapons_loadout_before_respawn")
             {
-                return JsonConvert.DeserializeObject<List<ValidWeapon>>(GetResourceKvpString("vmenu_temp_weapons_loadout_before_respawn") ?? "{}");
+                return JsonConvert.DeserializeObject<List<ValidWeapon>>(KeyValueStore.GetString("vmenu_temp_weapons_loadout_before_respawn") ?? "{}");
             }
             else
             {
-                var kvp = GetResourceKvpString(saveName.StartsWith("vmenu_string_saved_weapon_loadout_") ? saveName : "vmenu_string_saved_weapon_loadout_" + saveName);
+                var kvp = KeyValueStore.GetString(saveName.StartsWith("vmenu_string_saved_weapon_loadout_") ? saveName : "vmenu_string_saved_weapon_loadout_" + saveName);
                 if (string.IsNullOrEmpty(kvp))
                 {
                     return new List<ValidWeapon>();
@@ -2947,14 +2926,14 @@ namespace vMenuClient
 
             if (!ignoreSettingsAndPerms && saveName == "vmenu_temp_weapons_loadout_before_respawn")
             {
-                var name = GetResourceKvpString("vmenu_string_default_loadout") ?? saveName;
+                var name = KeyValueStore.GetString("vmenu_string_default_loadout") ?? saveName;
 
-                var kvp = GetResourceKvpString(name) ?? GetResourceKvpString("vmenu_temp_weapons_loadout_before_respawn");
+                var kvp = KeyValueStore.GetString(name) ?? GetResourceKvpString("vmenu_temp_weapons_loadout_before_respawn");
 
                 // if not allowed to use loadouts, fall back to normal restoring of weapons.
                 if (MainMenu.WeaponLoadoutsMenu == null || !MainMenu.WeaponLoadoutsMenu.WeaponLoadoutsSetLoadoutOnRespawn || !IsAllowed(Permission.WLEquipOnRespawn))
                 {
-                    kvp = GetResourceKvpString("vmenu_temp_weapons_loadout_before_respawn");
+                    kvp = KeyValueStore.GetString("vmenu_temp_weapons_loadout_before_respawn");
 
                     if (!MainMenu.MiscSettingsMenu.RestorePlayerWeapons || !IsAllowed(Permission.MSRestoreWeapons))
                     {
@@ -3115,10 +3094,10 @@ namespace vMenuClient
             var json = JsonConvert.SerializeObject(pedWeapons);
 
             // Save it.
-            SetResourceKvp(saveName, json);
+            KeyValueStore.Set(saveName, json);
 
             // If the saved value is the same as the string we just provided, then the save was successful.
-            if ((GetResourceKvpString(saveName) ?? "{}") == json)
+            if ((KeyValueStore.GetString(saveName) ?? "{}") == json)
             {
                 Log("weapons save good.");
                 return true;

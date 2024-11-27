@@ -23,7 +23,7 @@ namespace Freecam2
         }
 
         bool freecamNotAllowedNotified = false;
-        private async void ResourceStart(string Name)
+        private void ResourceStart(string Name)
         {
             if (!(GetSettingsString(Setting.vmenu_freecam_toggle_key) == null))
             {

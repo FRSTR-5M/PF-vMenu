@@ -22,7 +22,6 @@ namespace vMenuClient.menus
     {
         // Variables
         private Menu menu;
-        private Menu teleportOptionsMenu;
 
         private Menu developerToolsMenu;
         private Menu entityOutlinesMenu;
@@ -172,7 +171,12 @@ namespace vMenuClient.menus
             {
                 languageList.Add(LanguageManager.Languages.Keys.ToArray()[i]);
             }
-            var saveSettings = new MenuItem("~b~~h~Save Personal Settings~h~~s~", "Save your current settings. ~y~All saving is done on the client side; if you delete FiveM you will lose your settings.~s~ Settings are shared across all servers using vMenu.")
+            var saveInfoWarning = GetSettingsBool(Setting.vmenu_server_store)
+                ? ""
+                : " ~y~All saving is done on the client side; if you delete FiveM you will lose your settings.~s~";
+            var saveSettings = new MenuItem(
+                "~b~~h~Save Personal Settings~h~~s~",
+                $"Save your current settings. Settings are shared across all servers using vMenu.{saveInfoWarning}")
             {
                 RightIcon = MenuItem.Icon.TICK
             };

@@ -77,18 +77,9 @@ namespace vMenuServer
             if (bansHaveChanged)
             {
                 bansHaveChanged = false;
-                int handle = StartFindKvp(BAN_KVP_PREFIX);
-                List<string> kvpIds = new List<string>();
-                while (true)
-                {
-                    string id = FindKvp(handle);
-                    if (string.IsNullOrEmpty(id)) break;
-                    kvpIds.Add(id);
-                }
-                EndFindKvp(handle);
+                var kvpIds = KeyValueStore.GetAllWithPrefix(BAN_KVP_PREFIX).Keys.ToList();
 
                 List<BanRecord> banRecords = new List<BanRecord>();
-
                 foreach (string kvpId in kvpIds)
                 {
                     banRecords.Add(JsonConvert.DeserializeObject<BanRecord>(GetResourceKvpString(kvpId)));
@@ -103,14 +94,14 @@ namespace vMenuServer
         }
 
         /// <summary>
-        /// Checks if the player is banned and if so how long the ban will remain active. 
+        /// Checks if the player is banned and if so how long the ban will remain active.
         /// If the ban expired in the past, then the ban will be removed and the player will be allowed to join again.
         /// If the ban is not expired yet, then the player will be kicked with a message  displaying how long their ban will remain active.
         /// </summary>
         /// <param name="source"></param>
         /// <param name="playerName"></param>
         /// <param name="kickCallback"></param>
-        private void CheckForBans([FromSource] Player source, string playerName, CallbackDelegate kickCallback)
+        private async void CheckForBans([FromSource] Player source, string playerName, CallbackDelegate kickCallback)
         {
             // Take care of expired bans.
             var oldBans = GetBanList().Where(banRecord =>
@@ -118,10 +109,10 @@ namespace vMenuServer
                 return banRecord.bannedUntil.Subtract(DateTime.Now).TotalSeconds <= 0;
             }).ToList();
 
-            oldBans.ForEach(br =>
+            foreach (var br in oldBans)
             {
-                RemoveBan(br);
-            });
+                await RemoveBan(br);
+            }
 
             // Now look for active bans.
             var records = GetBanList().Where((banRecord) =>
@@ -164,9 +155,14 @@ namespace vMenuServer
         /// <param name="source">The player who triggered the event.</param>
         /// <param name="targetPlayer">The player that needs to be banned.</param>
         /// <param name="banReason">The reason why the player is getting banned.</param>
-        private void BanPlayer([FromSource] Player source, int targetPlayer, string banReason)
+        private async void BanPlayer([FromSource] Player source, int targetPlayer, string banReason)
         {
-            BanPlayer(source, targetPlayer, -1.0, banReason);
+            await BanPlayerAsync(source, targetPlayer, -1.0, banReason);
+        }
+
+        private async void BanPlayer([FromSource] Player source, int targetPlayer, double banDurationHours, string banReason)
+        {
+            await BanPlayerAsync(source, targetPlayer, banDurationHours, banReason);
         }
 
         /// <summary>
@@ -176,7 +172,7 @@ namespace vMenuServer
         /// <param name="targetPlayer">Player who needs to be banned.</param>
         /// <param name="banDurationHours">Ban duration in hours.</param>
         /// <param name="banReason">Reason for the ban.</param>
-        private void BanPlayer([FromSource] Player source, int targetPlayer, double banDurationHours, string banReason)
+        private async Task BanPlayerAsync([FromSource] Player source, int targetPlayer, double banDurationHours, string banReason)
         {
             if (IsPlayerAceAllowed(source.Handle, "vMenu.OnlinePlayers.TempBan") || IsPlayerAceAllowed(source.Handle, "vMenu.Everything") || IsPlayerAceAllowed(source.Handle, "vMenu.OnlinePlayers.All"))
             {
@@ -201,7 +197,7 @@ namespace vMenuServer
                             Guid.NewGuid()
                         );
 
-                        AddBan(ban);
+                        await AddBan(ban);
                         Log("Ban record created.", LogLevel.info);
                         BanLog($"A new ban record has been added. Player: '{ban.playerName}' was banned by " +
                             $"'{ban.bannedBy}' for '{ban.banReason}' until '{ban.bannedUntil}'.");
@@ -226,7 +222,7 @@ namespace vMenuServer
             else
             {
                 Log("If enabled, the source player will be banned now because they are cheating!", LogLevel.warning);
-                BanCheater(source);
+                await BanCheater(source);
             }
         }
 
@@ -262,12 +258,12 @@ namespace vMenuServer
         /// </summary>
         /// <param name="ban"></param>
         /// <returns></returns>
-        internal static void AddBan(BanRecord ban)
+        internal async static Task AddBan(BanRecord ban)
         {
             string existingRecord = GetResourceKvpString(BAN_KVP_PREFIX + ban.uuid.ToString());
             if (string.IsNullOrEmpty(existingRecord))
             {
-                SetResourceKvp(BAN_KVP_PREFIX + ban.uuid.ToString(), JsonConvert.SerializeObject(ban));
+                await KeyValueStore.Set(BAN_KVP_PREFIX + ban.uuid.ToString(), JsonConvert.SerializeObject(ban));
                 bansHaveChanged = true;
             }
             else
@@ -281,9 +277,9 @@ namespace vMenuServer
         /// </summary>
         /// <param name="record"></param>
         /// <returns></returns>
-        public static void RemoveBan(BanRecord record)
+        public static async Task RemoveBan(BanRecord record)
         {
-            DeleteResourceKvp(BAN_KVP_PREFIX + record.uuid.ToString());
+            await KeyValueStore.Remove(BAN_KVP_PREFIX + record.uuid.ToString());
             bansHaveChanged = true;
         }
 
@@ -292,7 +288,7 @@ namespace vMenuServer
         /// </summary>
         /// <param name="source"></param>
         /// <param name="banRecordJsonString"></param>
-        private void RemoveBanRecord([FromSource] Player source, string uuid)
+        private async void RemoveBanRecord([FromSource] Player source, string uuid)
         {
             if (source != null && !string.IsNullOrEmpty(source.Name) && source.Name.ToLower() != "**invalid**" && source.Name.ToLower() != "** invalid **")
             {
@@ -304,7 +300,7 @@ namespace vMenuServer
                     });
                     if (banRecord != null)
                     {
-                        RemoveBan(banRecord);
+                        await RemoveBan(banRecord);
 
                         BanLog($"The following ban record has been removed (player unbanned). " +
                             $"[Player: {banRecord.playerName} was banned by {banRecord.bannedBy} for {banRecord.banReason} until {banRecord.bannedUntil}.]");
@@ -313,7 +309,7 @@ namespace vMenuServer
                 }
                 else
                 {
-                    BanCheater(source);
+                    await BanCheater(source);
                     Debug.WriteLine($"^3[vMenu] [WARNING] [BAN] ^7Player {JsonConvert.SerializeObject(source)} did not have the required permissions, but somehow triggered the unban event. Missing permissions: vMenu.OnlinePlayers.Unban (is ace allowed: {IsPlayerAceAllowed(source.Handle, "vMenu.OnlinePlayers.Unban")})\n");
                 }
             }
@@ -327,7 +323,7 @@ namespace vMenuServer
         /// Someone trying to trigger fake server events? Well, goodbye idiots.
         /// </summary>
         /// <param name="source"></param>
-        public static void BanCheater(Player source)
+        public static async Task BanCheater(Player source)
         {
             bool enabled = vMenuShared.ConfigManager.GetSettingsBool(vMenuShared.ConfigManager.Setting.vmenu_auto_ban_cheaters);
             if (enabled)
@@ -347,7 +343,7 @@ namespace vMenuServer
                     Guid.NewGuid()
                 );
 
-                AddBan(ban);
+                await AddBan(ban);
 
                 TriggerEvent("vMenu:BanCheaterSuccessful", JsonConvert.SerializeObject(ban).ToString());
                 BanLog($"A cheater has been banned. {JsonConvert.SerializeObject(ban)}");

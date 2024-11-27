@@ -44,7 +44,7 @@ namespace vMenuClient.menus
         private async Task<bool> SetPlayerSkinChecked(string modelName, PedInfo pedCustomizationOptions, bool keepWeapons = true) => await SetPlayerSkinChecked((uint)GetHashKey(modelName), pedCustomizationOptions, keepWeapons);
         private async Task<bool> SetPlayerSkinChecked(uint modelHash, PedInfo pedCustomizationOptions, bool keepWeapons = true)
         {
-            if (!allowedPlayerModels.Contains(modelHash)) 
+            if (!allowedPlayerModels.Contains(modelHash))
             {
                 Notify.Error(CommonErrors.NotAllowed, placeholderValue: "spawn this ped model");
                 return false;
@@ -99,7 +99,7 @@ namespace vMenuClient.menus
             }
 
             string jsonData = LoadResourceFile(GetCurrentResourceName(), "config/addons.json") ?? "{}";
-            var addonsData = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(jsonData); 
+            var addonsData = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(jsonData);
             addonsData.TryGetValue("pedblacklist", out var pedblacklist);
             if (pedblacklist != null)
             {
@@ -226,7 +226,7 @@ namespace vMenuClient.menus
                     }
                     else
                     {
-                        if (!string.IsNullOrEmpty(GetResourceKvpString($"ped_{name}")))
+                        if (!string.IsNullOrEmpty(KeyValueStore.GetString($"ped_{name}")))
                         {
                             Notify.Error(CommonErrors.SaveNameAlreadyExists);
                         }
@@ -260,7 +260,7 @@ namespace vMenuClient.menus
                         if (StorageManager.SavePedInfo("ped_" + name, savedPed.Value, false))
                         {
                             Notify.Success($"Saved Ped has successfully been renamed. New ped name: ~g~<C>{name}</C>~s~.");
-                            DeleteResourceKvp(savedPed.Key);
+                            KeyValueStore.Remove(savedPed.Key);
                             selectedSavedPedMenu.MenuSubtitle = name;
                             savedPed = new KeyValuePair<string, PedInfo>("ped_" + name, savedPed.Value);
                         }
@@ -295,7 +295,7 @@ namespace vMenuClient.menus
                 {
                     if (item.Label == "Are you sure?")
                     {
-                        DeleteResourceKvp(savedPed.Key);
+                        KeyValueStore.Remove(savedPed.Key);
                         Notify.Success("Your saved ped has been deleted.");
                         selectedSavedPedMenu.GoBack();
                     }
@@ -658,7 +658,7 @@ namespace vMenuClient.menus
                         var component = GetPedPropIndex(Game.PlayerPed.Handle, 0);      // helmet index
                         var texture = GetPedPropTextureIndex(Game.PlayerPed.Handle, 0); // texture
                         var compHash = GetHashNameForProp(Game.PlayerPed.Handle, 0, component, texture); // prop combination hash
-                        if (N_0xd40aac51e8e4c663((uint)compHash) > 0) // helmet has visor. 
+                        if (N_0xd40aac51e8e4c663((uint)compHash) > 0) // helmet has visor.
                         {
                             if (!IsHelpMessageBeingDisplayed())
                             {

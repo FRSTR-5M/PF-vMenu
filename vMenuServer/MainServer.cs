@@ -96,6 +96,9 @@ namespace vMenuServer
         /// </summary>
         public MainServer()
         {
+            DatabaseKeyValueStore.Connect();
+            Task.Run(KeyValueStore.SyncWithDatabase).Wait();
+
             var gamebuild = 2372;
             var gamebuildcurr = GetConvarInt("sv_enforcegamebuild", 0);
             // build check
@@ -237,7 +240,7 @@ namespace vMenuServer
 
         #region command handler
         [Command("vmenuserver", Restricted = true)]
-        internal void ServerCommandHandler(int source, List<object> args, string _)
+        internal async void ServerCommandHandler(int source, List<object> args, string _)
         {
             if (args != null)
             {
@@ -265,7 +268,7 @@ namespace vMenuServer
                             var banRecord = bans.Find(b => { return b.uuid.ToString() == uuid; });
                             if (banRecord != null)
                             {
-                                BanManager.RemoveBan(banRecord);
+                                await BanManager.RemoveBan(banRecord);
                                 Debug.WriteLine("Player has been successfully unbanned.");
                             }
                             else
@@ -327,7 +330,7 @@ namespace vMenuServer
                                     new Guid()
                                 );
 
-                                BanManager.AddBan(ban);
+                                await BanManager.AddBan(ban);
                                 BanManager.BanLog($"[vMenu] Player {p.Name}^7 has been banned by Server Console for [{reason}].");
                                 TriggerEvent("vMenu:BanSuccessful", JsonConvert.SerializeObject(ban).ToString());
                                 var timeRemaining = BanManager.GetRemainingTimeMessage(ban.bannedUntil.Subtract(DateTime.Now));
@@ -362,11 +365,11 @@ namespace vMenuServer
                         }
                         Debug.WriteLine("^5[vMenu] [INFO]^7 Importing all ban records from the bans.json file into the new storage system. ^3This may take some time...^7");
                         var bans = JsonConvert.DeserializeObject<List<BanManager.BanRecord>>(file);
-                        bans.ForEach((br) =>
+                        foreach (var br in bans)
                         {
                             var record = new BanManager.BanRecord(br.playerName, br.identifiers, br.bannedUntil, br.banReason, br.bannedBy, Guid.NewGuid());
-                            BanManager.AddBan(record);
-                        });
+                            await BanManager.AddBan(record);
+                        }
                         Debug.WriteLine("^2[vMenu] [SUCCESS]^7 All ban records have been imported. You now no longer need the bans.json file.");
                     }
                     else
@@ -385,6 +388,12 @@ namespace vMenuServer
             }
         }
         #endregion
+
+        [EventHandler("vMenu:ServerKeyValueStoreRequest")]
+        public async void ReceiveRequest([FromSource] Player player, string json)
+        {
+            await ClientRemoteKeyValueStore.HandleRequest(player, json);
+        }
 
         #region kick players from personal vehicle
         /// <summary>
@@ -636,7 +645,7 @@ namespace vMenuServer
         /// <param name="target"></param>
         /// <param name="kickReason"></param>
         [EventHandler("vMenu:KickPlayer")]
-        internal void KickPlayer([FromSource] Player source, int target, string kickReason = "You have been kicked from the server.")
+        internal async void KickPlayer([FromSource] Player source, int target, string kickReason = "You have been kicked from the server.")
         {
             if (IsPlayerAceAllowed(source.Handle, "vMenu.OnlinePlayers.Kick") || IsPlayerAceAllowed(source.Handle, "vMenu.Everything") ||
                 IsPlayerAceAllowed(source.Handle, "vMenu.OnlinePlayers.All"))
@@ -664,7 +673,7 @@ namespace vMenuServer
             }
             else
             {
-                BanManager.BanCheater(source);
+                await BanManager.BanCheater(source);
             }
         }
 
@@ -674,7 +683,7 @@ namespace vMenuServer
         /// <param name="source"></param>
         /// <param name="target"></param>
         [EventHandler("vMenu:KillPlayer")]
-        internal void KillPlayer([FromSource] Player source, int target)
+        internal async void KillPlayer([FromSource] Player source, int target)
         {
             if (IsPlayerAceAllowed(source.Handle, "vMenu.OnlinePlayers.Kill") || IsPlayerAceAllowed(source.Handle, "vMenu.Everything") ||
                 IsPlayerAceAllowed(source.Handle, "vMenu.OnlinePlayers.All"))
@@ -690,7 +699,7 @@ namespace vMenuServer
             }
             else
             {
-                BanManager.BanCheater(source);
+                await BanManager.BanCheater(source);
             }
         }
 
@@ -700,7 +709,7 @@ namespace vMenuServer
         /// <param name="source"></param>
         /// <param name="target"></param>
         [EventHandler("vMenu:SummonPlayer")]
-        internal void SummonPlayer([FromSource] Player source, int target)
+        internal async void SummonPlayer([FromSource] Player source, int target)
         {
             if (IsPlayerAceAllowed(source.Handle, "vMenu.OnlinePlayers.Summon") || IsPlayerAceAllowed(source.Handle, "vMenu.Everything") ||
                 IsPlayerAceAllowed(source.Handle, "vMenu.OnlinePlayers.All"))
@@ -716,7 +725,7 @@ namespace vMenuServer
             }
             else
             {
-                BanManager.BanCheater(source);
+                await BanManager.BanCheater(source);
             }
         }
 

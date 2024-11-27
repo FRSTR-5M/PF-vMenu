@@ -136,6 +136,8 @@ namespace Freecam2
                 FilterIndex = 0;
                 SetTimecycleModifier("None");
             }
+
+            await Delay(0);
         }
 
         public static Vector3 ProcessNewPos(Vector3 CurrentPos)

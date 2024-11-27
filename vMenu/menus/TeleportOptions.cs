@@ -175,22 +175,7 @@ namespace vMenuClient
         {
             personalTpLocations.Clear();
 
-            var tpLocStrs = new List<string>();
-            var findHandle = StartFindKvp("vmenu_tp_");
-            while (true)
-            {
-                var tpLocStr = FindKvp(findHandle);
-
-                if (tpLocStr is not "" and not null and not "NULL")
-                {
-                    tpLocStrs.Add(tpLocStr);
-                }
-                else
-                {
-                    EndFindKvp(findHandle);
-                    break;
-                }
-            }
+            var tpLocStrs = KeyValueStore.GetAllWithPrefix("vmenu_tp_").Keys.ToList();
 
             foreach (var tpLocStr in tpLocStrs)
             {

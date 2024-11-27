@@ -146,7 +146,7 @@ namespace vMenuClient.menus
                 {
                     if (StorageManager.SaveVehicleInfo("veh_" + newName, selectedVehicle.Item2, false))
                     {
-                        DeleteResourceKvp($"veh_{selectedVehicle.Item1}");
+                        KeyValueStore.Remove($"veh_{selectedVehicle.Item1}");
 
                         selectedVehicle = new Tuple<string, VehicleInfo>(newName, selectedVehicle.Item2);
                         manageMenu.Menu.MenuSubtitle = newName;
@@ -181,7 +181,7 @@ namespace vMenuClient.menus
             var deleteVehicle = WMenuItem.CreateConfirmationButton("~r~Delete Vehicle~s~", "This will delete the saved vehicle. ~y~This cannot be undone!~s~");
             deleteVehicle.Confirmed += (_s, _args) =>
             {
-                DeleteResourceKvp($"veh_{selectedVehicle.Item1}");
+                KeyValueStore.Remove($"veh_{selectedVehicle.Item1}");
 
                 RecreateVehicleMenus();
                 manageMenu.Menu.GoBack();

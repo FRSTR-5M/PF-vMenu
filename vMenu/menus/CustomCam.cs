@@ -412,7 +412,7 @@ namespace vMenuClient
                 else if (item == deleteCamera)
                 {
                     item.Label = "";
-                    DeleteResourceKvp(currentlySelectedCamera.Key);
+                    KeyValueStore.Remove(currentlySelectedCamera.Key);
                     selectedCameraMenu.GoBack();
                     savedCamerasMenu.RefreshIndex();
                     EnhancedCamera.Notify("~g~~h~Info~h~~s~: Your saved camera has been deleted.");
@@ -428,7 +428,7 @@ namespace vMenuClient
                     {
                         if (SaveCameraInfo("xcm_" + newName, currentlySelectedCamera.Value, false))
                         {
-                            DeleteResourceKvp(currentlySelectedCamera.Key);
+                            KeyValueStore.Remove(currentlySelectedCamera.Key);
                             while (!selectedCameraMenu.Visible)
                             {
                                 await BaseScript.Delay(0);
@@ -989,7 +989,7 @@ namespace vMenuClient
 
         private bool SaveCameraInfo(string saveName, CameraInfo cameraInfo, bool overrideOldVersion)
         {
-            if (string.IsNullOrEmpty(GetResourceKvpString(saveName)) || overrideOldVersion)
+            if (string.IsNullOrEmpty(KeyValueStore.GetString(saveName)) || overrideOldVersion)
             {
                 if (!string.IsNullOrEmpty(saveName) && saveName.Length > 4)
                 {
@@ -1000,10 +1000,10 @@ namespace vMenuClient
                     Debug.WriteLine($"Saving!\nName: {saveName}\nCamera Data: {json}\n");
 
                     // save
-                    SetResourceKvp(saveName, json);
+                    KeyValueStore.Set(saveName, json);
 
                     // confirm
-                    return GetResourceKvpString(saveName) == json;
+                    return KeyValueStore.GetString(saveName) == json;
                 }
             }
             // if something isn't right, then the save is aborted and return false ("failed" state).
@@ -1073,33 +1073,14 @@ namespace vMenuClient
         private Dictionary<string, CameraInfo> GetSavedCameras()
         {
             // Create a list to store all saved camera names in.
-            var savedCameraNames = new List<string>();
-            // Start looking for kvps starting with xcm_
-            var findHandle = StartFindKvp("xcm_");
-            // Keep looking...
-            while (true)
-            {
-                // Get the kvp string key.
-                var camString = FindKvp(findHandle);
+            var savedCameraNames = KeyValueStore.GetAllWithPrefix("xcm_").Keys.ToList();
 
-                // If it exists then the key to the list.
-                if (camString != "" && camString != null && camString != "NULL")
-                {
-                    savedCameraNames.Add(camString);
-                }
-                // Otherwise stop.
-                else
-                {
-                    EndFindKvp(findHandle);
-                    break;
-                }
-            }
             var camerasList = new Dictionary<string, CameraInfo>();
             // Loop through all save names (keys) from the list above, convert the string into a dictionary
             // and add it to the dictionary above, with the camera save name as the key.
             foreach (var saveName in savedCameraNames)
             {
-                camerasList.Add(saveName, JsonConvert.DeserializeObject<CameraInfo>(GetResourceKvpString(saveName)));
+                camerasList.Add(saveName, JsonConvert.DeserializeObject<CameraInfo>(KeyValueStore.GetString(saveName)));
             }
             // Return the camera dictionary containing all camera save names (keys) linked to the correct camera
             return camerasList;

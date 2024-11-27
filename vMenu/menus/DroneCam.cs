@@ -281,7 +281,7 @@ namespace vMenuClient
                 else if (item == deleteCamera)
                 {
                     item.Label = "";
-                    DeleteResourceKvp(currentlySelectedDrone.Key);
+                    KeyValueStore.Remove(currentlySelectedDrone.Key);
                     selectedDroneMenu.GoBack();
                     savedDronesMenu.RefreshIndex();
                     EnhancedCamera.Notify("~g~~h~Info~h~~s~: Your saved drone has been deleted.");
@@ -297,7 +297,7 @@ namespace vMenuClient
                     {
                         if (SaveCameraInfo("xdm_" + newName, currentlySelectedDrone.Value, false))
                         {
-                            DeleteResourceKvp(currentlySelectedDrone.Key);
+                            KeyValueStore.Remove(currentlySelectedDrone.Key);
                             while (!selectedDroneMenu.Visible)
                             {
                                 await BaseScript.Delay(0);
@@ -405,7 +405,7 @@ namespace vMenuClient
             }
             return menu;
         }
-        
+
         #region params
 
         private DroneInfo drone;
@@ -748,7 +748,7 @@ namespace vMenuClient
         }
 
         #endregion
-        
+
         /// ---
         /// Save/load functions originally made by Vespura (https://www.tomgrobbe.com/) for vMenu.
         /// Snippets of the code were slightly modified to suit camera needs and added here.
@@ -809,7 +809,7 @@ namespace vMenuClient
 
         private bool SaveCameraInfo(string saveName, DroneSaveInfo cameraInfo, bool overrideOldVersion)
         {
-            if (string.IsNullOrEmpty(GetResourceKvpString(saveName)) || overrideOldVersion)
+            if (string.IsNullOrEmpty(KeyValueStore.GetString(saveName)) || overrideOldVersion)
             {
                 if (!string.IsNullOrEmpty(saveName) && saveName.Length > 4)
                 {
@@ -820,10 +820,10 @@ namespace vMenuClient
                     Debug.WriteLine($"Saving!\nName: {saveName}\nDrone Data: {json}\n");
 
                     // save
-                    SetResourceKvp(saveName, json);
+                    KeyValueStore.Set(saveName, json);
 
                     // confirm
-                    return GetResourceKvpString(saveName) == json;
+                    return KeyValueStore.GetString(saveName) == json;
                 }
             }
             // if something isn't right, then the save is aborted and return false ("failed" state).
@@ -879,33 +879,14 @@ namespace vMenuClient
         private Dictionary<string, DroneSaveInfo> GetSavedCameras()
         {
             // Create a list to store all saved camera names in.
-            var savedCameraNames = new List<string>();
-            // Start looking for kvps starting with xcm_
-            var findHandle = StartFindKvp("xdm_");
-            // Keep looking...
-            while (true)
-            {
-                // Get the kvp string key.
-                var camString = FindKvp(findHandle);
+            var savedCameraNames = KeyValueStore.GetAllWithPrefix("xdm_").Keys.ToList();
 
-                // If it exists then the key to the list.
-                if (camString != "" && camString != null && camString != "NULL")
-                {
-                    savedCameraNames.Add(camString);
-                }
-                // Otherwise stop.
-                else
-                {
-                    EndFindKvp(findHandle);
-                    break;
-                }
-            }
             var camerasList = new Dictionary<string, DroneSaveInfo>();
-            // Loop through all save names (keys) from the list above, convert the string into a dictionary 
+            // Loop through all save names (keys) from the list above, convert the string into a dictionary
             // and add it to the dictionary above, with the camera save name as the key.
             foreach (var saveName in savedCameraNames)
             {
-                camerasList.Add(saveName, JsonConvert.DeserializeObject<DroneSaveInfo>(GetResourceKvpString(saveName)));
+                camerasList.Add(saveName, JsonConvert.DeserializeObject<DroneSaveInfo>(KeyValueStore.GetString(saveName)));
             }
             // Return the camera dictionary containing all camera save names (keys) linked to the correct camera
             return camerasList;

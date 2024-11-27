@@ -35,7 +35,7 @@ namespace vMenuClient.menus
                 {
                     break;
                 }
-                saves.Add(kvp, JsonConvert.DeserializeObject<List<ValidWeapon>>(GetResourceKvpString(kvp)));
+                saves.Add(kvp, JsonConvert.DeserializeObject<List<ValidWeapon>>(KeyValueStore.GetString(kvp)));
             }
             EndFindKvp(handle);
             return saves;
@@ -71,7 +71,7 @@ namespace vMenuClient.menus
 
             foreach (var save in saves)
             {
-                SavedWeapons.Add(save, JsonConvert.DeserializeObject<List<ValidWeapon>>(GetResourceKvpString(save)));
+                SavedWeapons.Add(save, JsonConvert.DeserializeObject<List<ValidWeapon>>(KeyValueStore.GetString(save)));
             }
 
             return SavedWeapons;
@@ -204,12 +204,12 @@ namespace vMenuClient.menus
                             }
                             else
                             {
-                                SetResourceKvp("vmenu_string_saved_weapon_loadout_" + newName, JsonConvert.SerializeObject(weapons));
+                                KeyValueStore.Set("vmenu_string_saved_weapon_loadout_" + newName, JsonConvert.SerializeObject(weapons));
                                 Notify.Success($"Your weapons loadout has been {(item == renameLoadout ? "renamed" : "cloned")} to ~g~<C>{newName}</C>~s~.");
 
                                 if (item == renameLoadout)
                                 {
-                                    DeleteResourceKvp(SelectedSavedLoadoutName);
+                                    KeyValueStore.Remove(SelectedSavedLoadoutName);
                                 }
 
                                 ManageLoadoutMenu.GoBack();
@@ -218,7 +218,7 @@ namespace vMenuClient.menus
                     }
                     else if (item == setDefaultLoadout) // set as default
                     {
-                        SetResourceKvp("vmenu_string_default_loadout", SelectedSavedLoadoutName);
+                        KeyValueStore.Set("vmenu_string_default_loadout", SelectedSavedLoadoutName);
                         Notify.Success("This is now your default loadout.");
                         item.LeftIcon = MenuItem.Icon.TICK;
                     }
@@ -241,7 +241,7 @@ namespace vMenuClient.menus
                         if (deleteLoadout.Label == "Are you sure?")
                         {
                             deleteLoadout.Label = "";
-                            DeleteResourceKvp(SelectedSavedLoadoutName);
+                            KeyValueStore.Remove(SelectedSavedLoadoutName);
                             ManageLoadoutMenu.GoBack();
                             Notify.Success("Your saved loadout has been deleted.");
                         }
@@ -289,7 +289,7 @@ namespace vMenuClient.menus
             ManageLoadoutMenu.OnMenuOpen += (sender) =>
             {
                 ManageLoadoutMenu.RefreshIndex();
-                var kvp = GetResourceKvpString("vmenu_string_default_loadout");
+                var kvp = KeyValueStore.GetString("vmenu_string_default_loadout");
                 if (string.IsNullOrEmpty(kvp) || kvp != SelectedSavedLoadoutName)
                 {
                     setDefaultLoadout.LeftIcon = MenuItem.Icon.NONE;

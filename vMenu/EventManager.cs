@@ -39,6 +39,18 @@ namespace vMenuClient
             EventHandlers.Add("vMenu:GetOutOfCar", new Action<int, int>(GetOutOfCar));
             EventHandlers.Add("vMenu:SetDriftSuspension", new Action<int, bool>(SetDriftSuspension));
             EventHandlers.Add("vMenu:PrivateMessage", new Action<string, string>(PrivateMessage));
+            EventHandlers.Add("onClientResourceStart", async (string resourceName) =>
+            {
+                if (resourceName == GetCurrentResourceName())
+                {
+                    var localChanges = await KeyValueStore.SyncWithServer();
+                    if (localChanges)
+                    {
+                        Notify.Info("vMenu save data loaded from server. You may need to restart your game to use it.");
+                    }
+                }
+            });
+            EventHandlers.Add("vMenu:ServerKeyValueStoreResponse", RemoteKeyValueStore.ReceiveResponse);
 
             RegisterNuiCallbackType("disableImportExportNUI");
             RegisterNuiCallbackType("importData");
@@ -69,9 +81,9 @@ namespace vMenuClient
             if (firstSpawn)
             {
                 firstSpawn = false;
-                if (MainMenu.MiscSettingsMenu != null && MainMenu.MpPedCustomizationMenu != null && MainMenu.MiscSettingsMenu.MiscRespawnDefaultCharacter && !string.IsNullOrEmpty(GetResourceKvpString("vmenu_default_character")) && IsAllowed(Permission.PASpawnAsDefault))
+                if (MainMenu.MiscSettingsMenu != null && MainMenu.MpPedCustomizationMenu != null && MainMenu.MiscSettingsMenu.MiscRespawnDefaultCharacter && !string.IsNullOrEmpty(KeyValueStore.GetString("vmenu_default_character")) && IsAllowed(Permission.PASpawnAsDefault))
                 {
-                    await MainMenu.MpPedCustomizationMenu.SpawnThisCharacter(GetResourceKvpString("vmenu_default_character"), false);
+                    await MainMenu.MpPedCustomizationMenu.SpawnThisCharacter(KeyValueStore.GetString("vmenu_default_character"), false);
                 }
                 else if (MainMenu.PlayerAppearanceMenu != null && !GetSettingsBool(Setting.vmenu_disable_spawn_as_allowed_ped))
                 {
@@ -90,7 +102,7 @@ namespace vMenuClient
                 }
                 if (MainMenu.WeaponLoadoutsMenu != null && MainMenu.WeaponLoadoutsMenu.WeaponLoadoutsSetLoadoutOnRespawn && IsAllowed(Permission.WLEquipOnRespawn))
                 {
-                    var saveName = GetResourceKvpString("vmenu_string_default_loadout");
+                    var saveName = KeyValueStore.GetString("vmenu_string_default_loadout");
                     if (!string.IsNullOrEmpty(saveName))
                     {
                         await SpawnWeaponLoadoutAsync(saveName, true, false, true);
@@ -243,15 +255,15 @@ namespace vMenuClient
             {
                  Notify.Alert(message, true, true);
             }
-            else if (type.ToLower() == "error") 
+            else if (type.ToLower() == "error")
             {
                  Notify.Error(message, true, true);
             }
-            else if (type.ToLower() == "info") 
+            else if (type.ToLower() == "info")
             {
                  Notify.Info(message, true, true);
             }
-            else if (type.ToLower() == "success") 
+            else if (type.ToLower() == "success")
             {
                  Notify.Success(message, true, true);
             }

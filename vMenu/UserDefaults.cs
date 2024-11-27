@@ -314,8 +314,8 @@ namespace vMenuClient
 
         public static string MiscCurrentLanguage
         {
-            get { return GetResourceKvpString($"{SETTINGS_PREFIX}miscCurrentLanguage"); }
-            set { SetResourceKvp($"{SETTINGS_PREFIX}miscCurrentLanguage", value); }
+            get { return KeyValueStore.GetString($"{SETTINGS_PREFIX}miscCurrentLanguage"); }
+            set { KeyValueStore.Set($"{SETTINGS_PREFIX}miscCurrentLanguage", value); }
         }
 
         #region keybind menu
@@ -382,7 +382,7 @@ namespace vMenuClient
         private static bool GetSettingsBool(string kvpString)
         {
             // Get the current value.
-            var savedValue = GetResourceKvpString($"{SETTINGS_PREFIX}{kvpString}");
+            var savedValue = KeyValueStore.GetString($"{SETTINGS_PREFIX}{kvpString}");
             // Check if it exists.
             var exists = !string.IsNullOrEmpty(savedValue);
             // If not, create it and save the new default value of false.
@@ -421,7 +421,7 @@ namespace vMenuClient
             else
             {
                 // Return the (new) value.
-                return GetResourceKvpString($"{SETTINGS_PREFIX}{kvpString}").ToLower() == "true";
+                return KeyValueStore.GetString($"{SETTINGS_PREFIX}{kvpString}").ToLower() == "true";
             }
         }
 
@@ -432,12 +432,12 @@ namespace vMenuClient
         /// <param name="newValue">The new value for this setting.</param>
         private static void SetSavedSettingsBool(string kvpString, bool newValue)
         {
-            SetResourceKvp(SETTINGS_PREFIX + kvpString, newValue.ToString());
+            KeyValueStore.Set(SETTINGS_PREFIX + kvpString, newValue.ToString());
         }
 
         private static float GetSettingsFloat(string kvpString)
         {
-            var savedValue = GetResourceKvpFloat(SETTINGS_PREFIX + kvpString);
+            var savedValue = KeyValueStore.GetFloat(SETTINGS_PREFIX + kvpString);
             if (savedValue.ToString() != null) // this can still become null for some reason, so that's why we check it.
             {
                 if (savedValue.GetType() == typeof(float))
@@ -458,20 +458,20 @@ namespace vMenuClient
 
         private static void SetSavedSettingsFloat(string kvpString, float newValue)
         {
-            SetResourceKvpFloat(SETTINGS_PREFIX + kvpString, newValue);
+            KeyValueStore.Set(SETTINGS_PREFIX + kvpString, newValue);
         }
 
 
         private static int GetSettingsInt(string kvpString)
         {
             // Get the current value.
-            var savedValue = GetResourceKvpInt($"{SETTINGS_PREFIX}{kvpString}");
+            var savedValue = KeyValueStore.GetInt($"{SETTINGS_PREFIX}{kvpString}");
             return savedValue;
         }
 
         private static void SetSavedSettingsInt(string kvpString, int newValue)
         {
-            SetResourceKvpInt(SETTINGS_PREFIX + kvpString, newValue);
+            KeyValueStore.Set(SETTINGS_PREFIX + kvpString, newValue);
         }
         #endregion
 

@@ -119,7 +119,7 @@ namespace vMenuClient
                 }
                 if (k == "vmenu_cleanup_version")
                 {
-                    if (GetResourceKvpInt("vmenu_cleanup_version") >= currentCleanupVersion)
+                    if (KeyValueStore.GetInt("vmenu_cleanup_version") >= currentCleanupVersion)
                     {
                         cleanupVersionChecked = true;
                     }
@@ -130,7 +130,7 @@ namespace vMenuClient
 
             if (!cleanupVersionChecked)
             {
-                SetResourceKvpInt("vmenu_cleanup_version", currentCleanupVersion);
+                KeyValueStore.Set("vmenu_cleanup_version", currentCleanupVersion);
                 foreach (var kvp in tmp_kvp_names)
                 {
                     #pragma warning disable CS8793 // The given expression always matches the provided pattern.
@@ -138,7 +138,7 @@ namespace vMenuClient
                     {
                         if (!kvp.StartsWith("settings_") && !kvp.StartsWith("vmenu") && !kvp.StartsWith("veh_") && !kvp.StartsWith("ped_") && !kvp.StartsWith("mp_ped_"))
                         {
-                            DeleteResourceKvp(kvp);
+                            KeyValueStore.Remove(kvp);
                             Debug.WriteLine($"[vMenu] [cleanup id: 1] Removed unused (old) KVP: {kvp}.");
                         }
                     }
@@ -147,7 +147,7 @@ namespace vMenuClient
                     {
                         if (kvp.StartsWith("mp_char"))
                         {
-                            DeleteResourceKvp(kvp);
+                            KeyValueStore.Remove(kvp);
                             Debug.WriteLine($"[vMenu] [cleanup id: 2] Removed unused (old) KVP: {kvp}.");
                         }
                     }
@@ -431,7 +431,7 @@ namespace vMenuClient
                                 }
                                 //if (!k.StartsWith("settings_") && !k.StartsWith("vmenu") && !k.StartsWith("veh_") && !k.StartsWith("ped_") && !k.StartsWith("mp_ped_"))
                                 //{
-                                //    DeleteResourceKvp(k);
+                                //    KeyValueStore.Remove(k);
                                 //}
                                 names.Add(k);
                             }
@@ -463,21 +463,21 @@ namespace vMenuClient
                                 switch (type)
                                 {
                                     case 0:
-                                        var s = GetResourceKvpString(kvp);
+                                        var s = KeyValueStore.GetString(kvp);
                                         if (s.StartsWith("{") || s.StartsWith("["))
                                         {
                                             kvps.Add(kvp, JsonConvert.DeserializeObject(s));
                                         }
                                         else
                                         {
-                                            kvps.Add(kvp, GetResourceKvpString(kvp));
+                                            kvps.Add(kvp, KeyValueStore.GetString(kvp));
                                         }
                                         break;
                                     case 1:
-                                        kvps.Add(kvp, GetResourceKvpFloat(kvp));
+                                        kvps.Add(kvp, KeyValueStore.GetFloat(kvp));
                                         break;
                                     case 2:
-                                        kvps.Add(kvp, GetResourceKvpInt(kvp));
+                                        kvps.Add(kvp, KeyValueStore.GetInt(kvp));
                                         break;
                                 }
                             }
