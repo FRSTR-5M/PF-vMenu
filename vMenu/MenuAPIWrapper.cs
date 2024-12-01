@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 using CitizenFX.Core;
 
@@ -25,7 +26,7 @@ namespace vMenuClient
 
         public class EventArgs : System.EventArgs
         {
-            public WMenu WMenu { get; set; }
+            public WMenu Menu { get; set; }
         }
 
         public class WMenuItem
@@ -42,14 +43,6 @@ namespace vMenuClient
                 public MenuDynamicListItem Item { get; set; }
             }
 
-            public class MenuIndexChangedToEventArgs : EventArgs
-            {
-                public MenuItem ItemPrev { get; set; }
-                public MenuItem Item { get; set; }
-
-                public int IndexPrev { get; set; }
-                public int Index { get; set; }
-            }
             public class SelectedEventArgs : EventArgs<MenuItem> { }
 
             public class CheckboxChangedEventArgs : EventArgs<MenuCheckboxItem>
@@ -146,6 +139,8 @@ namespace vMenuClient
                 set => MenuItem.ItemData = value;
             }
 
+            public bool IsSeparatorItem { get; set; }
+
             public WMenuItem(MenuItem menuItem)
             {
                 if (menuItem == null)
@@ -192,14 +187,25 @@ namespace vMenuClient
 
                 return button;
             }
+
+            public static WMenuItem CreateSeparatorItem(string text)
+            {
+                var separatorItem = new WMenuItem(
+                    new MenuItem(string.IsNullOrEmpty(text) ? "" : $"~h~~c~— {text} —~h~~s~")
+                    {
+                        Enabled = false,
+                    });
+
+                return separatorItem;
+            }
         }
 
         public class WMenu
         {
             public class IndexChangedEvenArgs : EventArgs
             {
-                public MenuItem ItemOld { get; set; }
-                public MenuItem ItemNew { get; set; }
+                public WMenuItem ItemOld { get; set; }
+                public WMenuItem ItemNew { get; set; }
 
                 public int IndexOld { get; set; }
                 public int IndexNew { get; set; }
@@ -215,7 +221,59 @@ namespace vMenuClient
             private Dictionary<MenuItem, WMenuItem> itemsDict = new Dictionary<MenuItem, WMenuItem>();
             private Dictionary<MenuItem, Menu> submenuButtons = new Dictionary<MenuItem, Menu>();
 
+            public int Count => Menu.GetMenuItems().Count;
+            public int CurrentIndex => Menu.CurrentIndex;
+            public WMenuItem this[int index] => itemsDict[Menu.GetMenuItems()[index]];
+
             public Menu Menu { get; private set; }
+
+
+            private int? PerformIncrement(int initialIndex, bool down)
+            {
+                int? nonSeparatorIndex = null;
+
+                int index = initialIndex;
+                int incremented = 0;
+                bool wrapped = false;
+                for (int i = 0; i < Count; i++)
+                {
+                    if (incremented == Increment || (wrapped && nonSeparatorIndex is not null))
+                        break;
+
+                    if (down && index == Count - 1)
+                    {
+                        ResetIncrement();
+                        if (nonSeparatorIndex is not null)
+                            break;
+
+                        wrapped = true;
+                        index = 0;
+                    }
+                    else if (!down && index == 0)
+                    {
+                        ResetIncrement();
+                        if (nonSeparatorIndex is not null)
+                            break;
+
+                        wrapped = true;
+                        index = Count - 1;
+                    }
+                    else
+                    {
+                        index = index + (down ? 1 : -1);
+                    }
+
+                    var witem = this[index];
+                    if (!witem.IsSeparatorItem)
+                    {
+                        nonSeparatorIndex = index;
+                        incremented++;
+                    }
+                }
+
+                return nonSeparatorIndex;
+            }
+
 
             public WMenu(string title, string subtitle)
             {
@@ -223,14 +281,34 @@ namespace vMenuClient
 
                 Menu.OnIndexChange += (menu, itemOld, itemNew, indexOld, indexNew) =>
                 {
+                    var incrementedIndexNew = PerformIncrement(indexOld, indexNew == indexOld + 1 || (indexNew == 0 && indexOld != 1));
+                    if (incrementedIndexNew is null || incrementedIndexNew == indexOld)
+                        return;
+
+                    indexNew = incrementedIndexNew.Value;
+
+                    int newViewIndexOffset = Menu.ViewIndexOffset;
+                    if (indexNew < Menu.ViewIndexOffset)
+                    {
+                        newViewIndexOffset = indexNew;
+                    }
+                    else if (indexNew >= Menu.ViewIndexOffset + Menu.MaxItemsOnScreen)
+                    {
+                        newViewIndexOffset = indexNew - Menu.MaxItemsOnScreen + 1;
+                    }
+
+                    Menu.RefreshIndex(indexNew, newViewIndexOffset);
+
+
                     var args = new IndexChangedEvenArgs
                     {
-                        ItemOld = itemOld,
-                        ItemNew = itemNew,
+                        ItemOld = itemsDict[itemOld],
+                        ItemNew = itemsDict[Menu.GetMenuItems()[indexNew]],
 
                         IndexOld = indexOld,
                         IndexNew = indexNew,
                     };
+
 
                     IndexChanged?.Invoke(this, args);
 
@@ -241,9 +319,9 @@ namespace vMenuClient
                     witemNew?.OnMenuIndexChanged(args);
                 };
 
-                Menu.OnMenuOpen += (_menu) =>
+                Menu.OnMenuOpen += (menu) =>
                 {
-                    var args = new OpenedEvenArgs { WMenu = this };
+                    var args = new OpenedEvenArgs { Menu = this };
 
                     Opened?.Invoke(this, args);
                     foreach (var item in itemsDict.ToList())
@@ -254,7 +332,7 @@ namespace vMenuClient
 
                 Menu.OnMenuClose += (_menu) =>
                 {
-                    var args = new ClosedEvenArgs { WMenu = this };
+                    var args = new ClosedEvenArgs { Menu = this };
 
                     Closed?.Invoke(this, args);
                     foreach (var item in itemsDict.ToList())
@@ -268,7 +346,7 @@ namespace vMenuClient
                     var witem = itemsDict[item];
                     witem?.OnSelected(new WMenuItem.SelectedEventArgs
                     {
-                        WMenu = this,
+                        Menu = this,
                         Item = item,
 
                     });
@@ -279,7 +357,7 @@ namespace vMenuClient
                     var witem = itemsDict[item];
                     witem?.OnCheckboxChanged(new WMenuItem.CheckboxChangedEventArgs
                     {
-                        WMenu = this,
+                        Menu = this,
                         Item = item,
                         ItemIndex = index,
                         Checked = checked_,
@@ -291,7 +369,7 @@ namespace vMenuClient
                     var witem = itemsDict[item];
                     witem?.OnDynamicListChanged(new WMenuItem.DynamicListChangedEventArgs
                     {
-                        WMenu = this,
+                        Menu = this,
                         Item = item,
                         ValueOld = valueOld,
                         ValueNew = valueNew,
@@ -303,7 +381,7 @@ namespace vMenuClient
                     var witem = itemsDict[item];
                     witem?.OnDynamicListSelected(new WMenuItem.DynamicListSelectedEventArgs
                     {
-                        WMenu = this,
+                        Menu = this,
                         Item = item,
                         Value = value,
                     });
@@ -314,7 +392,7 @@ namespace vMenuClient
                     var witem = itemsDict[item];
                     witem?.OnListChanged(new WMenuItem.ListChangedEventArgs
                     {
-                        WMenu = this,
+                        Menu = this,
                         Item = item,
                         ItemIndex = itemIndex,
                         ListIndexOld = listIndexOld,
@@ -327,7 +405,7 @@ namespace vMenuClient
                     var witem = itemsDict[item];
                     witem?.OnListSelected(new WMenuItem.ListSelectedEventArgs
                     {
-                        WMenu = this,
+                        Menu = this,
                         Item = item,
                         ItemIndex = itemIndex,
                         ListIndex = listIndex,
@@ -339,7 +417,7 @@ namespace vMenuClient
                     var witem = itemsDict[item];
                     witem?.OnSliderChanged(new WMenuItem.SliderChangedEventArgs
                     {
-                        WMenu = this,
+                        Menu = this,
                         Item = item,
                         ItemIndex = itemIndex,
                         PositionOld = positionOld,
@@ -352,55 +430,12 @@ namespace vMenuClient
                     var witem = itemsDict[item];
                     witem?.OnSliderSelected(new WMenuItem.SliderSelectedEventArgs
                     {
-                        WMenu = this,
+                        Menu = this,
                         Item = item,
                         ItemIndex = itemIndex,
                         Position = position,
                     });
                 };
-
-                {
-                    bool incrementing = false;
-                    IndexChanged += (_s, args) =>
-                    {
-                        var noMenuItems = Menu.GetMenuItems().Count;
-
-                        if (increment == 1 || incrementing)
-                            return;
-
-                        incrementing = true;
-
-                        bool down =
-                            (args.IndexOld < args.IndexNew && !(args.IndexOld == 0 && args.IndexNew == noMenuItems - 1)) ||
-                            (args.IndexNew == 0 && args.IndexOld == noMenuItems - 1);
-
-                        int indexNew = args.IndexOld;
-                        for (int i = -1; i < increment - 1; i++)
-                        {
-                            indexNew += down ? 1 : -1;
-
-                            if (indexNew < 0 || indexNew >= noMenuItems)
-                            {
-                                SetIncrement(1);
-                                break;
-                            }
-
-                            if (i == -1)
-                                continue;
-
-                            if (down)
-                            {
-                                Menu.GoDown();
-                            }
-                            else
-                            {
-                                Menu.GoUp();
-                            }
-                        }
-
-                        incrementing = false;
-                    };
-                }
             }
 
             public WMenu AddItem(MenuItem menuItem)
@@ -443,7 +478,7 @@ namespace vMenuClient
 
                 if (Menu.GetMenuItems().Count != 0 || index0Header)
                 {
-                    var separator = CreateSeparatorItem(text);
+                    var separator = WMenuItem.CreateSeparatorItem(text);
                     AddItem(separator);
                 }
 
@@ -571,99 +606,31 @@ namespace vMenuClient
             }
 
 
-            public WMenuItem CreateSeparatorItem(string text)
-            {
-                var separatorItem = new WMenuItem(
-                    new MenuItem(string.IsNullOrEmpty(text) ? "" : $"~h~~c~— {text} —~h~~s~")
-                    {
-                        Enabled = false,
-                    });
-
-                separatorItem.MenuIndexChanged += (_, args) =>
-                {
-                    if (args.IndexNew != separatorItem.MenuItem.Index)
-                        return;
-
-                    var oldIncrement = increment;
-                    ResetIncrement();
-
-                    if (args.IndexOld == args.IndexNew - 1 ||
-                        (args.IndexNew == 0 && args.IndexOld == Menu.GetMenuItems().Count - 1))
-                    {
-                        Menu.GoDown();
-                    }
-                    else
-                    {
-                        Menu.GoUp();
-                    }
-
-                    SetIncrement(oldIncrement);
-                };
-
-                Opened += (_s, _args) =>
-                {
-                    if (Menu.GetCurrentMenuItem() == separatorItem.MenuItem)
-                    {
-                        Menu.GoDown();
-                    }
-                };
-
-                return separatorItem;
-            }
-
-
             Menu.ButtonPressHandler? incrementBtnPressHandler = null;
             Control? incrementBtnPressHandlerControl = null;
-            private int increment = 1;
-
-            private void SetIncrement(int newIncrement)
+            private int _increment = 1;
+            public int Increment
             {
-                increment = newIncrement;
-                if (incrementBtnPressHandlerControl is Control control)
+                get => _increment;
+                set
                 {
-                    Menu.InstructionalButtons.Remove(control);
-                    Menu.InstructionalButtons.Add(control, $"Increment: {increment}");
+                    _increment = value;
+                    if (incrementBtnPressHandlerControl is Control control)
+                    {
+                        Menu.InstructionalButtons.Remove(control);
+                        Menu.InstructionalButtons.Add(control, $"Increment: {_increment}");
+                    }
                 }
             }
 
             public void ResetIncrement()
             {
-                SetIncrement(1);
+                Increment = 1;
             }
 
             public void NextIncrement()
             {
-                var count = Menu.GetMenuItems().Count;
-
-                int newIncrement = 1;
-                if (increment == 1)
-                {
-                    if (count <= 10)
-                    {
-                        Notify.Info("You cannot increase the increment right now, because there are not enough vehicles.");
-                    }
-                    else
-                    {
-                        newIncrement = 10;
-                    }
-                }
-                else if (increment == 10)
-                {
-                    if (count <= 100)
-                    {
-                        newIncrement = 1;
-                    }
-                    else
-                    {
-                        newIncrement = 100;
-                    }
-                }
-                else
-                {
-                    newIncrement = 1;
-                }
-
-                SetIncrement(newIncrement);
+                Increment = Increment == 1 ? 10 : 1;
             }
 
             public WMenu AddIncrementToggle(Control control)
@@ -674,7 +641,7 @@ namespace vMenuClient
                 }
 
                 incrementBtnPressHandlerControl = control;
-                SetIncrement(increment);
+                Increment = 1;
 
                 incrementBtnPressHandler = new Menu.ButtonPressHandler(
                     control,

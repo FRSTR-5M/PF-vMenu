@@ -53,7 +53,7 @@ namespace vMenuServer
             if (string.IsNullOrEmpty(connectionStringVar))
                 return;
 
-            ConnectionString = GetConvar(connectionStringVar, null);
+            ConnectionString = GetConvar(connectionStringVar, "");
             if (string.IsNullOrEmpty(ConnectionString))
             {
                 Debug.WriteLine($"Invalid or missing MySQL connection string convar \"{connectionStringVar}\"");

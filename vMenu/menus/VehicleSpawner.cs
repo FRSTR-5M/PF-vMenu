@@ -237,7 +237,7 @@ namespace vMenuClient.menus
                 vehiclesMenu.AddItem(defaultClassesFilter);
             }
 
-            vehiclesMenu.AddItem(vehiclesMenu.CreateSeparatorItem("Vehicles"));
+            vehiclesMenu.AddItem(WMenuItem.CreateSeparatorItem("Vehicles"));
 
             vehiclesMenu.Menu.InstructionalButtons.Add(Control.SelectWeapon, "Filter Vehicles");
             vehiclesMenu.Menu.ButtonPressHandlers.Add(new Menu.ButtonPressHandler(
@@ -371,6 +371,7 @@ namespace vMenuClient.menus
                     else
                     {
                         MenuController.CloseAllMenus();
+                        MenuController.AddSubmenu(menu.Menu, AllVehiclesMenu.Menu);
                         AllVehiclesMenu.Menu.OpenMenu();
                         AllVehiclesMenu.Menu.RefreshIndex(filterItems.Count);
                     }

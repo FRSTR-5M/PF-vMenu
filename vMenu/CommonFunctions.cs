@@ -1316,7 +1316,13 @@ namespace vMenuClient
                 rpm = tmpOldVehicle.CurrentRPM;
             }
 
-            if (!VehicleData.HashToVehicle[vehicleHash].IsAllowed)
+            VehicleData.VehicleModelInfo veh;
+            if (!VehicleData.HashToVehicle.TryGetValue(vehicleHash, out veh))
+            {
+                Notify.Error(CommonErrors.InvalidModel);
+                return 0;
+            }
+            if (!veh.IsAllowed)
             {
                 Notify.Error("You are not allowed to spawn this vehicle.");
                 return 0;

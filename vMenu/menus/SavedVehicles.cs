@@ -391,7 +391,7 @@ namespace vMenuClient.menus
                 },
                 true));
 
-            vehiclesMenu.AddItem(vehiclesMenu.CreateSeparatorItem("Vehicles"));
+            vehiclesMenu.AddItem(WMenuItem.CreateSeparatorItem("Vehicles"));
         }
 
         private SavedVehiclesMenuData CreateVehiclesMenu(string subtitle, bool addFilters = false)
