@@ -9,8 +9,6 @@ using MenuAPI;
 using vMenuClient.data;
 using vMenuClient.MenuAPIWrapper;
 
-using static CitizenFX.Core.Native.API;
-
 using static vMenuClient.CommonFunctions;
 using static vMenuShared.ConfigManager;
 
@@ -209,9 +207,24 @@ namespace vMenuClient.menus
             var manufacturerDescr = vi.Manufacturer != "NULL" ? $"~b~{vi.Manufacturer}~s~ " : "";
             var description = $"Spawn your {manufacturerDescr}~b~{vi.Name}~s~: ~b~{name}~s~.";
 
+            var labelMaxLen = Math.Max(42 - 2 - text.Length, 0);
+            string label;
+            if (vi.Name.Length <= labelMaxLen)
+            {
+                label = vi.Name;
+            }
+            else if (labelMaxLen >= 3)
+            {
+                label = vi.Name.Substring(0, labelMaxLen - 2).TrimEnd([' ', '-', '/', '(']) + "..";
+            }
+            else
+            {
+                label = null;
+            }
+
             var btn = new MenuItem(text, description)
             {
-                Label = $"~c~({vi.Name})~s~ →→→",
+                Label = (label != null ? $"~c~({label})~s~" : "") + " →→→",
                 ItemData = vi
             }.ToWrapped();
             btn.Selected += (_s, _args) =>
