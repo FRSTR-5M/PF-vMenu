@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 
 using static CitizenFX.Core.Native.API;
 using static vMenuClient.CommonFunctions;
+using static vMenuClient.KeyValueStore;
 using static vMenuShared.KeyValueStoreSync;
 
 namespace vMenuClient
@@ -59,7 +60,7 @@ namespace vMenuClient
             }
         }
 
-        public static async Task Set(string key, string value)
+        public static async Task Set(string key, ValueInfo vi)
         {
             var request = new Request
             {
@@ -68,17 +69,17 @@ namespace vMenuClient
                 DataSet = new Request.RequestDataSet
                 {
                     Key = key,
-                    Value = value
+                    ValueInfo = vi
                 }
             };
             var response = await SendRequest(request);
             if (response.Type == Response.ResponseType.Error)
             {
-                Debug.WriteLine($"Error setting \"{key}={value}\" in remote key-value store: {response.Error}");
+                Debug.WriteLine($"Error setting \"{key}={vi.Value}\" in remote key-value store: {response.Error}");
             }
         }
 
-        public static async Task SetAll(Dictionary<string,string> keyValues)
+        public static async Task SetAll(Dictionary<string, ValueInfo> keyValues)
         {
             var request = new Request
             {
@@ -96,7 +97,7 @@ namespace vMenuClient
             }
         }
 
-        public static async Task<Dictionary<string,string>> GetAll()
+        public static async Task<Dictionary<string, ValueInfo>> GetAll()
         {
             var request = new Request
             {
@@ -113,12 +114,12 @@ namespace vMenuClient
                     Debug.WriteLine($"Error setting multiple keys in remote key-value store: {response.Error}");
                     goto case Response.ResponseType.NoServerStore;
                 case Response.ResponseType.NoServerStore:
-                    return new Dictionary<string, string>();
+                    return new Dictionary<string, ValueInfo>();
                 case Response.ResponseType.Ok:
                     return response.DataGetAll?.KeyValues;
                 default:
                     Debug.WriteLine("BUG");
-                    return new Dictionary<string, string>();
+                    return new Dictionary<string, ValueInfo>();
             }
         }
     }
@@ -134,16 +135,14 @@ namespace vMenuClient
                 .Where(kv => !remoteKvs.ContainsKey(kv.Key))
                 .ToDictionary(kv => kv.Key, kv => kv.Value);
 
-            var remoteDiffLocal = remoteKvs.Where(kv => !localKvs.ContainsKey(kv.Key) || localKvs[kv.Key] != kv.Value);
+            var remoteDiffLocal = remoteKvs.Where(kv =>
+                !localKvs.ContainsKey(kv.Key) ||
+                localKvs[kv.Key].Value != kv.Value.Value ||
+                localKvs[kv.Key].Type != kv.Value.Type);
 
-            // We re-add local kv pairs so we always have string values
-            foreach (var kv in localKvs)
-            {
-                SetResourceKvp(kv.Key, kv.Value);
-            }
             foreach (var kv in remoteKvs)
             {
-                SetResourceKvp(kv.Key, kv.Value);
+                SetLocal(kv.Key, kv.Value);
             }
             await RemoteKeyValueStore.SetAll(localNonServerKvs);
 
@@ -159,15 +158,23 @@ namespace vMenuClient
 
         public static async Task SetAsync(string key, string value)
         {
-            SetResourceKvp(key, value);
-            await RemoteKeyValueStore.Set(key, value);
+            SetLocal(key, value);
+            await RemoteKeyValueStore.Set(key, new ValueInfo(value));
         }
         public static void Set(string key, string value) => _ = SetAsync(key, value);
 
-        public static async Task SetAsync(string key, int value) => await SetAsync(key, value.ToString());
+        public static async Task SetAsync(string key, int value)
+        {
+            SetLocal(key, value);
+            await RemoteKeyValueStore.Set(key, new ValueInfo(value));
+        }
         public static void Set(string key, int value) => _ = SetAsync(key, value);
 
-        public static async Task SetAsync(string key, float value) => await SetAsync(key, value.ToString());
+        public static async Task SetAsync(string key, float value)
+        {
+            SetLocal(key, value);
+            await RemoteKeyValueStore.Set(key, new ValueInfo(value));
+        }
         public static void Set(string key, float value) => _ = SetAsync(key, value);
     }
 }

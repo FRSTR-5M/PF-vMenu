@@ -12,7 +12,7 @@ using Newtonsoft.Json;
 using vMenuShared;
 
 using static CitizenFX.Core.Native.API;
-
+using static vMenuServer.KeyValueStore;
 using static vMenuShared.KeyValueStoreSync;
 
 namespace vMenuServer
@@ -41,7 +41,7 @@ namespace vMenuServer
                 var command = new MySqlCommand
                 {
                     Connection = connection,
-                    CommandText = "CREATE TABLE IF NOT EXISTS `vMenu` (`PlayerLicense` CHAR(40) NOT NULL, `Key` VARCHAR(64) NOT NULL, `Value` TEXT, PRIMARY KEY (`PlayerLicense`, `Key`))"
+                    CommandText = "CREATE TABLE IF NOT EXISTS `vMenu` (`PlayerLicense` CHAR(40) NOT NULL, `Key` VARCHAR(64) NOT NULL, `Value` TEXT, `Type` BIT(2) NOT NULL DEFAULT 0, PRIMARY KEY (`PlayerLicense`, `Key`)) CHARACTER SET = utf8mb4 COLLATE = utf8mb4_bin ROW_FORMAT = COMPRESSED"
                 };
                 command.ExecuteNonQuery();
             }
@@ -49,29 +49,32 @@ namespace vMenuServer
 
         public static void Connect()
         {
+            SetConvarReplicated(ConfigManager.Setting.vmenu_server_store.ToString(), "false");
+
             var connectionStringVar = ConfigManager.GetSettingsString(ConfigManager.Setting.vmenu_mysql_connection_string_var);
             if (string.IsNullOrEmpty(connectionStringVar))
+            {
+                Debug.WriteLine("\"vmenu_mysql_connection_string_var\" not specified or empty. Running without database.");
                 return;
+            }
 
             ConnectionString = GetConvar(connectionStringVar, "");
             if (string.IsNullOrEmpty(ConnectionString))
             {
-                Debug.WriteLine($"Invalid or missing MySQL connection string convar \"{connectionStringVar}\"");
+                Debug.WriteLine($"Invalid or missing MySQL connection string convar \"{connectionStringVar}\". Running without database.");
                 ConnectionString = null;
                 return;
             }
 
             connection = new MySqlConnection(ConnectionString);
 
-            SetConvarReplicated(ConfigManager.Setting.vmenu_server_store.ToString(), "false");
-
             try
             {
                 connection.Open();
             }
-            catch (MySqlException e)
+            catch (MySqlException)
             {
-                Debug.WriteLine($"Could not open database connection to \"{ConnectionString}\": {e}");
+                Debug.WriteLine($"Could not open connection to database. Running without database.");
                 ConnectionString = null;
                 connection = null;
                 return;
@@ -93,7 +96,7 @@ namespace vMenuServer
         }
 
 
-        public static async Task<Dictionary<string, string>> GetAll(string playerLicense)
+        public static async Task<Dictionary<string, ValueInfo>> GetAll(string playerLicense)
         {
             using (var connection = new MySqlConnection(ConnectionString))
             {
@@ -102,18 +105,19 @@ namespace vMenuServer
                 var command = new MySqlCommand
                 {
                     Connection = connection,
-                    CommandText = "SELECT `Key`, `Value` FROM `vMenu` WHERE `PlayerLicense`=@playerLicense",
+                    CommandText = "SELECT `Key`, `Value`, `Type` FROM `vMenu` WHERE `PlayerLicense`=@playerLicense",
                 };
                 command.Parameters.AddWithValue("@playerLicense", playerLicense);
 
-                var keyValues = new Dictionary<string, string>();
+                var keyValues = new Dictionary<string, ValueInfo>();
                 using (var reader = await command.ExecuteReaderAsync())
                 {
                     while (await reader.ReadAsync())
                     {
                         var key = reader.GetFieldValue<string>(0);
                         var value = reader.GetFieldValue<string>(1);
-                        keyValues[key] = value;
+                        var type = reader.GetFieldValue<int>(2);
+                        keyValues[key] = new ValueInfo(value, (KeyValueStore.ValueType)type);
                     }
                 }
 
@@ -121,10 +125,10 @@ namespace vMenuServer
             }
         }
 
-        public static async Task<Dictionary<string, string>> GetAll()
+        public static async Task<Dictionary<string, ValueInfo>> GetAll()
         {
             if (string.IsNullOrEmpty(ConnectionString))
-                return new Dictionary<string, string>();
+                return new Dictionary<string, ValueInfo>();
 
             return await GetAll(SERVER_LICENSE);
         }
@@ -155,7 +159,7 @@ namespace vMenuServer
             await Remove(SERVER_LICENSE, key);
         }
 
-        public static async Task Set(string playerLicense, string key, string value)
+        public static async Task Set(string playerLicense, string key, ValueInfo vi)
         {
             using (var connection = new MySqlConnection(ConnectionString))
             {
@@ -164,25 +168,26 @@ namespace vMenuServer
                 var command = new MySqlCommand
                 {
                     Connection = connection,
-                    CommandText = "INSERT INTO `vMenu` (`PlayerLicense`, `Key`, `Value`) VALUES (@playerLicense, @key, @value) ON DUPLICATE KEY UPDATE `Value`=@value"
+                    CommandText = "INSERT INTO `vMenu` (`PlayerLicense`, `Key`, `Value`, `Type`) VALUES (@playerLicense, @key, @value, @type) ON DUPLICATE KEY UPDATE `Value`=@value, `Type`=@type"
                 };
                 command.Parameters.AddWithValue("@playerLicense", playerLicense);
                 command.Parameters.AddWithValue("@key", key.Truncate(64));
-                command.Parameters.AddWithValue("@value", value);
+                command.Parameters.AddWithValue("@value", vi.Value);
+                command.Parameters.AddWithValue("@type", (int)vi.Type);
 
                 await command.ExecuteNonQueryAsync();
             }
         }
 
-        public static async Task Set(string key, string value)
+        public static async Task Set(string key, ValueInfo vi)
         {
             if (string.IsNullOrEmpty(ConnectionString))
                 return;
 
-            await Set(SERVER_LICENSE, key, value);
+            await Set(SERVER_LICENSE, key, vi);
         }
 
-        public static async Task SetAll(string playerLicense, Dictionary<string,string> keyValues)
+        public static async Task SetAll(string playerLicense, Dictionary<string, ValueInfo> keyValues)
         {
             using (var connection = new MySqlConnection(ConnectionString))
             {
@@ -191,11 +196,12 @@ namespace vMenuServer
                 var command = new MySqlCommand
                 {
                     Connection = connection,
-                    CommandText = "INSERT INTO `vMenu` (`PlayerLicense`, `Key`, `Value`) VALUES (@playerLicense, @key, @value) ON DUPLICATE KEY UPDATE `Value`=@value"
+                    CommandText = "INSERT INTO `vMenu` (`PlayerLicense`, `Key`, `Value`, `Type`) VALUES (@playerLicense, @key, @value, @type) ON DUPLICATE KEY UPDATE `Value`=@value, `Type`=@type"
                 };
                 command.Parameters.AddWithValue("@playerLicense", playerLicense);
                 command.Parameters.AddWithValue("@key", null);
                 command.Parameters.AddWithValue("@value", null);
+                command.Parameters.AddWithValue("@type", null);
                 command.Prepare();
 
                 using (var transaction = await connection.BeginTransactionAsync())
@@ -205,7 +211,8 @@ namespace vMenuServer
                         foreach (var kv in keyValues)
                         {
                             command.Parameters["@key"].Value = kv.Key.Truncate(64);
-                            command.Parameters["@value"].Value = kv.Value;
+                            command.Parameters["@value"].Value = kv.Value.Value;
+                            command.Parameters["@type"].Value = kv.Value.Type;
                             await command.ExecuteNonQueryAsync();
                             await BaseScript.Delay(0);
                         }
@@ -220,7 +227,7 @@ namespace vMenuServer
             }
         }
 
-        public static async Task SetAll(Dictionary<string,string> keyValues)
+        public static async Task SetAll(Dictionary<string, ValueInfo> keyValues)
         {
             if (string.IsNullOrEmpty(ConnectionString))
                 return;
@@ -323,7 +330,7 @@ namespace vMenuServer
         private static async Task<Response> HandleRequestSet(string playerLicense, Request requestSet)
         {
             var data = requestSet.DataSet.Value;
-            await DatabaseKeyValueStore.Set(playerLicense, data.Key, data.Value);
+            await DatabaseKeyValueStore.Set(playerLicense, data.Key, data.ValueInfo);
             return new Response
             {
                 DataSet = new Response.ResponseDataSet
@@ -355,14 +362,9 @@ namespace vMenuServer
                 .Where(kv => !databaseKvs.ContainsKey(kv.Key))
                 .ToDictionary(kv => kv.Key, kv => kv.Value);
 
-            // We re-add local kv pairs so we always have string values
-            foreach (var kv in localKvs)
-            {
-                SetResourceKvp(kv.Key, kv.Value);
-            }
             foreach (var kv in databaseKvs)
             {
-                SetResourceKvp(kv.Key, kv.Value);
+                SetLocal(kv.Key, kv.Value);
             }
             try
             {
@@ -387,17 +389,20 @@ namespace vMenuServer
             }
         }
 
-        public async static Task Set(string key, string value)
+        private async static Task Set(string key, ValueInfo vi)
         {
-            SetResourceKvp(key, value);
+            SetLocal(key, vi);
+            await DatabaseKeyValueStore.Set(key, vi);
             try
             {
-                await DatabaseKeyValueStore.Set(key, value);
+                await DatabaseKeyValueStore.Set(key, vi);
             }
             catch (MySqlException e)
             {
-                Debug.WriteLine($"Error setting \"{key}={value}\" in database key-value store: {e.Message}");
+                Debug.WriteLine($"Error setting \"{key}={vi.Value}\" in database key-value store: {e.Message}");
             }
         }
+
+        public async static Task Set(string key, string value) => await Set(key, new ValueInfo(value));
     }
 }

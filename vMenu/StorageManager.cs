@@ -51,7 +51,7 @@ namespace vMenuClient
         public static Dictionary<string, PedInfo> GetSavedPeds()
         {
             return KeyValueStore
-                .GetAllWithPrefix("ped_")
+                .GetAllWithPrefixString("ped_")
                 .ToDictionary(kv => kv.Key, kv => JsonConvert.DeserializeObject<PedInfo>(kv.Value));
         }
 
