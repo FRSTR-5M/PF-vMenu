@@ -443,9 +443,9 @@ namespace vMenuServer
         /// <param name="y"></param>
         /// <param name="z"></param>
         [EventHandler("vMenu:ClearArea")]
-        internal void ClearAreaNearPos(float x, float y, float z)
+        internal void ClearAreaNearPos([FromSource] Player _, float x, float y, float z, float radius)
         {
-            TriggerClientEvent("vMenu:ClearArea", x, y, z);
+            TriggerClientEvent("vMenu:ClearArea", x, y, z, radius);
         }
         #endregion
 
@@ -931,6 +931,74 @@ namespace vMenuServer
 
             vehEntity.State["Set:ReduceDriftSuspension"] = reduceDriftSuspension.Value ? false : true;
             TriggerClientEvent("vMenu:SetDriftSuspension", vehNetId, vehEntity.State["Set:ReduceDriftSuspension"]);
+        }
+
+        #endregion
+
+        #region Entity Spawner
+
+        private Dictionary<string, Stack<Entity>> playerEntities = new Dictionary<string, Stack<Entity>>();
+
+        [EventHandler("vMenu:EntitySpawnerAdd")]
+        public void EntitySpawnerAdd([FromSource] Player player, int entityId)
+        {
+            var license = player.Identifiers["license"];
+
+            playerEntities.TryGetValue(license, out var entities);
+            if (entities == null)
+            {
+                entities = playerEntities[license] = new Stack<Entity>();
+            }
+            var entity = Entity.FromNetworkId(entityId);
+            entities.Push(entity);
+        }
+
+        [EventHandler("vMenu:EntitySpawnerRemoveMostRecent")]
+        public void EntitySpawnerRemoveMostRecent([FromSource] Player player)
+        {
+            var license = player.Identifiers["license"];
+            playerEntities.TryGetValue(license, out var entities);
+
+            if (entities == null)
+                return;
+
+            while (entities.Count > 0)
+            {
+                var entity = entities.Pop();
+                if (DoesEntityExist(entity.Handle))
+                {
+                    DeleteEntity(entity.Handle);
+                    break;
+                }
+            }
+        }
+
+        [EventHandler("vMenu:EntitySpawnerRemoveAll")]
+        public void EntitySpawnerRemoveAll()
+        {
+            foreach (var entities in playerEntities.Values)
+            {
+                if (entities == null)
+                    continue;
+
+                foreach (var entity in entities)
+                {
+                    if (DoesEntityExist(entity.Handle))
+                    {
+                        DeleteEntity(entity.Handle);
+                    }
+                }
+            }
+            playerEntities.Clear();
+        }
+
+        [EventHandler("onResourceStop")]
+        public void OnResourceStop(string resource)
+        {
+            if (resource == GetCurrentResourceName())
+            {
+                EntitySpawnerRemoveAll();
+            }
         }
 
         #endregion

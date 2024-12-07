@@ -196,15 +196,18 @@ namespace vMenuClient.menus
             var dimensionsDistanceSlider = new MenuSliderItem("Show Outlines Radius", "Change the outline draw range.", 0, 20, 0, false);
             var copyEntityInfo = new MenuItem("Copy Entity Info", "Copies information about the entities surrounding you to the clipboard (you must enable at least one of the outline and entity information checkboxes below for this to work).");
 
-            var clearArea = new MenuItem("Clear Area", "Clears the area around your player (100 meters). Damage, dirt, peds, props, vehicles, etc. Everything gets cleaned up, fixed and reset to the default world state.");
+            var clearArea = new MenuListItem("Clear Area", new List<string>{"5 m", "10 m", "25 m", "50 m", "100 m", "250 m", "500 m", "1000 m"}, 2, "Clears the area around your player. Damage, dirt, peds, props, vehicles, etc. get cleaned up, fixed and reset to the default world state.");
 
             ResetIndex = new MenuCheckboxItem("Reset Index", "Resets index once you go to main menu.", false);
 
             // Entity spawner
+            var spawnDynamicEntities = new MenuCheckboxItem("Spawn Dynamic Entities", "Check this to spawn dynamic (movable) entities. Otherwise static (frozen) entities are spawned.", false);
             var spawnNewEntity = new MenuItem("Spawn New Entity", "Spawns entity into the world and lets you set its position and rotation");
             var confirmEntityPosition = new MenuItem("Confirm Entity Position", "Stops placing entity and sets it at it current location.");
-            var cancelEntity = new MenuItem("Cancel", "Deletes current entity and cancels its placement");
             var confirmAndDuplicate = new MenuItem("Confirm Entity Position And Duplicate", "Stops placing entity and sets it at it current location and creates new one to place.");
+            var cancelEntity = new MenuItem("Cancel", "Deletes current entity and cancels its placement");
+            var removeLastSpawnedEntity = new MenuItem("Undo Place", "Undo the placement of entities in reverse order.");
+            var removeSpawnedEntities = new MenuItem("~y~Remove All~s~", "Deletes all entities placed by all players.");
 
             var connectionSubmenu = Lm.GetMenu(new Menu(MenuTitle, "Connection Options"));
             var connectionSubmenuBtn = new MenuItem("Connection Options", "Server connection/game quit options.");
@@ -542,12 +545,12 @@ namespace vMenuClient.menus
                 };
             }
 
-            developerToolsMenu.OnItemSelect += (sender, item, index) =>
+            developerToolsMenu.OnListItemSelect += (sender, item, selectedIndex, itemIndex) =>
             {
                 if (item == clearArea)
                 {
                     var pos = Game.PlayerPed.Position;
-                    BaseScript.TriggerServerEvent("vMenu:ClearArea", pos.X, pos.Y, pos.Z);
+                    BaseScript.TriggerServerEvent("vMenu:ClearArea", pos.X, pos.Y, pos.Z, float.Parse(item.GetCurrentSelection().Split([' '])[0]));
                 }
             };
 
@@ -566,10 +569,13 @@ namespace vMenuClient.menus
                 MenuController.BindMenuItem(developerToolsMenu, entitySpawnerMenu, entSpawnerMenuBtn);
 
 
+                entitySpawnerMenu.AddMenuItem(spawnDynamicEntities);
                 entitySpawnerMenu.AddMenuItem(spawnNewEntity);
                 entitySpawnerMenu.AddMenuItem(confirmEntityPosition);
                 entitySpawnerMenu.AddMenuItem(confirmAndDuplicate);
                 entitySpawnerMenu.AddMenuItem(cancelEntity);
+                entitySpawnerMenu.AddMenuItem(removeLastSpawnedEntity);
+                entitySpawnerMenu.AddMenuItem(removeSpawnedEntities);
 
                 entitySpawnerMenu.OnItemSelect += async (sender, item, index) =>
                 {
@@ -611,6 +617,21 @@ namespace vMenuClient.menus
                         {
                             Notify.Error("No entity to cancel!");
                         }
+                    }
+                    else if (item == removeLastSpawnedEntity)
+                    {
+                        EntitySpawner.RemoveMostRecent();
+                    }
+                    else if (item == removeSpawnedEntities)
+                    {
+                        EntitySpawner.RemoveAll();
+                    }
+                };
+                entitySpawnerMenu.OnCheckboxChange += (_sender, item, ix, checked_) =>
+                {
+                    if (item == spawnDynamicEntities)
+                    {
+                        EntitySpawner.SpawnDynamic = checked_;
                     }
                 };
             }

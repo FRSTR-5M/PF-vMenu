@@ -207,12 +207,7 @@ namespace vMenuClient
                 vMenuKey = "M";
             }
 
-            if (IsAllowed(Permission.NoClip))
-            {
-                RegisterKeyMapping($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:NoClip", "vMenu NoClip Toggle Button", "keyboard", NoClipKey);
-            }
-
-            RegisterKeyMapping($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:toggle", "vMenu Toggle Button", "keyboard", vMenuKey);
+            RegisterKeyMapping($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:toggle", "Menu Open/Close", "keyboard", vMenuKey);
             #endregion
 
             if (EnableExperimentalFeatures)
@@ -681,6 +676,11 @@ namespace vMenuClient
             {
                 NoClipKey = "F2";
             }
+
+            if (IsAllowed(Permission.NoClip))
+            {
+                RegisterKeyMapping($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:NoClip", "NoClip Toggle", "keyboard", NoClipKey);
+            }
             // Create the main menu.
             Menu = new WMenu(MenuTitle, "Main Menu");
 
@@ -879,6 +879,13 @@ namespace vMenuClient
 
             #region Vehicle Submenu
 
+            {
+                var spawnLast = new MenuItem("Spawn Last Vehicle", "Spawn your last spawned vehicle again.").ToWrapped();
+                VehicleSubmenu.AddItem(spawnLast);
+
+                spawnLast.Selected += async (_s, _args) => await SpawnLastVehicle();
+            }
+
             // Add the vehicle spawner menu.
             if (IsAllowed(Permission.VSMenu))
             {
@@ -936,70 +943,129 @@ namespace vMenuClient
                     "Teleport to your waypoint or various other locations, and save custom teleport locations.");
             }
 
-            #region Practice Quick Access Menu
+            #region Practice Menu
+            if (IsAllowed(Permission.VSMenu) && IsAllowed(Permission.TPMenu) && IsAllowed(Permission.TPTeleportToPrev))
             {
-                var qaMenu = new WMenu(MenuTitle, "Practice Quick Access");
+                var practiceMenu = new WMenu(MenuTitle, "Practice");
+                var practiceQaVehicleMenu = new WMenu(MenuTitle, "Practice Vehicle");
+                var practiceQaTeleportMenu = new WMenu(MenuTitle, "Practice Teleport");
+                TeleportOptions.PrevTpState? practiceTpState = null;
 
-
-                var vehicleSect = new List<WMenuItem>();
-
-                if (IsAllowed(Permission.VSMenu))
+                async Task PracticeRetry()
                 {
-                    var allVehsButton = new MenuItem("Vehicles List", "A list of all vehicles that you can also filter.").ToWrapped();
-                    qaMenu.BindSubmenu(VehicleSpawnerMenu.AllVehiclesMenu, allVehsButton);
-                    vehicleSect.Add(allVehsButton);
+                    if (practiceTpState == null)
+                    {
+                        Notify.Error("You do not have a practice location set. To do so, use the ~b~Set Practice Location~s~ button below.");
+                        return;
+                    }
+
+                    await TeleportOptionsMenu.TeleportToPrevTpLocation(practiceTpState.Value);
+
+                    Vehicle vehicle = Game.PlayerPed.CurrentVehicle;
+                    if(LastVehicleModel is uint)
+                    {
+                        await SpawnLastVehicle(spawnInside: true, replacePrevious: true);
+                        vehicle = Game.PlayerPed.CurrentVehicle;
+                    }
+
+                    if (vehicle != null && vehicle.Driver == Game.PlayerPed)
+                    {
+                        vehicle?.Repair();
+
+                        if (practiceTpState.Value.VehicleState is TeleportOptions.PrevTpVehicleState vehicleState)
+                        {
+                            TeleportOptionsMenu.ApplyPrevTpVehicleState(vehicleState);
+                        }
+                    }
+                }
+
+                void SetPracticeLocation()
+                {
+                    practiceTpState = TeleportOptionsMenu.CurrentTpLocationState;
+                    Notify.Info("Practice location set.");
+                }
+
+                {
+                    var resetButton = new MenuItem("Retry", "Retry from your practice location in a repaired version of your last spawned vehicle. ~g~You can create a key bind for this in the GTA settings.~s~").ToWrapped();
+                    practiceMenu.AddItem(resetButton);
+
+                    resetButton.Selected += async (_s, _args) => await PracticeRetry();
+
+                    RegisterKeyMapping($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:practiceRetry", "Practice: Retry", "keyboard", "");
+                    RegisterCommand($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:practiceRetry", new Action<dynamic, List<dynamic>, string>(async (dynamic source, List<dynamic> args, string rawCommand) =>
+                    {
+                        if (!vMenuEnabled)
+                            return;
+
+                        await PracticeRetry();
+                    }), false);
+
+                    RegisterKeyMapping($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:practiceLocationSet", "Practice: Set Practice Location", "keyboard", "");
+                    RegisterCommand($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:practiceLocationSet", new Action<dynamic, List<dynamic>, string>((dynamic source, List<dynamic> args, string rawCommand) =>
+                    {
+                        if (!vMenuEnabled)
+                            return;
+
+                        SetPracticeLocation();
+                    }), false);
+
+
+                    var setPracticeLocationBtn = new MenuItem(
+                        "Set Practice Location",
+                        "Set the practice location to your current position. If you are in a vehicle, its momentum will also be saved and re-applied when you retry. ~g~You can create a key bind for this in the GTA settings.~s~").ToWrapped();
+                    setPracticeLocationBtn.Selected += (_s, _args) => SetPracticeLocation();
+
+                    practiceMenu.AddItem(setPracticeLocationBtn);
+
+
+                    var spawnLastBtn = new MenuItem("Spawn Last Vehicle", "Spawn your last spawned vehicle again.").ToWrapped();
+                    spawnLastBtn.Selected += async (_s, _args) => await SpawnLastVehicle();
+                    practiceQaVehicleMenu.AddItem(spawnLastBtn);
+
+                    practiceQaVehicleMenu.AddSubmenu(VehicleSpawnerMenu.AllVehiclesMenu);
 
                     var spawnRandomButton = new MenuItem("Spawn Random Sporty Vehicle", "Spawn a random, but sporty land-based vehicle.").ToWrapped();
                     spawnRandomButton.Selected += async (_s, _args) => await VehicleSpawnerMenu.SpawnRandomSportyVehicle();
-                    vehicleSect.Add(spawnRandomButton);
+                    practiceQaVehicleMenu.AddItem(spawnRandomButton);
                 }
+
                 if (IsAllowed(Permission.VOMenu) && IsAllowed(Permission.VORepair))
                 {
-                    var fixVehicle = new MenuItem(
-                        "Repair Vehicle",
-                        "Repair you vehicle's visual and physical damage.").ToWrapped();
-                    fixVehicle.Selected += (_s, _args) =>
+                    var repairVehicleBtn = new MenuItem("Repair Vehicle", "Repair your current vehicle.").ToWrapped();
+                    repairVehicleBtn.Selected += (_s, _args) =>
                     {
                         var veh = TryGetDriverVehicle("repair");
                         veh?.Repair();
                     };
-
-                    vehicleSect.Add(fixVehicle);
+                    practiceQaVehicleMenu.AddItem(repairVehicleBtn);
                 }
 
+                practiceMenu.AddSubmenu(practiceQaVehicleMenu, "Spawn a new practice vehicle, or repair your current one.");
 
-                var tpSect = new List<WMenuItem>();
 
-                if (IsAllowed(Permission.TPMenu) && IsAllowed(Permission.TPTeleportToPrev))
+                if (IsAllowed(Permission.TPTeleportToWp))
                 {
-                    var tpToPrevBtn = new MenuItem(
-                        "Teleport To Previous Location",
-                        "Teleport to the location you last teleported to.").ToWrapped();
-                    tpToPrevBtn.Selected += async (_s, _args) => await TeleportOptionsMenu.TeleportToPrevTPLocation();
-
-                    var overridePrevBtn = new MenuItem(
-                        "Override Previous Location",
-                        "Overrides the previous teleport location with your current position. If you are in a vehicle, the vehicle's momentum will also be saved.").ToWrapped();
-                    overridePrevBtn.Selected += (_s, _args) => TeleportOptionsMenu.OverridePrevLocation();
-
                     var tpToWaypoint = new MenuItem(
                         "Teleport To Waypoint",
                         "Teleport to the waypoint on your map.").ToWrapped();
                     tpToWaypoint.Selected += async (_s, _args) => await TeleportOptionsMenu.TeleportToWaypoint();
-
-                    qaMenu.BindSubmenu(TeleportOptionsMenu.PersonalTpLocationsMenu, out WMenuItem tpToPersonalBtn, "Teleport to your personal teleport locations");
-                    qaMenu.BindSubmenu(TeleportOptionsMenu.ServerTpLocationsMenu, out WMenuItem tpToServerBtn, "Teleport to pre-configured locations, added by the server owner.");
-
-                    tpSect.AddRange([tpToPrevBtn, overridePrevBtn, tpToWaypoint, tpToPersonalBtn, tpToServerBtn]);
+                    practiceQaTeleportMenu.AddItem(tpToWaypoint);
                 }
 
+                if (IsAllowed(Permission.TPTeleportPersonalLocations))
+                {
+                    practiceQaTeleportMenu.AddSubmenu(TeleportOptionsMenu.PersonalTpLocationsMenu, "Teleport to your personal teleport locations.");
+                }
 
-                qaMenu.AddSections([
-                    new Section("Vehicle", vehicleSect),
-                    new Section("Teleport", tpSect)
-                ]);
+                if (IsAllowed(Permission.TPTeleportLocations))
+                {
+                    practiceQaTeleportMenu.AddSubmenu(TeleportOptionsMenu.ServerTpLocationsMenu, "Teleport to pre-configured locations, added by the server owner.");
+                }
 
-                Menu.AddSubmenu(qaMenu, "Quick access to some functions useful for practicing.");
+                practiceMenu.AddSubmenu(practiceQaTeleportMenu, "Teleport to your waypoint, or pre-set locations useful for practicing. ~y~Do not forget to set the practice location after you teleported!~s~");
+
+
+                Menu.AddSubmenu(practiceMenu, "Access to functions that are useful for practicing.");
             }
             #endregion
 
@@ -1054,8 +1120,7 @@ namespace vMenuClient
             }
 
             #region Admin Stuff
-            var adminSect = new List<WMenuItem>();
-
+            WMenu adminMenu = new WMenu(MenuTitle, "Admin Menus");
 
             // Add the online players menu.
             if (IsAllowed(Permission.OPMenu))
@@ -1074,7 +1139,7 @@ namespace vMenuClient
                     OnlinePlayersMenu.GetMenu().RefreshIndex();
                 };
 
-                adminSect.Add(button);
+                adminMenu.AddItem(button);
             }
 
             if (IsAllowed(Permission.OPUnban) || IsAllowed(Permission.OPViewBannedPlayers))
@@ -1091,7 +1156,7 @@ namespace vMenuClient
                     BannedPlayersMenu.GetMenu().RefreshIndex();
                 };
 
-                adminSect.Add(button);
+                adminMenu.AddItem(button);
             }
 
             if (IsAllowed(Permission.NoClip))
@@ -1102,7 +1167,7 @@ namespace vMenuClient
                     NoClipEnabled = !NoClipEnabled;
                 };
 
-                adminSect.Add(toggleNoclip);
+                adminMenu.AddItem(toggleNoclip);
             }
 
             if (IsAllowed(Permission.TWServerMenu) && GetSettingsBool(Setting.vmenu_enable_time_weather_sync))
@@ -1113,7 +1178,7 @@ namespace vMenuClient
                     out WMenuItem button,
                     "Change the server time and weather.");
 
-                adminSect.Add(button);
+                adminMenu.AddItem(button);
             }
 
             if (IsAllowed(Permission.WRNPCOptions, true) && GetSettingsBool(Setting.vmenu_enable_npc_density))
@@ -1132,7 +1197,7 @@ namespace vMenuClient
                     DensityOptions.GetMenu().RefreshIndex();
                 };
 
-                adminSect.Add(button);
+                adminMenu.AddItem(button);
             }
 
             // Add Plugin Settings Menu
@@ -1144,11 +1209,11 @@ namespace vMenuClient
                     out WMenuItem button,
                     "Plugins settings and status.");
 
-                adminSect.Add(button);
+                adminMenu.AddItem(button);
             }
 
 
-            Menu.AddSection("Admin Options", adminSect, false);
+            Menu.AddSubmenu(adminMenu);
             #endregion
 
             Menu.Closed += (_s, _args) =>

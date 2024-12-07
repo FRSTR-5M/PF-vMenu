@@ -763,9 +763,9 @@ namespace vMenuClient.data
                     return true;
 
                 return
-                    info.Name.ToLower().Contains(Name) ||
-                    info.Shortname.ToLower().Contains(Name) ||
-                    (!string.IsNullOrEmpty(name) && name.Contains(Name));
+                    info.Name.ToLower().Contains(Name.ToLower()) ||
+                    info.Shortname.ToLower().Contains(Name.ToLower()) ||
+                    (!string.IsNullOrEmpty(name) && name.ToLower().Contains(Name.ToLower()));
             }
 
             private bool IsManufacturerMatching(VehicleModelInfo info)

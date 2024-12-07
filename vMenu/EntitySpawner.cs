@@ -17,6 +17,8 @@ namespace vMenuClient
 
         private const float RayDistance = 25f;
 
+        public static bool SpawnDynamic { get; set; }
+
         /// <summary>
         /// Constructor.
         /// </summary>
@@ -108,6 +110,7 @@ namespace vMenuClient
         /// </summary>
         public static async void FinishPlacement(bool duplicate = false)
         {
+            TriggerServerEvent("vMenu:EntitySpawnerAdd", CurrentEntity.NetworkId);
             if (duplicate)
             {
                 var hash = CurrentEntity.Model.Hash;
@@ -121,6 +124,15 @@ namespace vMenuClient
                 Active = false;
                 CurrentEntity = null;
             }
+        }
+
+        public static void RemoveMostRecent()
+        {
+            TriggerServerEvent("vMenu:EntitySpawnerRemoveMostRecent");
+        }
+        public static void RemoveAll()
+        {
+            TriggerServerEvent("vMenu:EntitySpawnerRemoveAll");
         }
 
         #endregion
@@ -266,8 +278,11 @@ namespace vMenuClient
 
                 await Delay(0);
 
-                FreezeEntityPosition(handle, false);
-                SetEntityInvincible(handle, false);
+                if (SpawnDynamic)
+                {
+                    FreezeEntityPosition(handle, false);
+                    SetEntityInvincible(handle, false);
+                }
                 SetEntityCollision(handle, true, true);
                 ResetEntityAlpha(handle);
             }

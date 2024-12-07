@@ -33,7 +33,7 @@ namespace vMenuClient
             EventHandlers.Add("vMenu:SetClouds", new Action<float, string>(SetClouds));
             EventHandlers.Add("vMenu:GoodBye", new Action(GoodBye));
             EventHandlers.Add("vMenu:SetBanList", new Action<string>(UpdateBanList));
-            EventHandlers.Add("vMenu:ClearArea", new Action<float, float, float>(ClearAreaNearPos));
+            EventHandlers.Add("vMenu:ClearArea", new Action<float, float, float, float>(ClearAreaNearPos));
             EventHandlers.Add("vMenu:updatePedDecors", new Action(UpdatePedDecors));
             EventHandlers.Add("playerSpawned", new Action(SetAppearanceOnFirstSpawn));
             EventHandlers.Add("vMenu:GetOutOfCar", new Action<int, int>(GetOutOfCar));
@@ -308,9 +308,9 @@ namespace vMenuClient
         /// <param name="x"></param>
         /// <param name="y"></param>
         /// <param name="z"></param>
-        private void ClearAreaNearPos(float x, float y, float z)
+        private void ClearAreaNearPos(float x, float y, float z, float radius = 100f)
         {
-            ClearAreaOfEverything(x, y, z, 100f, false, false, false, false);
+            ClearAreaOfEverything(x, y, z, radius, false, false, false, false);
         }
 
         /// <summary>

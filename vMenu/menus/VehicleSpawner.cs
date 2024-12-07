@@ -26,7 +26,7 @@ namespace vMenuClient.menus
             public WMenuItem CustomClass;
             public WMenuItem DefaultClass;
 
-            public int Count => 1 + 2 + (CustomClass != null ? 1 : 0) + (DefaultClass != null ? 1 : 0);
+            public int Count => 2 + (CustomClass != null ? 1 : 0) + (DefaultClass != null ? 1 : 0);
         }
 
         // Variables
@@ -36,6 +36,9 @@ namespace vMenuClient.menus
         public WMenu AllVehiclesMenu;
         private VehicleData.VehicleFilter filter;
         FilterItems filterItems;
+
+        private bool searchingByName = false;
+
 
         public void ResetAllVehiclesFilter()
         {
@@ -98,6 +101,14 @@ namespace vMenuClient.menus
             btn.Selected += async (_s, _args) => await SpawnVehicle(vi.Shortname, SpawnInVehicle, ReplaceVehicle, SpawnNpcLike);
 
             return btn;
+        }
+
+        private static void SetIndexPastFilters(WMenu menu, FilterItems filterItems)
+        {
+            if (menu.Menu.CurrentIndex < filterItems.Count && menu.Count > filterItems.Count)
+            {
+                menu.Menu.RefreshIndex(filterItems.Count, 0);
+            }
         }
 
         private void AddFilterItems(WMenu vehiclesMenu)
@@ -245,8 +256,15 @@ namespace vMenuClient.menus
                 Menu.ControlPressCheckType.JUST_RELEASED,
                 (m, _c) =>
                 {
-                    vehiclesMenu.Menu.RefreshIndex();
-                    vehiclesMenu.ResetIncrement();
+                    if (vehiclesMenu.CurrentIndex < filterItems.Count)
+                    {
+                        SetIndexPastFilters(vehiclesMenu, filterItems);
+                    }
+                    else
+                    {
+                        vehiclesMenu.Menu.RefreshIndex();
+                        vehiclesMenu.ResetIncrement();
+                    }
                 },
                 true));
         }
@@ -277,6 +295,21 @@ namespace vMenuClient.menus
                 var btn = CreateSpawnVehicleButton(vehicle);
                 vehiclesMenu.AddItem(btn);
             }
+
+            vehiclesMenu.Opened += (s, args) =>
+            {
+                SetIndexPastFilters(vehiclesMenu, filterItems);
+            };
+
+            vehiclesMenu.Closed += (_s, _args) =>
+            {
+                if (searchingByName)
+                {
+                    ResetAllVehiclesFilter();
+                    FilterAllVehiclesMenu();
+                }
+                searchingByName = false;
+            };
 
             return vehiclesMenu;
         }
@@ -370,10 +403,10 @@ namespace vMenuClient.menus
                     }
                     else
                     {
+                        searchingByName = true;
                         MenuController.CloseAllMenus();
                         MenuController.AddSubmenu(menu.Menu, AllVehiclesMenu.Menu);
                         AllVehiclesMenu.Menu.OpenMenu();
-                        AllVehiclesMenu.Menu.RefreshIndex(filterItems.Count);
                     }
                 };
 

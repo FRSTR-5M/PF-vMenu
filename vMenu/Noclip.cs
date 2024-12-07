@@ -218,7 +218,7 @@ namespace vMenuClient
                 var yoff = 0.0f;
                 var zoff = 0.0f;
 
-                if (Game.CurrentInputMode == InputMode.MouseAndKeyboard && UpdateOnscreenKeyboard() != 0 && !Game.IsPaused)
+                if (UpdateOnscreenKeyboard() != 0 && !Game.IsPaused)
                 {
                     if (Game.IsControlJustPressed(0, Control.Sprint))
                     {

@@ -139,8 +139,6 @@ namespace vMenuClient
                 set => MenuItem.ItemData = value;
             }
 
-            public bool IsSeparatorItem { get; set; }
-
             public WMenuItem(MenuItem menuItem)
             {
                 if (menuItem == null)
@@ -188,15 +186,9 @@ namespace vMenuClient
                 return button;
             }
 
-            public static WMenuItem CreateSeparatorItem(string text)
+            public static WMenuItem CreateSeparatorItem(string _)
             {
-                var separatorItem = new WMenuItem(
-                    new MenuItem(string.IsNullOrEmpty(text) ? "" : $"~h~~c~— {text} —~h~~s~")
-                    {
-                        Enabled = false,
-                    });
-
-                return separatorItem;
+                return null;
             }
         }
 
@@ -228,50 +220,33 @@ namespace vMenuClient
             public Menu Menu { get; private set; }
 
 
-            private int? PerformIncrement(int initialIndex, bool down)
+            private int PerformIncrement(int initialIndex, bool down)
             {
-                int? nonSeparatorIndex = null;
-
-                int index = initialIndex;
-                int incremented = 0;
-                bool wrapped = false;
-                for (int i = 0; i < Count; i++)
+                if (down && initialIndex == Count - 1)
                 {
-                    if (incremented == Increment || (wrapped && nonSeparatorIndex is not null))
-                        break;
-
-                    if (down && index == Count - 1)
-                    {
-                        ResetIncrement();
-                        if (nonSeparatorIndex is not null)
-                            break;
-
-                        wrapped = true;
-                        index = 0;
-                    }
-                    else if (!down && index == 0)
-                    {
-                        ResetIncrement();
-                        if (nonSeparatorIndex is not null)
-                            break;
-
-                        wrapped = true;
-                        index = Count - 1;
-                    }
-                    else
-                    {
-                        index = index + (down ? 1 : -1);
-                    }
-
-                    var witem = this[index];
-                    if (!witem.IsSeparatorItem)
-                    {
-                        nonSeparatorIndex = index;
-                        incremented++;
-                    }
+                    ResetIncrement();
+                    return 0;
                 }
 
-                return nonSeparatorIndex;
+                if (!down && initialIndex == 0)
+                {
+                    ResetIncrement();
+                    return Count - 1;
+                }
+
+                if (down && initialIndex + Increment >= Count)
+                {
+                    ResetIncrement();
+                    return Count - 1;
+                }
+
+                if (!down && initialIndex - Increment < 0)
+                {
+                    ResetIncrement();
+                    return 0;
+                }
+
+                return initialIndex + (down ? Increment : -Increment);
             }
 
 
@@ -281,11 +256,9 @@ namespace vMenuClient
 
                 Menu.OnIndexChange += (menu, itemOld, itemNew, indexOld, indexNew) =>
                 {
-                    var incrementedIndexNew = PerformIncrement(indexOld, indexNew == indexOld + 1 || (indexNew == 0 && indexOld != 1));
-                    if (incrementedIndexNew is null || incrementedIndexNew == indexOld)
+                    indexNew = PerformIncrement(indexOld, indexNew == indexOld + 1 || (indexNew == 0 && indexOld != 1));
+                    if (indexNew == indexOld)
                         return;
-
-                    indexNew = incrementedIndexNew.Value;
 
                     int newViewIndexOffset = Menu.ViewIndexOffset;
                     if (indexNew < Menu.ViewIndexOffset)
@@ -471,16 +444,10 @@ namespace vMenuClient
                 return this;
             }
 
-            public WMenu AddSection(string text, IEnumerable<WMenuItem> menuItems, bool index0Header = true)
+            public WMenu AddSection(string _1, IEnumerable<WMenuItem> menuItems, bool _2 = true)
             {
                 if (menuItems.Count() == 0)
                     return this;
-
-                if (Menu.GetMenuItems().Count != 0 || index0Header)
-                {
-                    var separator = WMenuItem.CreateSeparatorItem(text);
-                    AddItem(separator);
-                }
 
                 AddItems(menuItems);
 

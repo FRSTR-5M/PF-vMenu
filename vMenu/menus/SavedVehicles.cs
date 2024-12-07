@@ -38,8 +38,10 @@ namespace vMenuClient.menus
             public WMenuItem CustomClass;
             public WMenuItem DefaultClass;
 
-            public int Count => 1 + 2 + (CustomClass != null ? 1 : 0) + (DefaultClass != null ? 1 : 0);
+            public int Count => 2 + (CustomClass != null ? 1 : 0) + (DefaultClass != null ? 1 : 0);
         }
+
+        private bool searchingByName = false;
 
 
         private SavedVehiclesMenuData availableSavedVehiclesMenuData;
@@ -251,6 +253,14 @@ namespace vMenuClient.menus
             return btn;
         }
 
+        private static void SetIndexPastFilters(WMenu menu, FilterItems filterItems)
+        {
+            if (menu.Menu.CurrentIndex < filterItems.Count && menu.Count > filterItems.Count)
+            {
+                menu.Menu.RefreshIndex(filterItems.Count, 0);
+            }
+        }
+
         private void AddFilterItems(WMenu vehiclesMenu)
         {
             filter = new VehicleData.VehicleFilter();
@@ -386,6 +396,7 @@ namespace vMenuClient.menus
                     defaultClassesFilter.AsListItem().ListIndex = 0;
                     filter.DefaultClass = null;
 
+                    FilterAvailableSavedVehiclesMenu();
                     vehiclesMenu.Menu.RefreshIndex(2 + (customClasses.Count > 0 ? 1 : 0));
                 };
 
@@ -399,8 +410,15 @@ namespace vMenuClient.menus
                 Menu.ControlPressCheckType.JUST_RELEASED,
                 (m, _c) =>
                 {
-                    vehiclesMenu.Menu.RefreshIndex(0);
-                    vehiclesMenu.ResetIncrement();
+                    if (vehiclesMenu.CurrentIndex < filterItems.Count)
+                    {
+                        SetIndexPastFilters(vehiclesMenu, filterItems);
+                    }
+                    else
+                    {
+                        vehiclesMenu.Menu.RefreshIndex(0);
+                        vehiclesMenu.ResetIncrement();
+                    }
                 },
                 true));
 
@@ -418,6 +436,24 @@ namespace vMenuClient.menus
             {
                 AddFilterItems(menuData.Menu);
             }
+
+            menuData.Menu.AddIncrementToggle(Control.NextCamera);
+
+            menuData.Menu.Opened += (s, args) =>
+            {
+                SetIndexPastFilters(menuData.Menu, filterItems);
+            };
+
+            menuData.Menu.Closed += (s, args) =>
+            {
+                menuData.Menu.ResetIncrement();
+                if (searchingByName)
+                {
+                    ResetAvailableSavedVehiclesFilter();
+                    FilterAvailableSavedVehiclesMenu();
+                }
+                searchingByName = false;
+            };
 
             return menuData;
         }
@@ -520,6 +556,7 @@ namespace vMenuClient.menus
                     }
                     else
                     {
+                        searchingByName = true;
                         MenuController.CloseAllMenus();
                         availableSavedVehiclesMenuData.Menu.Menu.OpenMenu();
                         availableSavedVehiclesMenuData.Menu.Menu.RefreshIndex(filterItems.Count);

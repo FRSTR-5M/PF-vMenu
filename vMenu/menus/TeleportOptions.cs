@@ -57,7 +57,7 @@ namespace vMenuClient
         {
             if (IsAllowed(Permission.TPTeleportToPrev))
             {
-                RegisterKeyMapping($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:tpToPrevLocation", "vMenu TP To Prev. Location", "keyboard", "");
+                RegisterKeyMapping($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:tpToPrevLocation", "Teleport: TP To Prev. Location", "keyboard", "");
                 RegisterCommand($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:tpToPrevLocation", new Action<dynamic, List<dynamic>, string>(async (dynamic source, List<dynamic> args, string rawCommand) =>
                 {
                     if (!MainMenu.vMenuEnabled)
@@ -69,7 +69,7 @@ namespace vMenuClient
 
             if(IsAllowed(Permission.TPTeleportToPrev))
             {
-                RegisterKeyMapping($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:overridePrevLocation", "vMenu Override Prev. TP Location", "keyboard", "");
+                RegisterKeyMapping($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:overridePrevLocation", "Teleport: Override Prev. Location", "keyboard", "");
                 RegisterCommand($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:overridePrevLocation", new Action<dynamic, List<dynamic>, string>((dynamic source, List<dynamic> args, string rawCommand) =>
                 {
                     if (!MainMenu.vMenuEnabled)
@@ -110,33 +110,75 @@ namespace vMenuClient
         {
             if (prevTpState is PrevTpState state)
             {
-                await TeleportToCoords(state.Coords, state.Safe);
-                if (state.Heading is float heading)
-                {
-                    SetEntityHeading(Game.PlayerPed.Handle, heading);
-                    SetGameplayCamRelativeHeading(0f);
-                }
-
-                if (state.VehicleState is PrevTpVehicleState vehicleState)
-                {
-                    var vehicle = GetVehicle();
-                    if (vehicle != null)
-                    {
-                        vehicle.Speed = vehicleState.Velocity.Length();
-                        vehicle.Velocity = vehicleState.Velocity;
-                        vehicle.Rotation = vehicleState.Rotation;
-
-                        var rv = vehicleState.RotationVelocity;
-                        SetEntityAngularVelocity(vehicle.Handle, rv.X, rv.Y, rv.Z);
-
-                        vehicle.SteeringAngle = vehicleState.SteeringAngle;
-                        vehicle.CurrentRPM = vehicleState.Rpm;
-                    }
-                }
+                await TeleportToPrevTpLocation(state);
             }
             else
             {
                 Notify.Error("There was no previous teleport location. Teleport somewhere or use ~b~Override Previous Location~s~ to set one.");
+            }
+        }
+
+        public void ApplyPrevTpVehicleState(PrevTpVehicleState vehicleState)
+        {
+            var vehicle = GetVehicle();
+            if (vehicle != null)
+            {
+                vehicle.Speed = vehicleState.Velocity.Length();
+                vehicle.Velocity = vehicleState.Velocity;
+                vehicle.Rotation = vehicleState.Rotation;
+
+                var rv = vehicleState.RotationVelocity;
+                SetEntityAngularVelocity(vehicle.Handle, rv.X, rv.Y, rv.Z);
+
+                vehicle.SteeringAngle = vehicleState.SteeringAngle;
+                vehicle.CurrentRPM = vehicleState.Rpm;
+            }
+        }
+
+        public async Task TeleportToPrevTpLocation(PrevTpState state, bool applyVehicleState = false)
+        {
+            await TeleportToCoords(state.Coords, state.Safe);
+            if (state.Heading is float heading)
+            {
+                SetEntityHeading(Game.PlayerPed.Handle, heading);
+                SetGameplayCamRelativeHeading(0f);
+            }
+
+            if (applyVehicleState && state.VehicleState is PrevTpVehicleState vehicleState)
+            {
+                ApplyPrevTpVehicleState(vehicleState);
+            }
+        }
+
+        public PrevTpState CurrentTpLocationState
+        {
+            get
+            {
+                var coords = Game.PlayerPed.Position;
+                var heading = Game.PlayerPed.Heading;
+                PrevTpVehicleState? vehicleState = null;
+
+                var vehicle = GetVehicle();
+                if (vehicle != null)
+                {
+                    vehicleState = new PrevTpVehicleState
+                    {
+                        Velocity = vehicle.Velocity,
+                        Rotation = vehicle.Rotation,
+                        RotationVelocity = vehicle.RotationVelocity,
+                        SteeringAngle = vehicle.SteeringAngle,
+                        Rpm = vehicle.CurrentRPM,
+                        Gear = vehicle.CurrentGear,
+                    };
+                }
+
+                return new PrevTpState
+                {
+                    Coords = coords,
+                    Heading = heading,
+                    VehicleState = vehicleState,
+                    Safe = true
+                };
             }
         }
 
@@ -145,26 +187,7 @@ namespace vMenuClient
         /// </summary>
         public void OverridePrevLocation()
         {
-            var coords = Game.PlayerPed.Position;
-            var heading = Game.PlayerPed.Heading;
-            PrevTpVehicleState? vehicleState = null;
-
-            var vehicle = GetVehicle();
-            if (vehicle != null)
-            {
-                vehicleState = new PrevTpVehicleState
-                {
-                    Velocity = vehicle.Velocity,
-                    Rotation = vehicle.Rotation,
-                    RotationVelocity = vehicle.RotationVelocity,
-                    SteeringAngle = vehicle.SteeringAngle,
-                    Rpm = vehicle.CurrentRPM,
-                    Gear = vehicle.CurrentGear,
-                };
-            }
-
-            SetPrevTpLocation(coords, heading, vehicleState, safe: true);
-
+            prevTpState = CurrentTpLocationState;
             Notify.Info("Previous TP location overridden.");
         }
 
@@ -381,7 +404,7 @@ namespace vMenuClient
 
             if (IsAllowed(Permission.TPTeleportToPrev))
             {
-                var tpToPrev = new MenuItem("Teleport To Previous Location", "Teleport to the location you last teleported to.").ToWrapped();
+                var tpToPrev = new MenuItem("Teleport To Previous Location", "Teleport to the location you last teleported to. ~g~You can create a key bind for this in the GTA settings.~s~").ToWrapped();
                 tpToPrev.Selected += async (_s, _args) => await TeleportToPrevTPLocation();
 
                 tpItems.Add(tpToPrev);
@@ -441,7 +464,7 @@ namespace vMenuClient
             {
                 var overridePrevBtn = new MenuItem(
                     "Override Previous Location",
-                    "Overrides the previous teleport location with your current position. If you are in a vehicle, the vehicle's momentum will also be saved.").ToWrapped();
+                    "Overrides the previous teleport location with your current position. ~g~You can create a key bind for this in the GTA settings.~s~").ToWrapped();
                 overridePrevBtn.Selected += (_s, _args) => OverridePrevLocation();
 
                 setTpSect.Add(overridePrevBtn);

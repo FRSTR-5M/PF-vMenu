@@ -110,7 +110,7 @@ namespace vMenuClient.menus
 
             if (TimeWeatherCommon.WeatherCycles.Count > 0)
             {
-                useDynamicWeather = new MenuCheckboxItem("Enable", "Whether to use dynamic or static weather.", false).ToWrapped();
+                useDynamicWeather = new MenuCheckboxItem("Enable Dynamic Weather", "Whether to use dynamic or static weather.", false).ToWrapped();
                 useDynamicWeather.CheckboxChanged += (_s, args) =>
                 {
                     var serverWeatherSelection = TimeWeatherCommon.GetServerWeatherSelection();
@@ -119,7 +119,7 @@ namespace vMenuClient.menus
                 };
 
                 dynamicWeatherList = new MenuListItem(
-                    "Weather Cycle",
+                    "Dynamic Weather Cycle",
                     TimeWeatherCommon.WeatherCycles.Select(c => c.Name).ToList(),
                     0,
                     "Select the dynamic weather cycle to use.").ToWrapped();
@@ -131,7 +131,7 @@ namespace vMenuClient.menus
                 };
 
                 dynamicWeatherDay = new MenuDynamicListItem(
-                    "Day",
+                    "Dynamic Weather Cycle Day",
                     "1",
                     (_, left) => {
                         DynamicWeatherSelectedDay += left ? -1 : 1;
@@ -152,10 +152,10 @@ namespace vMenuClient.menus
             var staticWeatherSect = new List<WMenuItem>();
 
             weatherTypeList = new MenuListItem(
-                "Weather Type",
+                "Static Weather Type",
                 TimeWeatherCommon.WeatherTypeOptions,
                 0,
-                "Select the weather type.").ToWrapped();
+                "Select the static weather type.").ToWrapped();
             weatherTypeList.ListSelected += (_s, args) =>
             {
                 var serverWeatherSelection = TimeWeatherCommon.GetServerWeatherSelection();
@@ -179,7 +179,7 @@ namespace vMenuClient.menus
             };
 
             snowEnabled = new MenuCheckboxItem(
-                "Snow",
+                "Static Weather Snow",
                 "Enable or disable snow textures (snow is always enabled with ~b~Xmas~s~ weather).",
                 false).ToWrapped();
             snowEnabled.CheckboxChanged += (_s, args) =>
@@ -190,7 +190,7 @@ namespace vMenuClient.menus
             };
 
             blackoutList = new MenuListItem(
-                "Blackout",
+                "Static Weather Blackout",
                 TimeWeatherCommon.BlackoutStateOptionsList,
                 0,
                 "Select the blackout state.").ToWrapped();

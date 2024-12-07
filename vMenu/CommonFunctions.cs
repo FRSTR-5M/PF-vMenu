@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 
 using CitizenFX.Core;
 
+using Freecam2;
+
 using MenuAPI;
 
 using Newtonsoft.Json;
@@ -1295,6 +1297,38 @@ namespace vMenuClient
         }
         #endregion
 
+        #region Spawn last vehicle
+        public static uint? LastVehicleModel { get; private set; }
+        public static VehicleInfo? LastVehicleInfo { get; private set; }
+
+        public async static Task SpawnLastVehicle(bool? spawnInside = null, bool? replacePrevious = null)
+        {
+            if (LastVehicleModel is null)
+            {
+                Notify.Error("There was no previous vehicle. Spawn a vehicle first to use this function.");
+                return;
+            }
+
+            var despawnable = false;
+            if (MainMenu.VehicleSpawnerMenu is VehicleSpawner vehicleSpawner)
+            {
+                spawnInside = spawnInside ?? vehicleSpawner.SpawnInVehicle;
+                replacePrevious = replacePrevious ?? vehicleSpawner.ReplaceVehicle;
+                despawnable = vehicleSpawner.SpawnNpcLike;
+            }
+
+            await SpawnVehicle(
+                vehicleHash: LastVehicleModel.Value,
+                spawnInside: spawnInside ?? true,
+                replacePrevious: replacePrevious ?? true,
+                skipLoad: false,
+                vehicleInfo: LastVehicleInfo ?? new VehicleInfo(),
+                saveName: LastVehicleInfo.HasValue ? "." : "",
+                despawnable: despawnable);
+
+        }
+        #endregion
+
         #region Main Spawn Vehicle Function
         /// <summary>
         /// Spawns a vehicle.
@@ -1327,6 +1361,9 @@ namespace vMenuClient
                 Notify.Error("You are not allowed to spawn this vehicle.");
                 return 0;
             }
+
+            LastVehicleModel = vehicleHash;
+            LastVehicleInfo = string.IsNullOrEmpty(saveName) ? null : vehicleInfo;
 
             if (!skipLoad)
             {
@@ -1444,7 +1481,7 @@ namespace vMenuClient
             }
 
             // If mod info about the vehicle was specified, check if it's not null.
-            if (saveName != null)
+            if (!string.IsNullOrEmpty(saveName))
             {
                 ApplyVehicleModsDelayed(vehicle, vehicleInfo, 500);
             }
