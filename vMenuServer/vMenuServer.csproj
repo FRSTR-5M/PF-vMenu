@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="MySql.Data" Version="8.0.32" />
+    <PackageReference Include="MySqlConnector" Version="2.1.13" />
     <Reference Include="Microsoft.CSharp" />
     
     <PackageReference Include="CitizenFX.Core.Server" Version="1.0.6335">

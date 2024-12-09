@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 using CitizenFX.Core;
 
-using MySql.Data.MySqlClient;
+using MySqlConnector;
 
 using Newtonsoft.Json;
 
@@ -92,6 +92,7 @@ namespace vMenuServer
                 return;
             }
 
+            Debug.WriteLine("Successfully connected to database.");
             SetConvarReplicated(ConfigManager.Setting.vmenu_server_store.ToString(), "true");
         }
 
