@@ -500,11 +500,11 @@ namespace vMenuClient.data
             public static string GetManufacturer(uint hash)
             {
                 string makename = GetMakeNameFromVehicleModel(hash);
-                if (string.IsNullOrWhiteSpace(makename) || makename == "CARNOTFOUND")
+                if (string.IsNullOrWhiteSpace(makename) || makename == "CARNOTFOUND" || makename == "(null)")
                     return "NULL";
 
                 string labelname = GetLabelText(makename);
-                if (labelname == "NULL")
+                if (labelname == "NULL" || labelname == "(null)")
                     return makename;
 
                 return labelname;
