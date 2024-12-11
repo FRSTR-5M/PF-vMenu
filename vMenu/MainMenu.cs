@@ -240,44 +240,55 @@ namespace vMenuClient
             {
                 RegisterCommand("dv", new Action<dynamic, List<dynamic>, string>((dynamic source, List<dynamic> args, string rawCommand) =>
                 {
-                    var player = Game.PlayerPed.Handle;
-                    if (DoesEntityExist(player) && !IsEntityDead(player))
+                    if (IsAllowed(Permission.VODelete))
                     {
-                        var position = GetEntityCoords(player, true);
-                        if (IsPedSittingInAnyVehicle(player))
+                        var player = Game.PlayerPed.Handle;
+                        if (DoesEntityExist(player) && !IsEntityDead(player))
                         {
-                            var veh = GetVehicle();
-                            if ( GetPedInVehicleSeat(veh.Handle, -1) == player)
+                            var position = GetEntityCoords(player, true);
+                            if (IsPedSittingInAnyVehicle(player))
                             {
-                                DelVeh(veh, 5, veh.Handle);
+                                var veh = GetVehicle();
+                                if ( GetPedInVehicleSeat(veh.Handle, -1) == player)
+                                {
+                                    DelVeh(veh, 5, veh.Handle);
+                                }
+                                else
+                                {
+                                    Notify.Error("You must be in the driver's seat to delete this vehicle!");
+                                    if (vMenuShared.ConfigManager.GetSettingsBool(vMenuShared.ConfigManager.Setting.pfvmenu_moshnotify_setting))
+                                    {
+                                        //TriggerEvent("mosh_notify:notify", "ERROR", "<span class=\"text-white\">You must be in the driver's seat to delete this vehicle!</span>", "darkred", "error", 5000);
+                                    }
+                                }
+                            }
+                            else if (IsAllowed(Permission.DVAll))
+                            {
+                                var inFrontOfPlayer = GetOffsetFromEntityInWorldCoords(player, (float)0.0, (float)GetSettingsFloat(Setting.vmenu_dv_distance), (float)0.0);
+                                var vehicle = GetVehInDirection(player, position, inFrontOfPlayer);
+                                if (!(vehicle == 0))
+                                {
+                                    Vehicle veh = (Vehicle)Entity.FromHandle(vehicle);
+                                    DelVeh(veh, GetSettingsInt(Setting.vmenu_dv_retries), vehicle);
+                                }
+                                else
+                                {
+                                    Notify.Error("No vehicle found. Maybe it's not close to you?");
+                                    if (vMenuShared.ConfigManager.GetSettingsBool(vMenuShared.ConfigManager.Setting.pfvmenu_moshnotify_setting))
+                                    {
+                                        //TriggerEvent("mosh_notify:notify", "ERROR", "<span class=\"text-white\">No vehicle found. Maybe it's not close to you?</span>", "darkred", "error", 5000);
+                                    }
+                                }
                             }
                             else
                             {
-                                Notify.Error("You must be in the driver's seat to delete this vehicle!");
-                                if (vMenuShared.ConfigManager.GetSettingsBool(vMenuShared.ConfigManager.Setting.pfvmenu_moshnotify_setting))
-                                {
-                                    //TriggerEvent("mosh_notify:notify", "ERROR", "<span class=\"text-white\">You must be in the driver's seat to delete this vehicle!</span>", "darkred", "error", 5000);
-                                }
+                                Notify.Error("You do NOT have permission to use this command on other vehicles.");
                             }
                         }
-                        else
-                        {
-                            var inFrontOfPlayer = GetOffsetFromEntityInWorldCoords(player, (float)0.0, (float)GetSettingsFloat(Setting.vmenu_dv_distance), (float)0.0);
-                            var vehicle = GetVehInDirection(player, position, inFrontOfPlayer);
-                            if (!(vehicle == 0))
-                            {
-                                Vehicle veh = (Vehicle)Entity.FromHandle(vehicle);
-                                DelVeh(veh, GetSettingsInt(Setting.vmenu_dv_retries), vehicle);
-                            }
-                            else
-                            {
-                                Notify.Error("No vehicle found. Maybe it's not close to you?");
-                                if (vMenuShared.ConfigManager.GetSettingsBool(vMenuShared.ConfigManager.Setting.pfvmenu_moshnotify_setting))
-                                {
-                                    //TriggerEvent("mosh_notify:notify", "ERROR", "<span class=\"text-white\">No vehicle found. Maybe it's not close to you?</span>", "darkred", "error", 5000);
-                                }
-                            }
-                        }
+                    }
+                    else
+                    {
+                        Notify.Error("You do NOT have permission to use this command.");
                     }
                 }), false);
                 TriggerEvent("chat:addSuggestion", "/dv", "Deletes the vehicle you're sat in, or standing next to.");
