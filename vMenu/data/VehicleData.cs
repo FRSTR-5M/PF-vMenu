@@ -514,21 +514,21 @@ namespace vMenuClient.data
             {
                 Shortname = shortname;
                 Hash = (uint)GetHashKey(shortname);
-
-                bool hasProperName;
-                Name = GetName(Hash, shortname, out hasProperName);
-                HasProperName = hasProperName;
-
-                Manufacturer = GetManufacturer(Hash);
-                Class = GetVehicleClassFromName(Hash);
             }
 
             public uint Hash { get; }
             public string Shortname { get; }
-            public string Name { get; } = null;
-            public bool HasProperName { get; } = false;
-            public string Manufacturer { get; } = null;
-            public int Class { get; }
+            public string Name => GetName(Hash, Shortname, out var _);
+            public bool HasProperName
+            {
+                get
+                {
+                    GetName(Hash, Shortname, out var hasProperName);
+                    return hasProperName;
+                }
+            }
+            public string Manufacturer => GetManufacturer(Hash);
+            public int Class => GetVehicleClassFromName(Hash);
             public string ClassName => GetLabelText($"VEH_CLASS_{Class}");
             public bool IsAddon
             {
