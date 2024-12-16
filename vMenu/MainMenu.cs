@@ -186,7 +186,7 @@ namespace vMenuClient
 
             RegisterCommand($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:toggle", new Action<dynamic, List<dynamic>, string>((dynamic source, List<dynamic> args, string rawCommand) =>
                {
-                    if (!vMenuEnabled)
+                    if (!vMenuEnabled || Menu == null)
                         return;
 
                     if (!MenuController.IsAnyMenuOpen())
@@ -629,7 +629,7 @@ namespace vMenuClient
             {
                 await Delay(100);
             }
-            PostPermissionsSetup();
+            await PostPermissionsSetup();
         }
         #endregion
 
@@ -638,7 +638,7 @@ namespace vMenuClient
         /// It triggers the menu creations, setting of initial flags like PVP, player stats,
         /// and triggers the creation of Tick functions from the FunctionsController class.
         /// </summary>
-        private static void PostPermissionsSetup()
+        private static async Task PostPermissionsSetup()
         {
             switch (GetSettingsInt(Setting.vmenu_pvp_mode))
             {
@@ -701,6 +701,9 @@ namespace vMenuClient
             // Add the main menu to the menu pool.
             MenuController.AddMenu(Menu.Menu);
             MenuController.MainMenu = Menu.Menu;
+
+            // Waiting 2 seconds maybe avoids car names not being query-able using GetLabelText(), etc. right away
+            await Delay(2000);
 
             // Create all (sub)menus.
             CreateSubmenus();

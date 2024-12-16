@@ -950,7 +950,10 @@ namespace vMenuServer
                 entities = playerEntities[license] = new Stack<Entity>();
             }
             var entity = Entity.FromNetworkId(entityId);
-            entities.Push(entity);
+            if (entity != null)
+            {
+                entities.Push(entity);
+            }
         }
 
         [EventHandler("vMenu:EntitySpawnerRemoveMostRecent")]
@@ -965,7 +968,7 @@ namespace vMenuServer
             while (entities.Count > 0)
             {
                 var entity = entities.Pop();
-                if (DoesEntityExist(entity.Handle))
+                if (entity != null && DoesEntityExist(entity.Handle))
                 {
                     DeleteEntity(entity.Handle);
                     break;

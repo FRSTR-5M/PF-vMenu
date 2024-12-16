@@ -18,7 +18,6 @@ namespace Freecam2
         public static string FreecamKey { get; private set; } = "U"; // F2 by default (ReplayStartStopRecordingSecondary)
         public Main()
         {
-            TriggerServerEvent("vMenu:RequestPermissions");
             EventHandlers["onClientResourceStart"] += new Action<string>(ResourceStart);
         }
 

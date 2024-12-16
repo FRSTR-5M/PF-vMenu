@@ -209,9 +209,9 @@ namespace vMenuServer
                 {
                     try
                     {
-                        command.Transaction = transaction;
                         foreach (var kv in keyValues)
                         {
+                            command.Transaction = transaction;
                             command.Parameters["@key"].Value = kv.Key.Truncate(64);
                             command.Parameters["@value"].Value = kv.Value.Value;
                             command.Parameters["@type"].Value = kv.Value.Type;
