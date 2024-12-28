@@ -7,9 +7,65 @@
 </head>
 
 <style>
+  @font-face {
+    font-family: 'GtaFont';
+    src: url(https://runtime.fivem.net/temp/ChaletLondonNineteenSixty.otf?a);
+}
+</style>
+
+<style>
+  #userInput-container * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: GtaFont;
+    font-size: 1.8vh;
+  }
+
+  #userInput-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.5);
+  }
+
+  #userInput-input-container {
+    background: rgba(0, 0, 0, 0.5);
+    padding: 2vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  #userInput-input-container label {
+    margin-bottom: 1vh;
+    color: white;
+    align-self: flex-start;
+  }
+
+  #userInput-input {
+    background: black;
+    color: white;
+    border: 0.1vh solid gray;
+    padding: 1vh;
+    width: 40vw;
+  }
+
+  #userInput-input:focus {
+    outline: none;
+    border-color: lightgray;
+  }
+</style>
+
+<style>
   @import url('https://fonts.googleapis.com/css2?family=Roboto&display=swap');
 
-  * {
+  #importexport-body * {
     margin: 0;
     padding: 0;
     text-align: center;
@@ -17,7 +73,7 @@
     font-family: 'Roboto', sans-serif;
   }
 
-  #body {
+  #importexport-body {
     margin-top: 50px;
     max-width: 1200px;
     margin-left: auto;
@@ -25,24 +81,24 @@
     background-color: rgba(255, 255, 255, 0.8);
   }
 
-  .error {
+  #importexport-body .error {
     background-color: lightcoral;
     color: rgb(121, 34, 34);
     padding: 30px;
   }
 
-  input[type="checkbox"]:not(:checked)+div {
+  #importexport-body input[type="checkbox"]:not(:checked)+div {
     display: none;
   }
 
-  hr {
+  #importexport-body hr {
     margin-top: 10px;
     margin-bottom: 10px;
     border: none;
     border-top: 1px solid lightgray;
   }
 
-  button:not(#close-button) {
+  #importexport-body button:not(#close-button) {
     padding: 5px 10px;
     border: none;
     border-radius: 3px;
@@ -51,7 +107,7 @@
     color: white;
   }
 
-  #close-button {
+  #importexport-body #close-button {
     position: relative;
     top: 0;
     right: 5px;
@@ -63,61 +119,68 @@
     color: gray;
   }
 
-  .grid {
+  #importexport-body .grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .column {
+  #importexport-body .column {
     padding: 20px;
   }
 
-  .column:first-of-type {
+  #importexport-body .column:first-of-type {
     border-right: 1px solid lightgray;
   }
 
-  textarea {
+  #importexport-body textarea {
     width: 100%;
     height: 100%;
     text-align: left;
     padding: 5px;
   }
 
-  strong {
+  #importexport-body strong {
     color: rgb(189, 45, 45);
   }
 
-  .mt {
+  #importexport-body .mt {
     display: block;
     margin-top: 8px;
   }
 
-  .mb {
+  #importexport-body .mb {
     display: block;
     margin-bottom: 8px;
   }
 
-  .left {
+  #importexport-body .left {
     text-align: left;
   }
 
-  ol,
+  #importexport-body ol,
   li {
     text-align: left;
   }
 
-  ol {
+  #importexport-body ol {
     margin-left: 20px;
   }
 
-  input[type=file] {
+  #importexport-body input[type=file] {
     margin-top: 8px;
     margin-bottom: 8px;
   }
 </style>
 
 <body>
-  <div id="body"
+  <div id="userInput-container">
+    <div id="userInput-input-container">
+      <label id="userInput-label" for="userInput-input">Input:</label>
+      <input type="text" id="userInput-input" value="">
+    </div>
+  </div>
+
+  <div id="importexport-body"
        hidden>
     <button id="close-button">×</button>
     <h2 class="mt">IMPORTANT</h2>
@@ -202,7 +265,7 @@
   <script>
     document.getElementById("close-button").onclick = () => {
       event.preventDefault();
-      document.getElementById("body").setAttribute("hidden", "");
+      document.getElementById("importexport-body").setAttribute("hidden", "");
       fetch(`https://${GetParentResourceName()}/disableImportExportNUI`, {
         method: 'POST',
         headers: {
@@ -291,6 +354,53 @@
       document.body.removeChild(textArea);
     }
 
+    const userInputData = {
+      active: false,
+      container: document.querySelector('#userInput-container'),
+      label: document.querySelector('#userInput-label'),
+      input: document.querySelector('#userInput-input')
+    };
+
+    function displayUserInput(labelText, defaultText, maxLength) {
+      userInputData.active = true;
+      userInputData.container.style.display = 'flex';
+      userInputData.label.innerHTML = (labelText || "") + " (max. " + maxLength + " characters):";
+
+      userInputData.input.value = "";
+      userInputData.input.focus();
+      userInputData.input.value = defaultText || "";
+      userInputData.input.setAttribute('maxlength', maxLength);
+    }
+
+    function hideUserInput() {
+      userInputData.active = false;
+      userInputData.container.style.display = 'none';
+    }
+
+    function sendUserInputResult()
+    {
+      fetch(`https://${GetParentResourceName()}/userInputReceiveResult`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: JSON.stringify({
+          userInput: userInputData.input.value
+        })
+      });
+    }
+
+    function sendUserInputCancelled()
+    {
+      fetch(`https://${GetParentResourceName()}/userInputCancel`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: JSON.stringify({})
+      });
+    }
+
     window.addEventListener("message", (data) => {
       const type = data.data.type;
       if (type === 'export') {
@@ -300,7 +410,34 @@
       else if (type === 'copyToClipboard') {
         copyToClipboard(data.data.text);
       }
-    })
+      else if (type === 'userInput:display') {
+        displayUserInput(
+          data.data.labelText,
+          data.data.defaultText,
+          data.data.maxLength);
+      }
+      else if (type === 'userInput:accept') {
+        hideUserInput();
+        sendUserInputResult();
+      }
+      else if (type === 'userInput:cancel') {
+        hideUserInput();
+        sendUserInputCancelled();
+      }
+    });
+
+    window.addEventListener('keyup', (data) => {
+      if (userInputData.active) {
+        if (data.key === 'Enter') {
+          hideUserInput();
+          sendUserInputResult();
+        }
+        else if (data.key === 'Escape') {
+          hideUserInput();
+          sendUserInputCancelled();
+        }
+    }
+  });
   </script>
 </body>
 

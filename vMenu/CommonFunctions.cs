@@ -2033,6 +2033,32 @@ namespace vMenuClient
         }
         #endregion
 
+        internal static bool UserInputActive { private get; set; }
+        internal static string UserInputResult { private get; set; }
+        private static async Task AcceptUserInput()
+        {
+            SendNuiMessage(JsonConvert.SerializeObject(new {
+                type = "userInput:accept"
+            }));
+
+            while (UserInputActive)
+            {
+                await Delay(0);
+            }
+        }
+
+        public async static Task CancelUserInput()
+        {
+            SendNuiMessage(JsonConvert.SerializeObject(new {
+                type = "userInput:cancel"
+            }));
+
+            while (UserInputActive)
+            {
+                await Delay(0);
+            }
+        }
+
         #region GetUserInput
         /// <summary>
         /// Get a user input text string.
@@ -2074,30 +2100,46 @@ namespace vMenuClient
         /// <returns></returns>
         public static async Task<string> GetUserInput(string windowTitle, string defaultText, int maxInputLength)
         {
-            // Create the window title string.
-            var spacer = "\t";
-            AddTextEntry($"{GetCurrentResourceName().ToUpper()}_WINDOW_TITLE", $"{windowTitle ?? "Enter"}:{spacer}(MAX {maxInputLength} Characters)");
+            UserInputActive = true;
 
-            // Display the input box.
-            DisplayOnscreenKeyboard(1, $"{GetCurrentResourceName().ToUpper()}_WINDOW_TITLE", "", defaultText ?? "", "", "", "", maxInputLength);
-            await Delay(0);
-            // Wait for a result.
-            while (true)
+            SendNuiMessage(JsonConvert.SerializeObject(new {
+                type = "userInput:display",
+                labelText = windowTitle,
+                defaultText,
+                maxLength = maxInputLength
+            }));
+            SetNuiFocus(true, true);
+            MainMenu.DisableControls = true;
+
+            while (UserInputActive)
             {
-                var keyboardStatus = UpdateOnscreenKeyboard();
+                Game.DisableAllControlsThisFrame(0);
+                Game.DisableAllControlsThisFrame(2);
 
-                switch (keyboardStatus)
+                await Delay(0);
+
+                if (Game.IsControlJustReleased(0, Control.FrontendAccept) ||
+                    Game.IsDisabledControlJustReleased(0, Control.FrontendAccept) ||
+                    Game.IsControlJustReleased(0, Control.PhoneSelect) ||
+                    Game.IsDisabledControlJustReleased(0, Control.PhoneSelect))
                 {
-                    case 3: // not displaying input field anymore somehow
-                    case 2: // cancelled
-                        return null;
-                    case 1: // finished editing
-                        return GetOnscreenKeyboardResult();
-                    default:
-                        await Delay(0);
-                        break;
+                    await AcceptUserInput();
+                }
+                else if (Game.IsControlJustReleased(0, Control.FrontendCancel) ||
+                    Game.IsDisabledControlJustReleased(0, Control.FrontendCancel) ||
+                    Game.IsControlJustReleased(0, Control.PhoneCancel) ||
+                    Game.IsDisabledControlJustReleased(0, Control.PhoneCancel))
+                {
+                    await CancelUserInput();
                 }
             }
+
+            await Delay(1);
+            MainMenu.DisableControls = false;
+
+            SetNuiFocus(false, false);
+
+            return UserInputResult;
         }
         #endregion
 

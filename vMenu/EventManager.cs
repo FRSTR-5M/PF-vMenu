@@ -54,6 +54,8 @@ namespace vMenuClient
 
             RegisterNuiCallbackType("disableImportExportNUI");
             RegisterNuiCallbackType("importData");
+            RegisterNuiCallbackType("userInputReceiveResult");
+            RegisterNuiCallbackType("userInputCancel");
         }
 
         [EventHandler("__cfx_nui:importData")]
@@ -70,6 +72,24 @@ namespace vMenuClient
             SetNuiFocus(false, false);
             Notify.Info("Debug info: Closing import/export NUI window.");
             cb(JsonConvert.SerializeObject(new { ok = true }));
+        }
+
+        [EventHandler("__cfx_nui:userInputReceiveResult")]
+        internal static void ReceiveUserInputResult(IDictionary<string, object> data, CallbackDelegate cb)
+        {
+            SetNuiFocus(false, false);
+            UserInputActive = false;
+            UserInputResult = data["userInput"] as string;
+            cb(new {});
+        }
+
+        [EventHandler("__cfx_nui:userInputCancel")]
+        internal static void CancelUserInput(IDictionary<string, object> _, CallbackDelegate cb)
+        {
+            SetNuiFocus(false, false);
+            UserInputActive = false;
+            UserInputResult = null;
+            cb(new {});
         }
 
         private bool firstSpawn = true;

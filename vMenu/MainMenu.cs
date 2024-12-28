@@ -79,6 +79,7 @@ namespace vMenuClient
                 if (!value)
                 {
                     MenuController.CloseAllMenus();
+                    _ = CancelUserInput();
                 }
             }
         }
@@ -976,7 +977,7 @@ namespace vMenuClient
                     await TeleportOptionsMenu.TeleportToPrevTpLocation(practiceTpState.Value);
 
                     Vehicle vehicle = Game.PlayerPed.CurrentVehicle;
-                    if(LastVehicleModel is uint)
+                    if(LastVehicleModel is uint && LastVehicleModel != vehicle.Model.Hash)
                     {
                         await SpawnLastVehicle(spawnInside: true, replacePrevious: true);
                         vehicle = Game.PlayerPed.CurrentVehicle;
