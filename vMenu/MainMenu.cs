@@ -241,7 +241,7 @@ namespace vMenuClient
             {
                 RegisterCommand("dv", new Action<dynamic, List<dynamic>, string>((dynamic source, List<dynamic> args, string rawCommand) =>
                 {
-                    if (IsAllowed(Permission.VODelete))
+                    if (IsAllowed(Permission.VODelete) && (vMenuEnabled || IsAllowed(Permission.DVAll)))
                     {
                         var player = Game.PlayerPed.Handle;
                         if (DoesEntityExist(player) && !IsEntityDead(player))
