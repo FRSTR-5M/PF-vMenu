@@ -10,7 +10,12 @@
   @font-face {
     font-family: 'GtaFont';
     src: url(https://runtime.fivem.net/temp/ChaletLondonNineteenSixty.otf?a);
-}
+  }
+
+  @font-face {
+    font-family: 'GtaFontCond';
+    src: url(https://runtime.fivem.net/temp/chaletcomprime-colognesixty-webfont.ttf?a);
+  }
 </style>
 
 <style>
@@ -59,6 +64,57 @@
   #userInput-input:focus {
     outline: none;
     border-color: lightgray;
+  }
+</style>
+
+<style>
+  #timer-container * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: GtaFont;
+    font-size: 2.7vh;
+  }
+
+  #timer-container {
+    display: none;
+    position: absolute;
+    top: 2.5%;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    color: white;
+  }
+
+  #timer-box {
+    color: white;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 0.75vh;
+    display: inline-block;
+    text-align: center;
+    border-radius: 0vh;
+  }
+
+  #timer-label {
+    font-size: 1.8vh;
+    margin-bottom: 0.25vh;
+    display: block;
+  }
+
+  #timer {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  #timer .digit {
+    width: 1vw;
+    text-align: center;
+  }
+
+  #timer .colon {
+    width: .4vw;
+    text-align: center;
   }
 </style>
 
@@ -177,6 +233,21 @@
     <div id="userInput-input-container">
       <label id="userInput-label" for="userInput-input">Input:</label>
       <input type="text" id="userInput-input" value="">
+    </div>
+  </div>
+
+  <div id="timer-container">
+    <div id="timer-box">
+      <span id="timer-label">PRACTICE TIMER</span>
+      <div id="timer">
+        <span id="digit-m1" class="digit">0</span>
+        <span id="digit-m2" class="digit">0</span>
+        <span class="colon">:</span>
+        <span id="digit-s1" class="digit">0</span>
+        <span id="digit-s2" class="digit">0</span>
+        <span class="colon">.</span>
+        <span id="digit-t" class="digit">0</span>
+      </div>
     </div>
   </div>
 
@@ -401,6 +472,51 @@
       });
     }
 
+
+    const practiceTimerData = {
+      active: false,
+      container: document.querySelector('#timer-container'),
+      digitsMinutes: [document.querySelector('#digit-m1'), document.querySelector('#digit-m2')],
+      digitsSeconds: [document.querySelector('#digit-s1'), document.querySelector('#digit-s2')],
+      digitTenths: document.querySelector('#digit-t'),
+      startTime: null,
+      updateFn: null
+    };
+
+    function updateTimer() {
+      const delta = Date.now() - practiceTimerData.startTime;
+
+      let minutes = Math.floor(delta / 60000);
+      let seconds = Math.floor(delta / 1000);
+      let tenths = Math.floor(delta / 100);
+
+      practiceTimerData.digitsMinutes[1].innerHTML = minutes % 10;
+      minutes = Math.floor(minutes / 10);
+      practiceTimerData.digitsMinutes[0].innerHTML = minutes % 10;
+
+      practiceTimerData.digitsSeconds[1].innerHTML = seconds % 10;
+      seconds = Math.floor(seconds / 10);
+      practiceTimerData.digitsSeconds[0].innerHTML = seconds % 10;
+
+      practiceTimerData.digitTenths.innerHTML = tenths % 10;
+    }
+
+    function enablePracticeTimer() {
+      practiceTimerData.container.style.display = "block";
+      practiceTimerData.startTime = Date.now();
+
+      practiceTimerData.updateFn = setInterval(updateTimer, 50);
+    }
+
+    function disablePracticeTimer() {
+      practiceTimerData.container.style.display = "none";
+      clearInterval(practiceTimerData.updateFn);
+    }
+
+    function restartPracticeTimer() {
+      practiceTimerData.startTime = Date.now();
+    }
+
     window.addEventListener("message", (data) => {
       const type = data.data.type;
       if (type === 'export') {
@@ -424,6 +540,17 @@
         hideUserInput();
         sendUserInputCancelled();
       }
+      else if (type === 'practiceTimer:toggle') {
+        if (data.data.enable) {
+          enablePracticeTimer();
+        }
+        else {
+          disablePracticeTimer();
+        }
+      }
+      else if (type === 'practiceTimer:restart') {
+        restartPracticeTimer();
+      }
     });
 
     window.addEventListener('keyup', (data) => {
@@ -436,8 +563,8 @@
           hideUserInput();
           sendUserInputCancelled();
         }
-    }
-  });
+      }
+    });
   </script>
 </body>
 

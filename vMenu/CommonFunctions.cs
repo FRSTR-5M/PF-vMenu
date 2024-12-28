@@ -3805,5 +3805,13 @@ namespace vMenuClient
             }
         }
         #endregion
+
+        public static void TogglePracticeTimer(bool enable)
+        {
+            SendNuiMessage(JsonConvert.SerializeObject(new {
+                type = "practiceTimer:toggle",
+                enable
+            }));
+        }
     }
 }

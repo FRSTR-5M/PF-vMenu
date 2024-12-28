@@ -58,6 +58,8 @@ namespace vMenuClient
         public static bool NoClipEnabled { get { return NoClip.IsNoclipActive(); } set { NoClip.SetNoclipActive(value); } }
         public static IPlayerList PlayersList;
 
+        public static WMenuItem PracticeTimerCheckbox { get; set; }
+
         public static bool DebugMode = GetResourceMetadata(GetCurrentResourceName(), "client_debug_mode", 0) == "true";
         public static bool EnableExperimentalFeatures = (GetResourceMetadata(GetCurrentResourceName(), "experimental_features_enabled", 0) ?? "0") == "1";
         private string vMenuKey;
@@ -80,6 +82,8 @@ namespace vMenuClient
                 {
                     MenuController.CloseAllMenus();
                     _ = CancelUserInput();
+                    PracticeTimerCheckbox.AsCheckboxItem().Checked = false;
+                    TogglePracticeTimer(false);
                 }
             }
         }
@@ -1004,7 +1008,12 @@ namespace vMenuClient
                     var resetButton = new MenuItem("Retry", "Retry from your practice location in a repaired version of your last spawned vehicle. ~g~You can create a key bind for this in the GTA settings.~s~").ToWrapped();
                     practiceMenu.AddItem(resetButton);
 
-                    resetButton.Selected += async (_s, _args) => await PracticeRetry();
+                    resetButton.Selected += async (_s, _args) => {
+                        await PracticeRetry();
+                        SendNuiMessage(JsonConvert.SerializeObject(new {
+                            type = "practiceTimer:restart"
+                        }));
+                    };
 
                     RegisterKeyMapping($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:practiceRetry", "Practice: Retry", "keyboard", "");
                     RegisterCommand($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:practiceRetry", new Action<dynamic, List<dynamic>, string>(async (dynamic source, List<dynamic> args, string rawCommand) =>
@@ -1031,6 +1040,17 @@ namespace vMenuClient
                     setPracticeLocationBtn.Selected += (_s, _args) => SetPracticeLocation();
 
                     practiceMenu.AddItem(setPracticeLocationBtn);
+
+
+                    PracticeTimerCheckbox = new MenuCheckboxItem(
+                        "Practice Timer",
+                        "Enable or disable the practice timer. The timer will be restarted whenever you retry.",
+                        false).ToWrapped();
+                    PracticeTimerCheckbox.CheckboxChanged += (_s, args) => {
+                        TogglePracticeTimer(args.Checked);
+                    };
+
+                    practiceMenu.AddItem(PracticeTimerCheckbox);
 
 
                     var spawnLastBtn = new MenuItem("Spawn Last Vehicle", "Spawn your last spawned vehicle again.").ToWrapped();
