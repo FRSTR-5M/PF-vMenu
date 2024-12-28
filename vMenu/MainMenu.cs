@@ -981,7 +981,7 @@ namespace vMenuClient
                     await TeleportOptionsMenu.TeleportToPrevTpLocation(practiceTpState.Value);
 
                     Vehicle vehicle = Game.PlayerPed.CurrentVehicle;
-                    if(LastVehicleModel is uint && LastVehicleModel != vehicle.Model.Hash)
+                    if(LastVehicleModel is uint && (vehicle == null || LastVehicleModel != vehicle.Model.Hash))
                     {
                         await SpawnLastVehicle(spawnInside: true, replacePrevious: true);
                         vehicle = Game.PlayerPed.CurrentVehicle;
@@ -996,6 +996,10 @@ namespace vMenuClient
                             TeleportOptionsMenu.ApplyPrevTpVehicleState(vehicleState);
                         }
                     }
+
+                    SendNuiMessage(JsonConvert.SerializeObject(new {
+                        type = "practiceTimer:restart"
+                    }));
                 }
 
                 void SetPracticeLocation()
@@ -1010,9 +1014,6 @@ namespace vMenuClient
 
                     resetButton.Selected += async (_s, _args) => {
                         await PracticeRetry();
-                        SendNuiMessage(JsonConvert.SerializeObject(new {
-                            type = "practiceTimer:restart"
-                        }));
                     };
 
                     RegisterKeyMapping($"{GetSettingsString(Setting.vmenu_individual_server_id)}vMenu:practiceRetry", "Practice: Retry", "keyboard", "");
