@@ -317,7 +317,7 @@ namespace vMenuClient
 
         public Vector3? TryParseTpXYZString(string xyzString)
         {
-            xyzString = string.Join("", xyzString.Select(c => char.IsDigit(c) || c=='.' ? c : ' '));
+            xyzString = string.Join("", xyzString.Select(c => (char.IsDigit(c) || c == '.' || c == '-') ? c : ' '));
             var xyzStrs = xyzString.Split(' ').Select(s => s.Trim()).Where(s => !string.IsNullOrEmpty(s)).ToList();
 
             if (xyzStrs.Count != 3)
