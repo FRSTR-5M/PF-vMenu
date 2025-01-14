@@ -882,6 +882,13 @@ namespace vMenuClient.menus
                 else if (item == saveSettings)
                 {
                     UserDefaults.SaveSettings();
+                    saveSettings.Enabled = false;
+                    async void TimeoutFunction ()
+                    {
+                        await Delay(2000);
+                        saveSettings.Enabled = true;
+                    };
+                    TimeoutFunction();
                 }
             };
         }

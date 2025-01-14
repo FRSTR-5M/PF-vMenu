@@ -242,7 +242,7 @@ namespace vMenuServer
     {
         private static void SendResponse(Player player, Response response)
         {
-            player.TriggerLatentEvent("vMenu:ServerKeyValueStoreResponse", 8192, JsonConvert.SerializeObject(response));
+            player.TriggerEvent("vMenu:ServerKeyValueStoreResponse", JsonConvert.SerializeObject(response));
         }
 
 

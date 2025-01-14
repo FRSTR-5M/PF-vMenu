@@ -29,7 +29,7 @@ namespace vMenuClient
         private static async Task<Response> SendRequest(Request request)
         {
             var json = JsonConvert.SerializeObject(request);
-            BaseScript.TriggerLatentServerEvent($"vMenu:ServerKeyValueStoreRequest", 8192, json);
+            BaseScript.TriggerServerEvent($"vMenu:ServerKeyValueStoreRequest", json);
 
             Response response;
             while (!responses.TryGetValue(request.Id, out response))
