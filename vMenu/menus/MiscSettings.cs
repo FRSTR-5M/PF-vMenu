@@ -111,11 +111,6 @@ namespace vMenuClient.menus
             return sb.ToString();
         }
 
-        private void CopyToClipboard(string text)
-        {
-            SendNuiMessage(JsonConvert.SerializeObject(new {type = "copyToClipboard", text}));
-        }
-
         /// <summary>
         /// Creates the menu.
         /// </summary>

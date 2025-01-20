@@ -501,6 +501,19 @@ namespace vMenuClient
                 setTpSect.Add(saveLocationBtn);
             }
 
+            if (IsAllowed(Permission.TPTeleportToCoord))
+            {
+                var copyCoordinatesBtn = new MenuItem("Copy Coordinates", "Copy your current coordinates to the clipboard.").ToWrapped();
+                copyCoordinatesBtn.Selected += (_s, _args) =>
+                {
+                    var pos = Game.PlayerPed.Position;
+                    CopyToClipboard($"X={pos.X}, Y={pos.Y}, Z={pos.Z}");
+                    Notify.Info("Coordinates copied to the clipboard.");
+                };
+
+                setTpSect.Add(copyCoordinatesBtn);
+            }
+
 
             menu
                 .AddItems(tpItems)

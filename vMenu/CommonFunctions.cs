@@ -74,6 +74,11 @@ namespace vMenuClient
         }
         #endregion
 
+        public static void CopyToClipboard(string text)
+        {
+            SendNuiMessage(JsonConvert.SerializeObject(new {type = "copyToClipboard", text}));
+        }
+
         #region menu position
         public static bool RightAlignMenus() => UserDefaults.MiscRightAlignMenu;
         #endregion
@@ -592,8 +597,10 @@ namespace vMenuClient
         /// <param name="pos"></param>
         /// <param name="safeModeDisabled"></param>
         /// <returns></returns>
-        public static async Task TeleportToCoords(Vector3 pos, bool safeModeDisabled = false)
+        public static async Task<Vector3> TeleportToCoords(Vector3 pos, bool safeModeDisabled = false)
         {
+            var finalPos = pos;
+
             if (!safeModeDisabled)
             {
                 // Is player in a vehicle and the driver? Then we'll use that to teleport.
@@ -724,6 +731,9 @@ namespace vMenuClient
                         {
                             SetEntityCoords(Game.PlayerPed.Handle, pos.X, pos.Y, groundZ, false, false, false, true);
                         }
+
+                        finalPos.Z = groundZ;
+
                         break;
                     }
 
@@ -753,6 +763,8 @@ namespace vMenuClient
                     {
                         SetEntityCoords(Game.PlayerPed.Handle, safePos.X, safePos.Y, safePos.Z, false, false, false, true);
                     }
+
+                    finalPos = safePos;
                 }
 
                 // Once the teleporting is done, unfreeze vehicle or player and fade them back in.
@@ -797,6 +809,8 @@ namespace vMenuClient
                     SetEntityCoords(Game.PlayerPed.Handle, pos.X, pos.Y, pos.Z, false, false, false, true);
                 }
             }
+
+            return finalPos;
         }
 
         /// <summary>
@@ -807,8 +821,7 @@ namespace vMenuClient
             if (Game.IsWaypointActive)
             {
                 var pos = World.WaypointPosition;
-                await TeleportToCoords(pos);
-                return pos;
+                return await TeleportToCoords(pos);
             }
             else
             {
