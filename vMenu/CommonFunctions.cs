@@ -14,6 +14,8 @@ using Newtonsoft.Json;
 using vMenuClient.data;
 using vMenuClient.menus;
 
+using vMenuShared;
+
 using static CitizenFX.Core.Native.API;
 using static CitizenFX.Core.UI.Screen;
 using static vMenuShared.ConfigManager;
@@ -1342,6 +1344,9 @@ namespace vMenuClient
         }
         #endregion
 
+        private static int lastSpawnTime = 0;
+        private static bool spawnedTooFastWarningShown = false;
+
         #region Main Spawn Vehicle Function
         /// <summary>
         /// Spawns a vehicle.
@@ -1354,6 +1359,19 @@ namespace vMenuClient
         /// <param name="saveName">Used to get/set info about the saved vehicle data.</param>
         public static async Task<int> SpawnVehicle(uint vehicleHash, bool spawnInside, bool replacePrevious, bool skipLoad, VehicleInfo vehicleInfo, string saveName = null, float x = 0f, float y = 0f, float z = 0f, float heading = -1f, bool despawnable = false)
         {
+            int currentTime = Game.GameTime;
+            if (currentTime - lastSpawnTime < GetSettingsInt(Setting.vmenu_vehicle_spawn_delay))
+            {
+                if (!spawnedTooFastWarningShown)
+                {
+                    spawnedTooFastWarningShown = true;
+                    Notify.Alert("You are spawning vehicles too fast. You need to wait a bit before you can spawn your next vehicle.", blink: false);
+                }
+
+                return 0;
+            }
+            lastSpawnTime = currentTime;
+
             var speed = 0f;
             var rpm = 0f;
             if (Game.PlayerPed.IsInVehicle())

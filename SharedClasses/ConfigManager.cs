@@ -42,7 +42,9 @@ namespace vMenuShared
             // Vehicle Chameleon Colours
             vmenu_using_chameleon_colours,
 
+            // Vehicle spawner related settings
             vmenu_only_custom_classes,
+            vmenu_vehicle_spawn_delay,
 
             // Kick & ban settings
             vmenu_default_ban_message_information,
